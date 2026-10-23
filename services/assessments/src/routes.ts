@@ -17,7 +17,18 @@ import {
   submitQuizAttemptHandler,
   deleteQuizAttemptHandler,
 } from './handlers';
-
+import {
+  createBankHandler,
+  listBankHandler,
+  updateBankHandler,
+  attachQuestionsHandler,
+  presentationHandler,
+  manualGradeHandler,
+  gradeHistoryHandler,
+  createRecheckHandler,
+  listRecheckHandler,
+  decideRecheckHandler,
+} from './expansion-handlers';
 
 export function registerRoutes(app: any) {
   const router = Router();
@@ -36,11 +47,38 @@ export function registerRoutes(app: any) {
   router.put('/questions/:id', authenticate, authorize('teacher', 'admin'), updateQuestionHandler);
   router.delete('/questions/:id', authenticate, authorize('teacher', 'admin'), deleteQuestionHandler);
 
+  // Question bank routes
+  router.post('/question-banks', authenticate, authorize('teacher', 'admin'), createBankHandler);
+  router.get('/question-banks', authenticate, authorize('teacher', 'admin'), listBankHandler);
+  router.put('/question-banks/:id', authenticate, authorize('teacher', 'admin'), updateBankHandler);
+  router.post('/questions/attach-to-bank', authenticate, authorize('teacher', 'admin'), attachQuestionsHandler);
+
   // Quiz Attempt routes
   router.post('/quiz-attempts', authenticate, authorize('student'), createQuizAttemptHandler);
   router.get('/quiz-attempts', authenticate, listQuizAttemptsHandler);
   router.get('/quiz-attempts/:id', authenticate, getQuizAttemptHandler);
+  router.get('/quiz-attempts/:id/presentation', authenticate, presentationHandler);
   router.put('/quiz-attempts/:id/submit', authenticate, authorize('student'), submitQuizAttemptHandler);
+
+  // Manual grading and grade history (teacher/admin)
+  router.post(
+    '/quiz-attempts/:id/manual-grade',
+    authenticate,
+    authorize('teacher', 'admin'),
+    manualGradeHandler,
+  );
+  router.get('/quiz-attempts/:id/grade-history', authenticate, gradeHistoryHandler);
+
+  // Recheck workflow: students create, teachers/admins decide
+  router.post('/quiz-attempts/:id/recheck', authenticate, authorize('student'), createRecheckHandler);
+  router.get('/recheck-requests', authenticate, authorize('teacher', 'admin'), listRecheckHandler);
+  router.post(
+    '/recheck-requests/:id/decision',
+    authenticate,
+    authorize('teacher', 'admin'),
+    decideRecheckHandler,
+  );
+
   router.delete('/quiz-attempts/:id', authenticate, authorize('student', 'admin'), deleteQuizAttemptHandler);
 
   app.use('/api/assessments', router);

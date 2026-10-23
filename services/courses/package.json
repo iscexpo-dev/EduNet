@@ -15,6 +15,7 @@
   "dependencies": {
     "@edunet/config": "workspace:*",
     "@edunet/database": "workspace:*",
+    "@edunet/observability": "workspace:*",
     "@edunet/rbac": "workspace:*",
     "@edunet/types": "workspace:*",
     "@edunet/validation": "workspace:*",

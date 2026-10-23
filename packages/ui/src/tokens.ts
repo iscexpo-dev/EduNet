@@ -117,3 +117,54 @@ export const shadows = {
   lg: '0 10px 15px -3px rgb(0 0 0 / 0.1)',
   xl: '0 20px 25px -5px rgb(0 0 0 / 0.1)',
 };
+
+/**
+ * Dark-mode surface palette.
+ *
+ * Components reference Tailwind's `dark:` variants (class strategy), which are
+ * toggled by the `.dark` class on `<html>`. These tokens document the palette
+ * and let non-Tailwind renderers (emails, future native shells) stay aligned.
+ */
+export const darkTokens = {
+  surfaces: {
+    base: '#0b1220',
+    raised: '#101827',
+    border: '#374151',
+  },
+  text: {
+    primary: '#f3f4f6',
+    secondary: '#d1d5db',
+    muted: '#9ca3af',
+  },
+};
+
+/**
+ * Bengali (বাংলা) typography.
+ *
+ * Bengali script needs looser line-height than Latin and explicit font
+ * fallbacks:'Noto Sans Bengali' for UI text with system Bengali fonts as
+ * fallback. The numeric scale maps Western digits to Bengali numerals for
+ * locales where digits-as-words are preferred (bn-BD convention).
+ */
+export const bengaliTypography = {
+  fontFamily:
+    "'Noto Sans Bengali', 'Hind Siliguri', 'Kalpurush', 'SolaimanLipi', system-ui, sans-serif",
+  lineHeight: { tight: 1.45, base: 1.75, relaxed: 1.9 },
+};
+
+export const bengaliDigits = ['০', '১', '২', '৩', '৪', '৫', '৬', '৭', '৮', '৯'] as const;
+
+/** Converts Latin digit strings (e.g. "12.5") to Bengali numerals. */
+export function toBengaliNumerals(value: string | number): string {
+  return String(value).replace(/[0-9]/g, (digit) => bengaliDigits[Number(digit)]);
+}
+
+export const locales = ['en', 'bn'] as const;
+export type Locale = (typeof locales)[number];
+
+export function isLocale(value: string): value is Locale {
+  return locales.includes(value as Locale);
+}
+
+/** Document-language direction map; both EduNet languages are LTR, kept for RTL readiness. */
+export const localeDirection: Record<Locale, 'ltr' | 'rtl'> = { en: 'ltr', bn: 'ltr' };

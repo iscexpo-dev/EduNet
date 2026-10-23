@@ -1,4 +1,4 @@
-import { pgTable, serial, integer, text, timestamp, boolean, uuid, varchar, index, unique } from 'drizzle-orm/pg-core';
+import { pgTable, serial, integer, text, timestamp, boolean, uuid, varchar, jsonb, index, unique } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 
 // Organizations
@@ -107,6 +107,12 @@ export const assignments = pgTable('assignments', {
   description: text('description').notNull(),
   dueDate: timestamp('due_date').notNull(),
   maxPoints: integer('max_points').notNull(),
+  // Late policy: accept (late submissions allowed with penalty), penalized
+  // (accepted but visually flagged), locked (late submissions rejected).
+  latePolicy: varchar('late_policy', { length: 20 }).default('accept').notNull(),
+  latePenaltyPercent: integer('late_penalty_percent').default(0).notNull(),
+  allowResubmission: boolean('allow_resubmission').default(false).notNull(),
+  resubmissionDeadline: timestamp('resubmission_deadline'),
   isActive: boolean('is_active').default(true).notNull(),
   deletedAt: timestamp('deleted_at'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
@@ -126,6 +132,11 @@ export const submissions = pgTable('submissions', {
   studentId: uuid('student_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
   content: text('content').notNull(),
   submittedAt: timestamp('submitted_at').defaultNow().notNull(),
+  // Attempt ordering for resubmissions; 1 for the first submission.
+  attemptNumber: integer('attempt_number').default(1).notNull(),
+  isLate: boolean('is_late').default(false).notNull(),
+  // media_files ids attached to this submission (access-controlled there).
+  attachmentIds: jsonb('attachment_ids').default([]).notNull(),
   grade: integer('grade'),
   feedback: text('feedback'),
   gradedAt: timestamp('graded_at'),
@@ -139,6 +150,121 @@ export const submissions = pgTable('submissions', {
   gradedByIdx: index('submissions_graded_by_idx').on(table.gradedBy),
   studentGradeIdx: index('submissions_student_grade_idx').on(table.studentId, table.grade),
   assignmentGradeIdx: index('submissions_assignment_grade_idx').on(table.assignmentId, table.grade),
+}));
+
+// Assignment rubrics: one row per criterion; grade total is computed server-side.
+export const rubricCriteria = pgTable('rubric_criteria', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  assignmentId: uuid('assignment_id').references(() => assignments.id, { onDelete: 'cascade' }).notNull(),
+  description: varchar('description', { length: 300 }).notNull(),
+  maxPoints: integer('max_points').notNull(),
+  order: integer('order').notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (table) => ({
+  assignmentIdx: index('rubric_criteria_assignment_idx').on(table.assignmentId),
+  orderIdx: index('rubric_criteria_assignment_order_idx').on(table.assignmentId, table.order),
+}));
+
+// Submission content revisions: audit trail of content changes (resubmissions, autosaves).
+export const submissionRevisions = pgTable('submission_revisions', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  submissionId: uuid('submission_id').references(() => submissions.id, { onDelete: 'cascade' }).notNull(),
+  previousContent: text('previous_content'),
+  newContent: text('new_content').notNull(),
+  attemptNumber: integer('attempt_number').default(1).notNull(),
+  // resubmission | autosave | create
+  reason: varchar('reason', { length: 20 }).default('create').notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (table) => ({
+  submissionIdx: index('submission_revisions_submission_idx').on(table.submissionId),
+  createdIdx: index('submission_revisions_created_idx').on(table.createdAt),
+}));
+
+// Submission events: who did what to a submission (submit/grade/regrade/autosave).
+export const submissionEvents = pgTable('submission_events', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  submissionId: uuid('submission_id').references(() => submissions.id, { onDelete: 'cascade' }).notNull(),
+  // actor may be null only when origin explicitly unauthenticated (never in practice; kept for seed tools)
+  actorId: uuid('actor_id').references(() => users.id, { onDelete: 'set null' }),
+  action: varchar('action', { length: 30 }).notNull(),
+  metadata: jsonb('metadata'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (table) => ({
+  submissionIdx: index('submission_events_submission_idx').on(table.submissionId),
+  actionIdx: index('submission_events_action_idx').on(table.action),
+}));
+
+// Grade revisions: audit every grade change after the first grading.
+export const submissionGradeRevisions = pgTable('submission_grade_revisions', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  submissionId: uuid('submission_id').references(() => submissions.id, { onDelete: 'cascade' }).notNull(),
+  adjustedBy: uuid('adjusted_by').references(() => users.id, { onDelete: 'set null' }),
+  previousGrade: integer('previous_grade'),
+  newGrade: integer('new_grade').notNull(),
+  reason: varchar('reason', { length: 300 }).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (table) => ({
+  submissionIdx: index('submission_grade_revisions_submission_idx').on(table.submissionId),
+}));
+
+
+// Identity: audit trail for every authentication-relevant event.
+// Events are security data, not analytics data; entries carry only a
+// pseudonymised IP (HMAC) and never passwords or tokens.
+export const identityAuditEvents = pgTable('identity_audit_events', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  // Nullable: events can precede user creation (unknown email login attempts).
+  userId: uuid('user_id').references(() => users.id, { onDelete: 'set null' }),
+  organizationId: uuid('organization_id').references(() => organizations.id, { onDelete: 'set null' }),
+  // login_success | login_failure | password_reset_requested |
+  // password_reset_completed | email_verified | session_revoked | lockout
+  eventType: varchar('event_type', { length: 50 }).notNull(),
+  outcome: varchar('outcome', { length: 20 }).default('success').notNull(), // success | failure
+  ipHash: varchar('ip_hash', { length: 64 }),
+  userAgent: varchar('user_agent', { length: 300 }),
+  metadata: jsonb('metadata'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (table) => ({
+  userIdx: index('identity_audit_events_user_idx').on(table.userId),
+  eventTypeIdx: index('identity_audit_events_event_type_idx').on(table.eventType),
+  createdAtIdx: index('identity_audit_events_created_at_idx').on(table.createdAt),
+  ipHashIdx: index('identity_audit_events_ip_hash_idx').on(table.ipHash),
+}));
+
+// Identity: single-use opaque tokens (password reset, email/phone verification).
+// Raw token is shown/emailed once; only its hash is stored.
+export const identityTokens = pgTable('identity_tokens', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  // password_reset | email_verification | phone_verification
+  kind: varchar('kind', { length: 40 }).notNull(),
+  tokenHash: varchar('token_hash', { length: 64 }).notNull(),
+  expiresAt: timestamp('expires_at').notNull(),
+  usedAt: timestamp('used_at'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (table) => ({
+  tokenHashIdx: unique('identity_tokens_token_hash_unique').on(table.tokenHash),
+  userIdx: index('identity_tokens_user_id_idx').on(table.userId),
+  kindIdx: index('identity_tokens_kind_idx').on(table.kind),
+  userIdKindIdx: index('identity_tokens_user_kind_idx').on(table.userId, table.kind),
+}));
+
+// Identity: device/session registry backing refresh-token revocation and
+// device management. One row per established login session.
+export const sessions = pgTable('sessions', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  sessionId: varchar('session_id', { length: 64 }).notNull(), // jwtId claim
+  deviceName: varchar('device_name', { length: 200 }),
+  ipHash: varchar('ip_hash', { length: 64 }),
+  userAgent: varchar('user_agent', { length: 300 }),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  lastSeenAt: timestamp('last_seen_at').defaultNow().notNull(),
+  revokedAt: timestamp('revoked_at'),
+}, (table) => ({
+  sessionIdIdx: unique('sessions_session_id_unique').on(table.sessionId),
+  userIdx: index('sessions_user_id_idx').on(table.userId),
+  activeIdx: index('sessions_active_idx').on(table.userId, table.revokedAt),
 }));
 
 // Relations
