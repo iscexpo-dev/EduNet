@@ -24,10 +24,11 @@ coverage and an operational story.
 
 | Gate | Command | Result |
 |------|---------|--------|
-| Typecheck | `pnpm typecheck` | **27/27 tasks PASS** |
+| Typecheck | `pnpm typecheck` | **35/35 tasks PASS** |
 | Lint | `pnpm lint` | **32/32 tasks PASS**, 0 errors, 252 warnings |
-| Unit tests | `pnpm test` | **37/37 tasks PASS**, 323 tests across 16 packages |
-| Build | `pnpm build` | **21/21 tasks PASS**, including the Next.js production build |
+| Unit tests | `pnpm test` | **45/45 tasks PASS**, 334 tests across 16 packages |
+| Build | `pnpm build` | **29/29 tasks PASS**, including the Next.js production build |
+| Production start | `node dist/index.js` | **PASS** — all 19 services `/health` 200; built web `/` 200 |
 | Migrations | `pnpm --filter @edunet/database migrate` | `CI ONLY` in this sandbox (no PostgreSQL binary) |
 | Database integration | `pnpm --filter @edunet/database test:integration` | `CI ONLY` |
 | Browser E2E | `pnpm --filter @edunet/web test:e2e` | `CI ONLY` |
@@ -84,11 +85,11 @@ coverage and an operational story.
 |---|-----------|--------|----------------|
 | 31 | Integrations and webhooks | PARTIAL | Integration configs and webhook endpoint registration; delivery, retries and signing not proven |
 | 32 | Audit and compliance | PARTIAL | Identity audit, platform audit with verification, AI audit; no retention policy or immutable external store |
-| 33 | Security hardening | NEEDS HARDENING | No rate limiting, no production CORS policy, tokens in localStorage, no CSP/helmet, no recent external vulnerability scan |
+| 33 | Security hardening | NEEDS HARDENING | Gateway now enforces CORS allowlist, security headers and per-instance rate limits; CSP, httpOnly token storage and a current external scan are still missing |
 | 34 | Observability | COMPLETE | Request IDs, structured logs, bounded Prometheus metrics, `/health`, `/ready`, `/metrics` across services; dashboards/alert routing not provisioned |
 | 35 | CI/CD | PARTIAL | GitHub Actions installs, migrates, lints, typechecks, runs DB integration, tests and Playwright E2E; first hosted run on the current commit pending and no deployment job |
-| 36 | Infrastructure and containers | MISSING | No Dockerfile, compose, IaC, managed-Postgres provisioning or CDN configuration |
-| 37 | API gateway / single origin | PARTIAL | `@edunet/gateway` maps all 18 prefixes, streams bodies and has 8 tests; no deployment manifest, TLS or end-to-end gateway test |
+| 36 | Infrastructure and containers | MISSING | Services now run from compiled `dist`; no Dockerfile, compose, IaC, managed-Postgres provisioning or CDN configuration |
+| 37 | API gateway / single origin | PARTIAL | `@edunet/gateway` maps all 18 prefixes, streams bodies CORS/security headers/rate limits and has 19 tests; no deployment manifest, TLS or end-to-end gateway test |
 | 38 | Backup and disaster recovery | PARTIAL | `scripts/backup-db.sh`, `scripts/restore-db.sh`, checksum and runbook; no scheduled job, media snapshot or timed restore drill |
 | 39 | Performance and load testing | MISSING | No k6/artillery scenario, p95 baseline or 10× pilot load test |
 | 40 | QA strategy | PARTIAL | 315 unit tests, 22 test files, one browser journey (CI); no contract, visual, accessibility or cross-browser suite |

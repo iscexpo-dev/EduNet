@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import { AuthProvider } from '@edunet/auth';
 import { LocaleProvider } from '@/lib/i18n';
@@ -10,14 +10,14 @@ export const metadata: Metadata = {
   description: 'Production-grade, modular, secure, scalable education platform',
   applicationName: 'EduNet',
   manifest: '/manifest.webmanifest',
-  themeColor: '#0284c7',
   icons: { icon: '/icon.svg', apple: '/icon.svg' },
 };
 
-export const viewport = {
+export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
   viewportFit: 'cover',
+  themeColor: '#0284c7',
 };
 
 // Applies the theme class before paint to avoid a flash of the wrong theme.
@@ -40,8 +40,8 @@ export default function RootLayout({
       <body>
         <LocaleProvider>
           <OfflineBanner />
-        <AuthProvider>{children}</AuthProvider>
-        <ServiceWorkerRegister />
+          <AuthProvider>{children}</AuthProvider>
+          <ServiceWorkerRegister />
         </LocaleProvider>
       </body>
     </html>

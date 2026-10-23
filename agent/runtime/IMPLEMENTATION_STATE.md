@@ -37,11 +37,13 @@ ACTIVE — gate work in progress
 
 ## Verified This Session
 
-- `pnpm typecheck` — 27/27 PASS
+- `pnpm typecheck` — 35/35 PASS
 - `pnpm lint` — 32/32 PASS, 0 errors, 252 warnings
-- `pnpm test` — 37/37 tasks PASS, 323 tests
-- `pnpm build` — 21/21 PASS
+- `pnpm test` — 45/45 tasks PASS, 334 tests
+- `pnpm build` — 29/29 PASS
 - AI service: routes + consent/safety/quota/persistence handlers; 18 tests
+- Production runtime packaging: shared packages build to `dist`; all 19
+  services start with plain `node` and answer `/health`; built web serves `/`
 - Backups: `scripts/backup-db.sh`, `scripts/restore-db.sh` (syntax checked only)
 
 Not executed in this sandbox: migrations, PostgreSQL integration, Playwright

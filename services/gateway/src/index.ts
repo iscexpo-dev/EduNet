@@ -16,6 +16,12 @@ const service = bootstrapService({
   port,
 });
 
+// Trust exactly the configured number of proxy hops so rate limiting sees the
+// client address. Default 0: an exposed gateway must not trust client-supplied
+// X-Forwarded-For values.
+const trustProxy = Number(process.env.TRUST_PROXY ?? 0);
+service.app.set('trust proxy', Number.isFinite(trustProxy) ? trustProxy : 0);
+
 if (process.env.NODE_ENV !== 'test' && require.main === module) {
   service.start();
 }

@@ -69,6 +69,21 @@ MEDIA_STORAGE_PATH=/var/lib/edunet/media
 MEDIA_SIGNING_SECRET=<random secret>   # falls back to JWT_SECRET if unset
 ```
 
+Gateway edge:
+
+```env
+GATEWAY_PORT=8080
+TRUST_PROXY=1                # one TLS-terminating proxy in front
+CORS_ORIGINS=https://app.example.org,https://admin.example.org
+ENABLE_HSTS=true
+GATEWAY_RATE_LIMIT_PER_MINUTE=120
+GATEWAY_AUTH_RATE_LIMIT_PER_MINUTE=20
+GATEWAY_AI_RATE_LIMIT_PER_MINUTE=30
+```
+
+An empty `CORS_ORIGINS` means same-origin only. Rate limits are per gateway
+process; use a shared limiter before running multiple replicas.
+
 AI:
 
 ```env

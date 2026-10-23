@@ -84,16 +84,18 @@ There is no application-level field encryption yet.
 | XSS | React escaping; no `dangerouslySetInnerHTML` in reviewed pages |
 | Path traversal | Blocked in storage key generation/containment; tested |
 | MIME/upload abuse | Allowlist and size cap |
-| CORS | **Missing** |
-| Rate limiting | **Missing** |
-| Security headers/CSP | **Missing** |
+| CORS | Gateway allowlist via `CORS_ORIGINS`; empty list = same origin only |
+| Rate limiting | Gateway fixed-window per IP and prefix; stricter for auth/AI. In-process only |
+| Security headers | Gateway sets `nosniff`, `DENY`, referrer policy, permissions policy, COOP/CORP; HSTS opt-in |
+| CSP | **Missing** — needs a Next.js nonce strategy |
 | Token storage | **localStorage — migrate to httpOnly cookies** |
 | Dependency scan | **No current scan** |
 | Secret management | Environment variables; no vault |
 | Logging of secrets | Reviewed paths avoid logging tokens/keys |
 
-These five gaps are launch blockers. Rate limiting should protect login,
-password reset, AI messages and search at minimum.
+Remaining launch blockers: CSP, httpOnly token storage and a current external
+scan. Rate limiting is per gateway instance; a shared store is required before
+running more than one gateway replica.
 
 ## 7. Threat Model (abbreviated)
 
@@ -102,7 +104,7 @@ password reset, AI messages and search at minimum.
 | Cross-tenant read via missing predicate | Critical | RBAC, integration tests, review | Medium until every handler is covered |
 | Forged token due to weak secret | Critical | Required env secret, placeholder rejection | Low |
 | Refresh-token replay | High | Token-kind claim, session revocation | Low |
-| Account takeover via credential stuffing | High | Lockout, audit | Medium (no MFA/rate limit) |
+| Account takeover via credential stuffing | High | Lockout, audit, gateway rate limit | Medium (no MFA) |
 | Uploaded malware / XSS via SVG | High | MIME allowlist, private signed access | Medium (no AV scanner) |
 | AI prompt injection | High | System prompt, output screening, no tool access | Medium |
 | AI harmful advice to a minor | Critical | Crisis short-circuit, consent, human escalation | Medium |
@@ -133,9 +135,9 @@ See `docs/operations/OPERATIONS.md` for severity levels and the on-call flow.
 
 ## 10. Pre-Launch Security Checklist
 
-- [ ] Rate limiting on auth, reset, AI and search
-- [ ] CORS allowlist for the production web origin
-- [ ] CSP, HSTS, `X-Content-Type-Options`, frame-ancestors
+- [x] Rate limiting on auth, reset, AI and search (gateway, in-process)
+- [x] CORS allowlist for the production web origin
+- [ ] CSP (`X-Content-Type-Options`, frame-ancestors and HSTS already set)
 - [ ] Access/refresh tokens in httpOnly, Secure, SameSite cookies
 - [ ] External dependency and container scan with no unresolved critical/high
 - [ ] Secret manager or sealed environment; no long-lived shared JWT secret

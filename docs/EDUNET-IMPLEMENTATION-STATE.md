@@ -16,10 +16,12 @@ Gap analysis: `docs/EDUNET-ROADMAP-GAP-MATRIX.md`
 | Gate | Command | Result |
 |------|---------|--------|
 | Install | `pnpm install` | PASS (lockfile accepted) |
-| Typecheck | `pnpm typecheck` | **27/27 tasks PASS** |
+| Typecheck | `pnpm typecheck` | **35/35 tasks PASS** |
 | Lint | `pnpm lint` | **32/32 tasks PASS**, 0 errors, 252 warnings |
-| Unit tests | `pnpm test` | **37/37 tasks PASS**, **323 tests**, 24 test files, 16 packages |
-| Build | `pnpm build` | **21/21 tasks PASS**, including the Next.js production build |
+| Unit tests | `pnpm test` | **45/45 tasks PASS**, **334 tests**, 26 test files, 16 packages |
+| Build | `pnpm build` | **29/29 tasks PASS**, including the Next.js production build |
+| Production start | `node dist/index.js` | **PASS** — all 19 services returned 200 from `/health` |
+| Web start | `pnpm --filter @edunet/web start` | **PASS** — homepage returned 200 |
 | Migrations | `pnpm --filter @edunet/database migrate` | **CI ONLY** — no PostgreSQL/Docker in this sandbox |
 | Database integration | `pnpm --filter @edunet/database test:integration` | **CI ONLY** — writes to PostgreSQL |
 | Browser E2E | `pnpm --filter @edunet/web test:e2e` | **CI ONLY** — no Playwright browser installed |
@@ -49,7 +51,7 @@ what was actually executed in this session.
 | `@edunet/support` | 10 | resources, tickets, escalation, counseling |
 | `@edunet/courses` | 7 | CRUD, teacher ownership, admin override |
 | `@edunet/enrollments` | 6 | self-enrolment, duplicate prevention, cross-student rejection |
-| `@edunet/gateway` | 8 | prefix mapping, env overrides, streaming proxy, 502 handling |
+| `@edunet/gateway` | 19 | routing, streaming proxy, CORS/headers, rate limiting, config |
 
 ---
 
@@ -96,12 +98,33 @@ Added `@edunet/gateway` on port 8080 (configurable with `GATEWAY_PORT`):
 - streams request and response bodies without buffering media
 - re-serialises JSON parsed by the observability bootstrap
 - returns 502 with a non-disclosing error when an upstream is unavailable
+- applies an explicit CORS allowlist, baseline security headers and per-IP/per-prefix fixed-window rate limits (stricter for auth and AI)
 - does not authorise requests; each service remains the authority
-- 8 tests: route resolution, env overrides, streaming proxy, status propagation, 502
+- 19 tests: route resolution, env overrides, streaming proxy, status propagation, 502, CORS/security headers, rate limiting
 
 Set `NEXT_PUBLIC_API_URL=http://localhost:8080` for local web development and
-the deployed gateway origin in production. The gateway still needs an
-end-to-end test and a deployment manifest before the launch gate passes.
+the deployed gateway origin in production. The gateway still needs a deployment
+manifest before the launch gate passes.
+
+### Production runtime packaging
+
+`tsc` previously emitted service JavaScript that imported workspace packages
+whose `main` pointed at TypeScript source (`./src/index.ts`). The build passed,
+but `node dist/index.js` could not resolve those packages, so services were not
+runnable outside `tsx`.
+
+Fixed by giving every runtime shared package a `build` script and pointing
+`main`/`types` at `dist`:
+
+`@edunet/database`, `@edunet/rbac`, `@edunet/observability`, `@edunet/i18n`,
+`@edunet/offline`, `@edunet/types`, `@edunet/validation`, `@edunet/config`.
+
+Turbo builds dependencies before services, and `dev` now depends on `^build`.
+Verified by starting every `services/*/dist/index.js` with plain `node` on a
+unique port (19/19 returned 200 from `/health`) and by starting the built
+Next.js app, which returned 200 for `/`.
+The web-only packages (`ui`, `api-client`, `auth`) intentionally keep source
+entry points because Next.js transpiles them.
 
 ### Documentation
 
@@ -148,7 +171,7 @@ end-to-end test and a deployment manifest before the launch gate passes.
 
 | Workstream | Status | Evidence / Gap |
 |-----------|--------|----------------|
-| Architecture | PARTIAL | 18 services, shared packages, lazy DB, canonical RBAC, single-origin gateway; no deployment topology |
+| Architecture | PARTIAL | 18 services, compiled shared packages, lazy DB, canonical RBAC, single-origin gateway; no deployment topology |
 | Identity & Auth | PARTIAL | 49 tests; reset/verification/sessions/lockout/audit; no MFA/SSO/OAuth |
 | RBAC & Tenant Isolation | VERIFIED | 40 tests; shared middleware in every service |
 | Database & Migrations | VERIFIED (CI ONLY locally) | Drizzle schema/migrations; constraints proven previously |
@@ -177,7 +200,7 @@ end-to-end test and a deployment manifest before the launch gate passes.
 | Security Hardening | NEEDS HARDENING | No rate limiting/CORS/CSP; tokens in localStorage; scan pending |
 | Observability | COMPLETE | Logs, request IDs, metrics, health/ready; no dashboards/alerts |
 | CI/CD | PARTIAL | Gates configured; hosted run pending; no deploy job |
-| Infrastructure | MISSING | No containers/IaC/CDN |
+| Infrastructure | MISSING | No containers/IaC/CDN; services now start from compiled `dist` |
 | API Gateway | PARTIAL | `@edunet/gateway` maps all prefixes and is unit-tested; not integration-tested or deployed |
 | Backup/DR | PARTIAL | Scripts + runbook; no drill or media snapshot |
 | Performance / Load | MISSING | No load test |

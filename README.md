@@ -10,7 +10,7 @@ support, academics and administration.
 
 **Core platform built — not ready for public launch.** The LMS, identity,
 tenancy, content, assessment, offline primitives and AI backend are implemented
-and covered by 323 automated tests. Launch is blocked by the missing API
+and covered by 334 automated tests. Launch is blocked by the missing API
 gateway, containers/deployment, security hardening, an untested restore, and
 UIs for the newer domains.
 
@@ -52,10 +52,10 @@ ports 3001–3018. Gateway TLS and an end-to-end test are still launch tasks.
 ## Verification
 
 ```bash
-pnpm typecheck    # 27/27
+pnpm typecheck    # 35/35
 pnpm lint         # 32/32, 0 errors
-pnpm test         # 37/37, 323 tests
-pnpm build        # 21/21
+pnpm test         # 45/45, 334 tests
+pnpm build        # 29/29
 ```
 
 PostgreSQL integration and the browser journey run in CI:

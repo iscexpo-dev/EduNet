@@ -328,5 +328,7 @@ consent is required; unsafe or crisis input bypasses model generation.
   403 forbidden/tenant mismatch, 404 not found, 409 conflict, 429 quota/rate
   limit, 500 unexpected, 503 provider unavailable.
 - `x-request-id` is returned on every response and propagated upstream.
+- Rate limiting: the gateway returns 429 with `Retry-After` and
+  `X-RateLimit-*` headers; auth and AI prefixes have stricter limits.
 - AI errors: `CONSENT_REQUIRED`, `QUOTA_EXCEEDED`, `PROVIDER_UNAVAILABLE`,
   `UNSAFE_OUTPUT` are surfaced without provider details.

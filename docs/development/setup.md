@@ -177,14 +177,19 @@ still needs a deployment manifest and end-to-end test before launch.
 - `AI_COST_IN_MICROS_PER_TOKEN`, `AI_COST_OUT_MICROS_PER_TOKEN`
 - `AI_SYSTEM_PROMPT`, `AI_COUNSELOR_URL`
 - `NEXT_PUBLIC_API_URL` — single API origin for the web app
+- `TRUST_PROXY` — number of trusted proxy hops (0 locally, 1 behind TLS)
+- `CORS_ORIGINS` — comma-separated web origins allowed by the gateway
+- `ENABLE_HSTS` — `true` only behind TLS
+- `GATEWAY_RATE_LIMIT_PER_MINUTE`, `GATEWAY_AUTH_RATE_LIMIT_PER_MINUTE`,
+  `GATEWAY_AI_RATE_LIMIT_PER_MINUTE` — 0 disables a bucket
 
 ## Verification workflow
 
 ```bash
-pnpm typecheck   # 27 tasks
+pnpm typecheck   # 35 tasks
 pnpm lint        # 32 tasks, 0 errors
-pnpm test        # 37 tasks, 323 tests
-pnpm build       # 21 tasks
+pnpm test        # 45 tasks, 334 tests
+pnpm build       # 29 tasks
 ```
 
 Database and browser gates need PostgreSQL 16 and Chromium:

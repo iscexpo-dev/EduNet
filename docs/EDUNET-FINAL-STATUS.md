@@ -9,7 +9,7 @@ Verification environment: Linux sandbox without PostgreSQL, Docker or Playwright
 **CORE PLATFORM BUILT — NOT READY FOR PUBLIC LAUNCH.**
 
 The LMS, identity, tenancy, content, assessment, offline primitives, AI backend,
-single-origin gateway and most domain APIs are implemented and covered by 323
+single-origin gateway and most domain APIs are implemented and covered by 334
 automated tests. The release is blocked by launch-surface work: gateway
 deployment and TLS, containers and deployment, security hardening, a proven
 restore, load and accessibility validation, and user interfaces for the newer
@@ -19,10 +19,11 @@ domains.
 
 | Gate | Result | Evidence |
 |------|--------|----------|
-| Typecheck | **PASS** | 27/27 tasks |
+| Typecheck | **PASS** | 35/35 tasks |
 | Lint | **PASS** | 32/32 tasks, 0 errors (252 warnings) |
-| Unit tests | **PASS** | 37/37 tasks, 323 tests, 16 packages |
-| Production build | **PASS** | 21/21 tasks, Next.js build included |
+| Unit tests | **PASS** | 45/45 tasks, 334 tests, 16 packages |
+| Production build | **PASS** | 29/29 tasks, Next.js build included |
+| Production start smoke | **PASS** | all 19 services `node dist/index.js` + `/health` 200; built web `/` 200 |
 | Database migrations | **NOT VERIFIED** | CI-only; no PostgreSQL in sandbox |
 | PostgreSQL integration | **NOT VERIFIED** | CI-only; no PostgreSQL in sandbox |
 | Browser E2E | **NOT VERIFIED** | CI-only; no Playwright browser |
@@ -64,14 +65,14 @@ domains.
 | 29 | Privacy and consent | **PARTIAL** | Consent and data requests; no export/erase execution or retention jobs |
 | 30 | Integrations and webhooks | **PARTIAL** | Configuration only; delivery/retry/signing unproven |
 | 31 | Audit and compliance | **PARTIAL** | Append-only audit with verification; no retention/external store |
-| 32 | Security hardening | **FAIL** | No rate limiting/CORS/CSP; tokens in localStorage; scan pending |
+| 32 | Security hardening | **FAIL** | Gateway has CORS/headers/rate limits; CSP, httpOnly tokens and a current scan are pending |
 | 33 | Observability | **PASS** | Logs, request IDs, metrics, health/ready on every service |
 | 34 | CI/CD | **PARTIAL** | Full test/migration/E2E gates; hosted run pending; no deploy job |
 | 35 | Infrastructure | **FAIL** | No Dockerfile, compose, IaC, CDN or managed DB provisioning |
-| 36 | API gateway | **PARTIAL** | `@edunet/gateway` maps all prefixes with 8 tests; not deployed, TLS-terminated or end-to-end tested |
+| 36 | API gateway | **PARTIAL** | `@edunet/gateway` maps all prefixes, applies CORS/headers/rate limits and has 19 tests; not deployed, TLS-terminated or end-to-end tested |
 | 37 | Backup and DR | **PARTIAL** | Scripts/checksums/runbook; no drill, schedule or media backup |
 | 38 | Performance and load | **FAIL** | No load test or p95 baseline |
-| 39 | QA | **PARTIAL** | 323 unit tests, 1 E2E journey in CI; no contract/visual/a11y suites |
+| 39 | QA | **PARTIAL** | 334 unit tests, 1 E2E journey in CI; no contract/visual/a11y suites |
 | 40 | Documentation | **PARTIAL** | Product/ops/state/API updated; some historical docs remain stale |
 | 41 | Pilot readiness | **FAIL** | No pilot institution, training, rota or data migration plan |
 | 42 | Rollout | **FAIL** | No cohort plan or go/no-go review |
@@ -96,6 +97,8 @@ domains.
   requests, integrations and audit verification.
 - Observe every service through structured logs, request IDs, metrics and
   health/readiness endpoints.
+- Start a compiled service or the gateway with `node dist/index.js` against
+  built shared packages (no `tsx` required at runtime).
 - Build the Bengali/English UI with 16 design-system primitives and an offline
   banner/service worker.
 
@@ -117,7 +120,7 @@ domains.
 
 1. Deploy the gateway with TLS and add an end-to-end gateway test.
 2. Add Dockerfiles, compose/production manifests and a deploy/rollback job.
-3. Implement rate limiting, CORS, CSP and move tokens out of localStorage.
+3. Add CSP and move tokens out of localStorage (CORS/headers/rate limits now exist at the gateway).
 4. Run a timed restore including the media volume.
 5. Wire offline sync into progress, autosave and submission.
 6. Build AI, parent, admin, communication and support UI slices.

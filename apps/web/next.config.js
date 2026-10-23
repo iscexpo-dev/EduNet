@@ -1,14 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  swcMinify: true,
+  poweredByHeader: false,
   transpilePackages: ['@edunet/ui', '@edunet/auth', '@edunet/api-client'],
-  experimental: {
-    serverActions: true,
-  },
-  images: {
-    domains: ['localhost'],
-  },
 };
 
 module.exports = nextConfig;
