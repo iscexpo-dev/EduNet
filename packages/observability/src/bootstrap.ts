@@ -32,8 +32,22 @@ export interface ServiceBootstrapResult {
   getMetrics: () => string;
 }
 
+function validateProductionConfiguration(): void {
+  if (process.env.NODE_ENV !== 'production') return;
+
+  const jwtSecret = process.env.JWT_SECRET ?? '';
+  if (jwtSecret.length < 32 || jwtSecret.startsWith('replace-with-')) {
+    throw new Error('JWT_SECRET must be a configured 32+ character secret in production');
+  }
+
+  if (!process.env.DATABASE_URL && !process.env.DB_HOST) {
+    throw new Error('DATABASE_URL or DB_HOST must be configured in production');
+  }
+}
+
 export function bootstrapService(options: ServiceBootstrapOptions): ServiceBootstrapResult {
   const { serviceName, registerRoutes } = options;
+  validateProductionConfiguration();
   process.env.SERVICE_NAME = serviceName;
 
   const app = express();
@@ -72,12 +86,21 @@ export function bootstrapService(options: ServiceBootstrapOptions): ServiceBoots
     const server = app.listen(port, () => {
       log.info(`${serviceName} listening`, { port });
     });
-    return {
-      stop: (): Promise<void> =>
-        new Promise((resolve, reject) => {
-          server.close((err) => (err ? reject(err) : resolve()));
-        }),
+    let stopping = false;
+    const stop = (): Promise<void> => {
+      if (stopping) return Promise.resolve();
+      stopping = true;
+      return new Promise((resolve, reject) => {
+        server.close((err) => (err ? reject(err) : resolve()));
+      });
     };
+    const handleSignal = (signal: string) => {
+      log.info('shutdown_requested', { signal });
+      void stop().then(() => process.exit(0)).catch(() => process.exit(1));
+    };
+    process.once('SIGTERM', () => handleSignal('SIGTERM'));
+    process.once('SIGINT', () => handleSignal('SIGINT'));
+    return { stop };
   }
 
   return { app, port, start, getMetrics: format };
