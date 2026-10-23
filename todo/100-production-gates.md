@@ -1,52 +1,59 @@
 # EduNet — 100 Production Gates
 
-1. [ ] Requirements
-2. [ ] Architecture
-3. [ ] Database
-4. [ ] Identity
-5. [ ] Authorization
-6. [ ] LMS
-7. [ ] Assignments
-8. [ ] Assessments
-9. [ ] Teacher
-10. [ ] Student
-11. [ ] Parent
-12. [ ] Tutoring
-13. [ ] Booking
-14. [ ] Communication
-15. [ ] Notifications
-16. [ ] Content
-17. [ ] Search
-18. [ ] Calendar
-19. [ ] Analytics
-20. [ ] AI
-21. [ ] Offline
-22. [ ] Low-Bandwidth
-23. [ ] Bengali
-24. [ ] Accessibility
-25. [ ] Integration
-26. [ ] API
-27. [ ] Security
-28. [ ] Privacy
-29. [ ] Data Governance
-30. [ ] Infrastructure
-31. [ ] Docker
-32. [ ] CI
-33. [ ] CD
-34. [ ] Observability
-35. [ ] Performance
-36. [ ] Load Test
-37. [ ] Disaster Recovery
-38. [ ] Backup
-39. [ ] QA
-40. [ ] E2E
-41. [ ] Security Test
-42. [ ] Migration
-43. [ ] Documentation
-44. [ ] Support
-45. [ ] Pilot
-46. [ ] Rollout
-47. [ ] Production Readiness
-48. [ ] Go-Live
-49. [ ] Post-Launch Verification
-50. [ ] Continuous Improvement
+Last updated: 2026-10-23
+Authoritative status: `docs/EDUNET-FINAL-STATUS.md`
+Gap analysis: `docs/EDUNET-ROADMAP-GAP-MATRIX.md`
+
+A checked gate requires implementation plus executed evidence. CI-only gates
+are marked with their limitation.
+
+1. [x] Requirements — `docs/product/PRODUCT-FOUNDATION.md`
+2. [ ] Architecture — 18 services and a gateway exist; deployment topology and contract tests missing
+3. [x] Database — schema/migrations generated; executed previously on PostgreSQL 16 (CI-only now)
+4. [x] Identity — hardened auth, reset, verification, sessions, lockout, audit; 49 tests
+5. [x] Authorization — canonical RBAC, 40 tests, tenant-isolation integration suite
+6. [x] LMS — courses, lessons, enrolment, progress, assignments, grading
+7. [x] Assignments — rubrics, autosave, revisions, grade history
+8. [x] Assessments — five objective types, partial credit, banks, randomisation, rechecks
+9. [x] Teacher — core authoring/grading UI; attendance/analytics UI still missing
+10. [x] Student — learning, submission and quiz flow verified by E2E (CI)
+11. [ ] Parent — child-scoped API exists; no parent UI
+12. [ ] Tutoring — backend booking/availability exists; no UI or payments
+13. [ ] Booking — calendar/event booking backend exists; no UI
+14. [ ] Communication — messaging/moderation/forums backend exists; no UI or realtime
+15. [ ] Notifications — in-app only; no email/SMS/push delivery
+16. [ ] Content — lessons/media/versioning exist; objectives/bookmarks/notes routes and S3 missing
+17. [ ] Search — `ILIKE` only; no ranking or facets
+18. [ ] Calendar — backend/ICS exists; no calendar UI
+19. [ ] Analytics — endpoints only; no dashboards or KPI pipeline
+20. [ ] AI — consent/safety/quota backend complete; no UI and no provider configured
+21. [ ] Offline — queue/service worker exist; queue not wired into mutations
+22. [ ] Low-bandwidth — download planner exists; no device/network validation
+23. [x] Bengali — catalogue and formatter implemented; native review pending
+24. [ ] Accessibility — no WCAG 2.1 AA audit
+25. [ ] Integration — config/webhook registration only; delivery/retry/signing unproven
+26. [x] API — all domains expose versionless `/api/*` routes with shared error conventions
+27. [ ] Security — rate limiting, CORS, CSP, token storage and scan outstanding
+28. [ ] Privacy — consent/data-request API exists; export/erase execution missing
+29. [ ] Data Governance — retention and deletion jobs missing
+30. [ ] Infrastructure — no IaC, managed DB or CDN provisioning
+31. [ ] Docker — no Dockerfile or compose
+32. [x] CI — migrations, integration, lint, typecheck, tests, build, E2E configured
+33. [ ] CD — no deployment or rollback job
+34. [x] Observability — logs, request IDs, metrics, health/ready on every service
+35. [ ] Performance — no p95 baseline
+36. [ ] Load Test — no 10× pilot scenario
+37. [ ] Disaster Recovery — no drill
+38. [ ] Backup — scripts and runbook exist; no scheduled job or timed restore
+39. [ ] QA — 315 unit tests, but no contract/visual/a11y suite
+40. [ ] E2E — journey exists; not executed on the current commit locally
+41. [ ] Security Test — no current external scan/DAST
+42. [x] Migration — Drizzle migrations applied in CI
+43. [ ] Documentation — product/ops/state/API updated; historical TODO files still stale
+44. [ ] Support — tickets/escalation code and runbook exist; no staffing rota/SLA tooling
+45. [ ] Pilot — no institution, training or support plan
+46. [ ] Rollout — no cohort plan or feature-flag sequence
+47. [ ] Production Readiness — blocked by gates 2, 27, 30, 31, 36, 37, 38, 45, 46
+48. [ ] Go-Live — not approved
+49. [ ] Post-Launch Verification — not started
+50. [ ] Continuous Improvement — not started

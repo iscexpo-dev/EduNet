@@ -72,7 +72,11 @@ export async function getPromptTemplate(organizationId: string, key: string) {
         sql`(${aiPromptTemplates.organizationId} = ${organizationId} OR ${aiPromptTemplates.organizationId} IS NULL)`,
       ),
     )
-    .orderBy(desc(aiPromptTemplates.organizationId), desc(aiPromptTemplates.version))
+    // Prefer the tenant override over the platform default, then latest version.
+    .orderBy(
+      sql`case when ${aiPromptTemplates.organizationId} = ${organizationId} then 0 else 1 end`,
+      desc(aiPromptTemplates.version),
+    )
     .limit(1);
   return row ?? null;
 }
@@ -96,15 +100,12 @@ export async function upsertPromptTemplate(input: {
   isActive?: boolean;
 }) {
   const db = getDb();
-  const [existing] = await db
-    .select()
+  // Versions are unique per key across the whole table (see the schema
+  // constraint), so the next version is derived globally, not per tenant.
+  const [current] = await db
+    .select({ version: aiPromptTemplates.version })
     .from(aiPromptTemplates)
-    .where(
-      and(
-        eq(aiPromptTemplates.organizationId, input.organizationId),
-        eq(aiPromptTemplates.key, input.key),
-      ),
-    )
+    .where(eq(aiPromptTemplates.key, input.key))
     .orderBy(desc(aiPromptTemplates.version))
     .limit(1);
 
@@ -115,12 +116,13 @@ export async function upsertPromptTemplate(input: {
       key: input.key,
       name: input.name,
       systemPrompt: input.systemPrompt,
-      version: (existing?.version ?? 0) + 1,
+      version: (current?.version ?? 0) + 1,
       isActive: input.isActive ?? true,
     })
     .returning();
 
-  if (existing) {
+  if (input.isActive !== false) {
+    // Only one active version per (organization, key) at a time.
     await db
       .update(aiPromptTemplates)
       .set({ isActive: false })
@@ -128,10 +130,27 @@ export async function upsertPromptTemplate(input: {
         and(
           eq(aiPromptTemplates.organizationId, input.organizationId),
           eq(aiPromptTemplates.key, input.key),
-          eq(aiPromptTemplates.version, existing.version),
+          eq(aiPromptTemplates.isActive, true),
+          sql`${aiPromptTemplates.id} <> ${row!.id}`,
         ),
       );
   }
+  return row!;
+}
+
+export async function updateConversationTitle(
+  organizationId: string,
+  userId: string,
+  conversationId: string,
+  title: string,
+) {
+  await getConversation(organizationId, userId, conversationId);
+  const db = getDb();
+  const [row] = await db
+    .update(aiConversations)
+    .set({ title: title.slice(0, 200), updatedAt: new Date() })
+    .where(eq(aiConversations.id, conversationId))
+    .returning();
   return row!;
 }
 

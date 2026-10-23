@@ -1,10 +1,13 @@
 # EduNet Implementation State
 
-Last updated: 2026-10-06
-Baseline commit: `ef96741`
+Last updated: 2026-10-23
+Branch: `main` (`2dc560f`) plus uncommitted AI service and documentation work
+Requirements: `docs/product/PRODUCT-FOUNDATION.md`
+Gap analysis: `docs/EDUNET-ROADMAP-GAP-MATRIX.md`
 
 ## Status Legend
-`COMPLETE` · `PARTIAL` · `MISSING` · `NEEDS HARDENING` · `BLOCKED` · `VERIFIED`
+
+`VERIFIED` · `COMPLETE` · `PARTIAL` · `MISSING` · `NEEDS HARDENING` · `BLOCKED` · `CI ONLY`
 
 ---
 
@@ -12,53 +15,132 @@ Baseline commit: `ef96741`
 
 | Gate | Command | Result |
 |------|---------|--------|
-| Install | `pnpm install` | PASS |
-| Typecheck | `pnpm typecheck` | **19/19 tasks PASS** |
-| Lint | `pnpm lint` | **24/24 tasks PASS**, 0 errors, warnings only |
-| Unit tests | `pnpm test` | **20/20 tasks PASS, 85 tests passing** |
-| Build | `pnpm build` | **15/15 tasks PASS** (incl. Next.js production build) |
-| Migrations | `drizzle-kit migrate` on PostgreSQL 16 | **PASS — 17 tables created** |
-| Migration constraints | live SQL assertions | **PASS** (unique/FK/NOT NULL all reject bad data) |
-| PostgreSQL integration | `pnpm --filter @edunet/database test:integration` | **5 tests PASS**, including cross-organization lesson, progress, resource, and media isolation |
-| E2E | `pnpm --filter @edunet/web test:e2e` | **1 teacher/student journey passed against PostgreSQL 16, including assignment creation, submission, grading, feedback, and roster display** |
-| Security scan | `gh api dependabot/alerts` | **Critical: 0 in the dependency tree.** Vitest 4.1.11 removes `tinypool` entirely, clearing GHSA-5gmw-xhrv-c9v3 and GHSA-85c8-ppgw-ccpr (prototype pollution → RCE). Remaining: `drizzle-orm` identifier escaping (HIGH, **not reachable** — see deferred), plus transitive vite/esbuild/postcss/minimatch |
+| Install | `pnpm install` | PASS (lockfile accepted) |
+| Typecheck | `pnpm typecheck` | **27/27 tasks PASS** |
+| Lint | `pnpm lint` | **32/32 tasks PASS**, 0 errors, 252 warnings |
+| Unit tests | `pnpm test` | **37/37 tasks PASS**, **323 tests**, 24 test files, 16 packages |
+| Build | `pnpm build` | **21/21 tasks PASS**, including the Next.js production build |
+| Migrations | `pnpm --filter @edunet/database migrate` | **CI ONLY** — no PostgreSQL/Docker in this sandbox |
+| Database integration | `pnpm --filter @edunet/database test:integration` | **CI ONLY** — writes to PostgreSQL |
+| Browser E2E | `pnpm --filter @edunet/web test:e2e` | **CI ONLY** — no Playwright browser installed |
+| Backup scripts | `bash -n scripts/backup-db.sh scripts/restore-db.sh` | PASS (syntax only, no drill) |
+
+The local environment has no `docker`, `psql`, `postgres` or Playwright
+browsers. CI (`.github/workflows`) provisions `postgres:16` and runs the
+migration, integration and browser gates. Results in this document only claim
+what was actually executed in this session.
 
 ### Test inventory
-| Package | Tests | Covers |
-|---------|-------|--------|
-| `@edunet/rbac` | 25 | role matrix, admin privileged role, tenant isolation, bearer auth, refresh-token replay |
-| `@edunet/identity` | 25 | password hashing, JWT lifecycle, token-kind confusion, secret enforcement, middleware |
-| `@edunet/courses` | 7 | course CRUD, teacher ownership, admin override |
-| `@edunet/enrollments` | 6 | self-enrollment, cross-student rejection, duplicate prevention |
-| `@edunet/content` | 22 | media mime allowlist, key generation, **path traversal**, signed URL issue/verify, upload limits |
+
+| Package | Tests | Focus |
+|---------|-------|-------|
+| `@edunet/identity` | 49 | password hashing, JWT kinds, refresh replay, lockout, reset, verification, sessions, audit |
+| `@edunet/rbac` | 40 | role matrix, tenant isolation, bearer auth, refresh-token replay |
+| `@edunet/assessments` | 33 | five question types, partial credit, randomisation, history |
+| `@edunet/content` | 22 | MIME allowlist, key generation, path traversal, signed URLs, limits |
+| `@edunet/submissions` | 21 | rubrics, autosave, revisions, grading history |
+| `@edunet/platform` | 21 | academics, attendance, flags, audit, consent, privacy |
+| `@edunet/engagement` | 21 | calendar, tutoring, events, live classes |
+| `@edunet/offline` | 19 | queue, dedupe, backoff, conflict resolution, download planning |
+| `@edunet/ai` | 18 | safety, crisis, quota, prompt assembly, fallback, token budgeting |
+| `@edunet/i18n` | 17 | catalogues, interpolation, locale detection, `Intl` formatting |
+| `@edunet/observability` | 16 | logging, request IDs, metrics, health |
+| `@edunet/communication` | 15 | conversations, moderation, blocks, forums |
+| `@edunet/support` | 10 | resources, tickets, escalation, counseling |
+| `@edunet/courses` | 7 | CRUD, teacher ownership, admin override |
+| `@edunet/enrollments` | 6 | self-enrolment, duplicate prevention, cross-student rejection |
+| `@edunet/gateway` | 8 | prefix mapping, env overrides, streaming proxy, 502 handling |
 
 ---
 
-## Defects Found and Fixed This Session
+## Work Completed This Session
+
+### AI service made buildable and complete
+
+The `@edunet/ai` package imported `./routes` from `index.ts`, but no such file
+existed. The production build failed, and the AI backend was unreachable.
+
+Added:
+
+- `services/ai/src/routes.ts` mounting `/api/ai`:
+  - `GET/POST /conversations`
+  - `GET/DELETE /conversations/:id`
+  - `GET/POST /conversations/:id/messages`
+  - `POST /messages/:id/feedback`
+  - `GET /usage/today`
+  - `GET/PUT /prompts`
+- `services/ai/src/handlers.ts`:
+  - consent check against `consent_records` (`ai_processing`, granted, not revoked)
+  - safety assessment with crisis short-circuit to a human-help response
+  - PII redaction before the provider call
+  - organization-scoped daily token quota and usage accounting
+  - model selection and fallback through `provider.ts`
+  - conversation history assembly into the system/user messages
+  - message, usage, audit and feedback persistence
+  - prompt-template listing and upsert
+- `services/ai/src/db.ts` fixes:
+  - prompt-template versions are globally unique per key; upsert deactivates
+    only prior active rows for the same organization and key
+  - prompt lookup prefers a tenant override over the platform default
+  - added `updateConversationTitle`
+
+The AI service now typechecks, tests, builds and is mounted consistently with
+the other services.
+
+### Single-origin gateway
+
+Added `@edunet/gateway` on port 8080 (configurable with `GATEWAY_PORT`):
+
+- maps all 18 `/api/*` prefixes to their services, with `<SERVICE>_URL`
+  overrides for non-local deployments
+- streams request and response bodies without buffering media
+- re-serialises JSON parsed by the observability bootstrap
+- returns 502 with a non-disclosing error when an upstream is unavailable
+- does not authorise requests; each service remains the authority
+- 8 tests: route resolution, env overrides, streaming proxy, status propagation, 502
+
+Set `NEXT_PUBLIC_API_URL=http://localhost:8080` for local web development and
+the deployed gateway origin in production. The gateway still needs an
+end-to-end test and a deployment manifest before the launch gate passes.
+
+### Documentation
+
+- Added `docs/product/PRODUCT-FOUNDATION.md` (Phase 00 baseline).
+- Added `docs/operations/OPERATIONS.md` and backup/restore scripts.
+- Rewrote this state document and the gap matrix to remove stale claims.
+- Added API coverage for the newer services (see `docs/api/endpoints.md`).
+
+---
+
+## Historical Defects Fixed (retained)
 
 | # | Severity | Defect | Fix |
 |---|----------|--------|-----|
-| 1 | **Critical** | `JWT_SECRET` fell back to a hardcoded public value (`your-secret-key-change-in-production`); a deployment that forgot the env var signed forgeable tokens | `resolveSecret()` throws when unset; rejects the placeholder in production |
-| 2 | **Critical** | `verifyToken(token, isRefresh)` ignored `isRefresh`, so **refresh tokens were accepted as access tokens** | Split into `verifyToken` / `verifyRefreshToken` with a `tokenKind` claim; cross-use rejected |
-| 3 | **Critical** | Entire test suite never ran — scripts called `jest`, which is installed nowhere; tests are Vitest | Standardized on Vitest; removed 6 phantom `test` scripts from packages with no tests |
-| 4 | **Critical** | **No migrations existed.** Only 7 of 17 tables were covered; lessons/quizzes/notifications were absent from any provisioned database | Aggregated all service schemas into one drizzle config; generated + executed migration for all 17 tables |
-| 5 | **High** | `admin` was rejected on teacher-only routes in identity while 10 services allowed it — inconsistent, divergent `authorize()` copies | New canonical `@edunet/rbac` package; identity delegates to it |
-| 6 | **High** | `content_versions.created_by` / `media_files.uploaded_by` were `NOT NULL` with `ON DELETE SET NULL` — deleting a user aborted the transaction | Columns made nullable; verified live that the row survives with NULL |
-| 7 | **High** | Duplicated unique constraint on `organizations.code` blocked migration generation | Removed inline `.unique()`, kept named constraint |
-| 8 | **High** | `import '@edunet/database'` opened a DB connection at import time and crashed on missing env (`postgres://undefined:...`) | Lazy `getDb()`; `resolveConnectionString()` names the missing vars |
-| 9 | **Medium** | A test asserted 400 for invalid input but the schema mock returned data unchanged, so it could never fail | Mock now enforces required fields; assertion is meaningful |
-| 10 | **Medium** | 6 packages declared `test: jest` with zero test files — false green signal | Scripts removed until real tests exist |
-| 11 | **High** | 12 services inlined their own `authenticate`/`authorize` in `routes.ts`, each reading `JWT_SECRET` with the hardcoded fallback and with drifted admin semantics (531 duplicated lines) | All migrated to `@edunet/rbac`; hardcoded secret removed from service source |
-| 12 | **Critical** | Storage layer was fake production behaviour: S3 provider returned fabricated `s3://` URLs, an empty download body, a no-op delete and `exists` hardcoded to `true`; module was orphaned (nothing imported it) | Fake provider deleted. Real filesystem provider with allowlisted MIME types, 25MB cap, generated keys, and HMAC-signed expiring URLs. 22 tests |
-| 13 | **High** | **Path traversal** in the local storage provider: `path.join(basePath, userKey)` allowed `../` to escape the storage root | Keys are `<scope>/<uuid>.<ext>` from generated UUIDs, regex-validated, plus a resolved-path containment check |
-| 14 | **High** | `media_files` table existed in schema and migrations but **had no API at all** — the earlier "media metadata" completion claim was untrue | Implemented upload/list/access/delete with teacher course-ownership checks, pagination, soft delete and download counting |
-| 15 | **High** | `media_files.url` was `NOT NULL`, forcing a permanent public URL to be stored, contradicting the private-media rule | Column made nullable (migration `0001`); access URLs are signed per request |
-| 16 | **Critical** | **CVE-2026-47429** — Vitest `< 3.2.6` allows arbitrary file read/execute when the Vitest UI server is listening; unused `@vitest/ui` was installed | Vitest raised to `^4.1.11`; `@vitest/ui` removed; dead Jest toolchain deleted |
-| 17 | **Critical** | Vitest 3 pulled `tinypool@1.1.1`, affected by two prototype-pollution → RCE advisories (GHSA-5gmw-xhrv-c9v3, GHSA-85c8-ppgw-ccpr) | Vitest 4 drops the `tinypool` dependency entirely; it is absent from the lockfile |
-| 18 | **High** | Vite `< 6.4.3` dev-server advisory | Root `pnpm.overrides` pins `vite ^6.4.3` and `esbuild ^0.25.0` (both required — Vite 6 pulls an incompatible esbuild 0.18 otherwise) |
-| 19 | **Medium** | `bcryptjs` at cost 10 takes ~2.7s per operation in pure JS — every login burns seconds of CPU, and the auth suite spent 35s hashing | `BCRYPT_COST` configurable (default 10); tests use cost 4, suite drops to 2.4s. **Production: migrate to native bcrypt or argon2id** |
-| 20 | **Medium** | 23 of 23 tsconfigs lacked `*.test.ts` excludes, so `pnpm build` emitted test files into production output | All tsconfigs normalised; `dist/` now contains zero test files |
-| 21 | **Low** | Vitest 4 collected stale compiled suites from `dist/`, duplicating and failing suites | Per-package `vitest.config.ts` with explicit `include`/`exclude` |
+| 1 | Critical | `JWT_SECRET` fell back to a public placeholder | `resolveSecret()` throws when unset and rejects the placeholder in production |
+| 2 | Critical | Refresh tokens accepted as access tokens | `tokenKind` claim; separate verify functions |
+| 3 | Critical | Test suite called a non-existent runner (`jest`) | Standardised on Vitest; phantom scripts removed |
+| 4 | Critical | No migrations existed; only 7 of 17 tables covered | Aggregated schemas, generated and applied migrations |
+| 5 | High | `admin` rejected on teacher routes in identity | Canonical `@edunet/rbac` middleware |
+| 6 | High | `created_by`/`uploaded_by` were `NOT NULL` with `SET NULL` | Columns nullable; deletion verified |
+| 7 | High | Duplicate `organizations.code` unique constraint | Inline `.unique()` removed, named constraint kept |
+| 8 | High | Importing the database opened a connection at import time | Lazy `getDb()` with named missing-env error |
+| 9 | Medium | Mock schema made a validation test unfalsifiable | Mock enforces required fields |
+| 10 | Medium | Six packages declared tests with no test files | Scripts removed until real tests existed |
+| 11 | High | 12 services duplicated auth middleware with drifted semantics | All migrated to `@edunet/rbac` |
+| 12 | Critical | Fake S3 provider returned fabricated URLs and no-op operations | Deleted; real filesystem provider with signed URLs |
+| 13 | High | Path traversal in local storage | UUID keys, regex validation and resolved-path containment |
+| 14 | High | `media_files` had no API | Upload/list/access/delete with ownership checks |
+| 15 | High | `media_files.url` forced a permanent public URL | Nullable; per-request signed URLs |
+| 16 | Critical | Vitest UI arbitrary file read/execute | Vitest 4; `@vitest/ui` removed |
+| 17 | Critical | `tinypool` prototype-pollution → RCE | Vitest 4 removes the dependency |
+| 18 | High | Vite dev-server advisory | Root overrides pin Vite/esbuild |
+| 19 | Medium | bcryptjs cost 10 caused multi-second logins | Configurable `BCRYPT_COST`, tests use 4 |
+| 20 | Medium | Test files emitted into production builds | `tsconfig` excludes tests |
+| 21 | Low | Vitest collected stale `dist/` suites | Per-package `vitest.config.ts` |
+| 22 | Critical | AI service imported a missing `./routes`; build failed and AI was unreachable | Added routes + handlers; all AI gates pass |
+| 23 | High | Prompt-template version unique constraint would collide across organizations | Globally unique version derivation; per-org deactivation |
+| 24 | High | Platform default prompt could shadow a tenant override | Tenant-first ordering in prompt lookup |
+| 25 | Medium | Conversation titles could not be updated | Added `updateConversationTitle` |
 
 ---
 
@@ -66,53 +148,70 @@ Baseline commit: `ef96741`
 
 | Workstream | Status | Evidence / Gap |
 |-----------|--------|----------------|
-| Architecture | VERIFIED | monorepo builds; shared `@edunet/rbac`; lazy DB boundary |
-| Identity & Auth | VERIFIED (hardened) | 25 tests; secrets + token-kind enforced |
-| RBAC & Multi-tenancy | PARTIAL | canonical middleware in use across all 12 services + 25 tests; courses, users, assignments, submissions, enrollments, assessments, and content scope reads and mutations to the authenticated organization; PostgreSQL integration coverage confirms tenant isolation across these domains |
-| Database & Migrations | VERIFIED | 17 tables migrate; constraints proven |
-| LMS core | PARTIAL | CRUD + ownership; no rubrics/resubmission |
-| Assessment | PARTIAL | auto-grading for 2 objective types; 5 types missing |
-| Content | PARTIAL | lessons, resources, progress, **media upload/signed access (new)**, versioning; multipart upload still pending |
-| Student workflow | PARTIAL | PostgreSQL-backed browser journey verifies registration, enrollment, lesson completion, assignment submission, and returned grade/feedback |
-| Teacher workflow | PARTIAL | PostgreSQL-backed browser journey verifies course/lesson/assignment creation, enrolled-student roster, and grading |
-| Parent | PARTIAL | relationship auth present; UI absent |
-| Notifications | PARTIAL | CRUD + event bus; no delivery adapters |
-| Search | PARTIAL | `ILIKE` based; no ranking/facets |
-| Analytics | PARTIAL | handlers exist, unverified |
-| Design System | PARTIAL | 3 components added; ~20 missing |
-| AI | MISSING | — |
-| Live Learning / Tutoring / Extracurricular | MISSING | — |
-| Communication / Calendar | MISSING | — |
-| Offline / PWA | MISSING | core roadmap requirement |
-| i18n | MISSING (pkg stub) | Bengali + English not wired |
-| Admin / Institution | MISSING | — |
-| Integrations | MISSING | — |
-| Observability | MISSING | no logging, health, metrics |
-| CI/CD | PARTIAL | GitHub Actions gates frozen install, migrations, PostgreSQL integration, lint, typecheck, unit tests, and build on pushes and pull requests; first hosted run pending |
-| Backup/DR | MISSING | — |
-| Accessibility | MISSING | — |
-| Pilot/Rollout/Operations | MISSING | — |
+| Architecture | PARTIAL | 18 services, shared packages, lazy DB, canonical RBAC, single-origin gateway; no deployment topology |
+| Identity & Auth | PARTIAL | 49 tests; reset/verification/sessions/lockout/audit; no MFA/SSO/OAuth |
+| RBAC & Tenant Isolation | VERIFIED | 40 tests; shared middleware in every service |
+| Database & Migrations | VERIFIED (CI ONLY locally) | Drizzle schema/migrations; constraints proven previously |
+| LMS Core | COMPLETE | Courses, lessons, progress, enrolment; E2E journey in CI |
+| Content & Media | PARTIAL | Lessons, resources, media, signed URLs, versions; no objectives/bookmarks/notes API, no S3 |
+| Assignments & Submissions | PARTIAL | Rubrics, autosave, revisions, grade history; no attachments/late policy |
+| Assessment | PARTIAL | Five objective types, partial credit, rechecks, banks, randomisation; UI basic |
+| Offline / PWA | PARTIAL | Queue, backoff, dedupe, conflicts, service worker; queue not wired into mutations |
+| i18n | COMPLETE | Bengali/English catalogues and web toggle; native review pending |
+| Design System | PARTIAL | 16 primitives, tokens, dark mode; no icon system/RTL audit |
+| Student Platform | PARTIAL | Academic/attendance/achievements/certificates/streaks backend; no UI |
+| Parent Platform | PARTIAL | Child-scoped API; no UI |
+| Teacher Platform | PARTIAL | Core authoring/grading UI; no attendance/analytics UI |
+| Notifications | PARTIAL | In-app only; no delivery adapters |
+| Search | PARTIAL | `ILIKE` only |
+| Analytics | PARTIAL | Endpoints only; no dashboards/warehouse |
+| Communication | PARTIAL | Messaging/moderation/forums backend; no UI/realtime |
+| Calendar / Tutoring / Events | PARTIAL | Full backend; no UI |
+| Live Learning | PARTIAL | Records/attendance/analytics; no video integration |
+| AI | PARTIAL | Consent, safety, quota, prompts, usage, audit, conversations; no UI/provider configured |
+| Support & Counseling | PARTIAL | Tickets/escalation/appointments backend; no UI |
+| Academics & Attendance | PARTIAL | Full admin backend; no UI |
+| Admin / Flags / Settings | PARTIAL | Backend; no console |
+| Privacy & Consent | PARTIAL | Consent + data requests; no export/erase execution or retention jobs |
+| Integrations / Webhooks | PARTIAL | Config only; delivery/signing unproven |
+| Security Hardening | NEEDS HARDENING | No rate limiting/CORS/CSP; tokens in localStorage; scan pending |
+| Observability | COMPLETE | Logs, request IDs, metrics, health/ready; no dashboards/alerts |
+| CI/CD | PARTIAL | Gates configured; hosted run pending; no deploy job |
+| Infrastructure | MISSING | No containers/IaC/CDN |
+| API Gateway | PARTIAL | `@edunet/gateway` maps all prefixes and is unit-tested; not integration-tested or deployed |
+| Backup/DR | PARTIAL | Scripts + runbook; no drill or media snapshot |
+| Performance / Load | MISSING | No load test |
+| QA | PARTIAL | 315 unit tests; one E2E journey (CI); no contract/visual/a11y suites |
+| Documentation | PARTIAL | Product/ops/state/API refreshed; some historical docs remain stale |
+| Pilot / Rollout / Operations | MISSING | No pilot plan, cohort rollout or staffing rota |
+
+---
+
+## Active Blockers
+
+1. **No local PostgreSQL/Docker** → migrations, database integration and the
+   tenant-isolation suite cannot be re-run here. Use CI or a disposable
+   PostgreSQL 16 instance.
+2. **No Playwright browsers** → the browser journey cannot run here. Install
+   Chromium and point `DATABASE_URL` at a disposable database, or rely on CI.
+3. **Gateway not deployed** → `@edunet/gateway` exists and is unit-tested, but
+   no deployment manifest, end-to-end gateway test or TLS termination is in the
+   repository.
+4. **AI provider unconfigured** → `AI_GATEWAY_URL`/`AI_GATEWAY_API_KEY` are
+   absent, so AI must degrade to an unavailable response. Do not enable AI in
+   the pilot until a provider and human escalation path are verified.
+6. **No container/deployment artifacts** → a reproducible production deploy is
+   not possible from the repository alone.
 
 ---
 
 ## Next Priority (highest risk first)
 
-1. Add observability: structured logging, `/health`, `/ready`.
-2. Replace `bcryptjs` with native bcrypt or argon2id (~2.7s per login today).
-
-### Deferred with justification
-
-**CVE-2026-39356 (drizzle-orm SQL injection via identifier escaping, HIGH).**
-Not currently exploitable: the advisory affects `sql.identifier()` and `.as()`
-when fed untrusted input, and a repo-wide search finds **no dynamic identifier
-or alias construction** — every query references static schema columns.
-Upgrading `drizzle-orm` 0.33 → 0.45.2 spans twelve minor versions with breaking
-API changes (notably `relations()`), and no test currently exercises the real
-ORM, so an upgrade would be unverifiable and risky. Scheduled immediately
-after the integration test lands.
-
----
-
-## Environment Notes
-- Docker Desktop is available and was used to verify migrations on PostgreSQL 16.
-- No local Postgres or `psql` on the host; use Docker for DB verification.
+1. Deploy and end-to-end test the gateway (TLS, timeouts, upstream health).
+2. Add container/build manifests and a deployment/rollback job to CI.
+3. Harden the edge: rate limiting, CORS, security headers, token storage,
+   dependency scan.
+4. Drill backup and restore, including the media volume, and record the RTO.
+5. Wire the offline queue into progress/autosave/submission flows.
+6. Add the AI, parent, admin, communication and support UI surfaces.
+7. Run load, accessibility and Bengali review before any pilot cohort.
