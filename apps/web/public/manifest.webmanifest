@@ -1,0 +1,27 @@
+{
+  "name": "EduNet — Learning without limits",
+  "short_name": "EduNet",
+  "description": "A connected, low-bandwidth friendly education platform for students, teachers, parents and tutors.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#0b1220",
+  "theme_color": "#0284c7",
+  "lang": "en",
+  "dir": "ltr",
+  "categories": ["education", "productivity"],
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    { "name": "My courses", "url": "/my-courses" },
+    { "name": "Calendar", "url": "/calendar" },
+    { "name": "Messages", "url": "/messages" }
+  ]
+}
