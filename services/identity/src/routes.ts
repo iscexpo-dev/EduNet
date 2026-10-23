@@ -1,6 +1,18 @@
 import { Router } from 'express';
-import { registerHandler, loginHandler, refreshTokenHandler } from './handlers';
+import {
+  registerHandler,
+  loginHandler,
+  refreshTokenHandler,
+  passwordResetRequestHandler,
+  passwordResetConfirmHandler,
+  verificationRequestHandler,
+  verificationConfirmHandler,
+  listSessionsHandler,
+  revokeSessionHandler,
+  listAuditHandler,
+} from './handlers';
 import { authenticate } from './middleware';
+import { authorize } from '@edunet/rbac';
 import { findUserById } from './db';
 
 export function registerRoutes(app: any) {
@@ -9,6 +21,15 @@ export function registerRoutes(app: any) {
   router.post('/register', registerHandler);
   router.post('/login', loginHandler);
   router.post('/refresh', refreshTokenHandler);
+  router.post('/password-reset/request', passwordResetRequestHandler);
+  router.post('/password-reset/confirm', passwordResetConfirmHandler);
+
+  router.post('/verification/request', authenticate, verificationRequestHandler);
+  router.post('/verification/confirm', authenticate, verificationConfirmHandler);
+  router.get('/sessions', authenticate, listSessionsHandler);
+  router.delete('/sessions/:id', authenticate, revokeSessionHandler);
+  router.get('/audit-events', authenticate, authorize('admin'), listAuditHandler);
+
   router.get('/me', authenticate, async (req: any, res: any) => {
     try {
       const user = await findUserById(req.user.id);

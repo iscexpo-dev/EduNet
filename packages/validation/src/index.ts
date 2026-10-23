@@ -92,3 +92,22 @@ export const bookingSchema = z.object({
   scheduledAt: z.string().datetime(),
   capacity: z.number().min(1),
 });
+
+// Identity extension schemas
+export const passwordResetRequestSchema = z.object({
+  email: z.string().email(),
+});
+
+export const passwordResetConfirmSchema = z.object({
+  token: z.string().min(16).max(200),
+  password: z.string().min(8).max(128),
+});
+
+export const verificationRequestSchema = z.object({
+  kind: z.enum(['email_verification', 'phone_verification']),
+});
+
+export const tokenConfirmSchema = z.object({
+  kind: z.enum(['email_verification', 'phone_verification']),
+  token: z.string().min(16).max(200),
+});

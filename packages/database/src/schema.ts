@@ -1,4 +1,4 @@
-import { pgTable, serial, integer, text, timestamp, boolean, uuid, varchar, index, unique } from 'drizzle-orm/pg-core';
+import { pgTable, serial, integer, text, timestamp, boolean, uuid, varchar, jsonb, index, unique } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 
 // Organizations
@@ -139,6 +139,65 @@ export const submissions = pgTable('submissions', {
   gradedByIdx: index('submissions_graded_by_idx').on(table.gradedBy),
   studentGradeIdx: index('submissions_student_grade_idx').on(table.studentId, table.grade),
   assignmentGradeIdx: index('submissions_assignment_grade_idx').on(table.assignmentId, table.grade),
+}));
+
+// Identity: audit trail for every authentication-relevant event.
+// Events are security data, not analytics data; entries carry only a
+// pseudonymised IP (HMAC) and never passwords or tokens.
+export const identityAuditEvents = pgTable('identity_audit_events', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  // Nullable: events can precede user creation (unknown email login attempts).
+  userId: uuid('user_id').references(() => users.id, { onDelete: 'set null' }),
+  organizationId: uuid('organization_id').references(() => organizations.id, { onDelete: 'set null' }),
+  // login_success | login_failure | password_reset_requested |
+  // password_reset_completed | email_verified | session_revoked | lockout
+  eventType: varchar('event_type', { length: 50 }).notNull(),
+  outcome: varchar('outcome', { length: 20 }).default('success').notNull(), // success | failure
+  ipHash: varchar('ip_hash', { length: 64 }),
+  userAgent: varchar('user_agent', { length: 300 }),
+  metadata: jsonb('metadata'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (table) => ({
+  userIdx: index('identity_audit_events_user_idx').on(table.userId),
+  eventTypeIdx: index('identity_audit_events_event_type_idx').on(table.eventType),
+  createdAtIdx: index('identity_audit_events_created_at_idx').on(table.createdAt),
+  ipHashIdx: index('identity_audit_events_ip_hash_idx').on(table.ipHash),
+}));
+
+// Identity: single-use opaque tokens (password reset, email/phone verification).
+// Raw token is shown/emailed once; only its hash is stored.
+export const identityTokens = pgTable('identity_tokens', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  // password_reset | email_verification | phone_verification
+  kind: varchar('kind', { length: 40 }).notNull(),
+  tokenHash: varchar('token_hash', { length: 64 }).notNull(),
+  expiresAt: timestamp('expires_at').notNull(),
+  usedAt: timestamp('used_at'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (table) => ({
+  tokenHashIdx: unique('identity_tokens_token_hash_unique').on(table.tokenHash),
+  userIdx: index('identity_tokens_user_id_idx').on(table.userId),
+  kindIdx: index('identity_tokens_kind_idx').on(table.kind),
+  userIdKindIdx: index('identity_tokens_user_kind_idx').on(table.userId, table.kind),
+}));
+
+// Identity: device/session registry backing refresh-token revocation and
+// device management. One row per established login session.
+export const sessions = pgTable('sessions', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  sessionId: varchar('session_id', { length: 64 }).notNull(), // jwtId claim
+  deviceName: varchar('device_name', { length: 200 }),
+  ipHash: varchar('ip_hash', { length: 64 }),
+  userAgent: varchar('user_agent', { length: 300 }),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  lastSeenAt: timestamp('last_seen_at').defaultNow().notNull(),
+  revokedAt: timestamp('revoked_at'),
+}, (table) => ({
+  sessionIdIdx: unique('sessions_session_id_unique').on(table.sessionId),
+  userIdx: index('sessions_user_id_idx').on(table.userId),
+  activeIdx: index('sessions_active_idx').on(table.userId, table.revokedAt),
 }));
 
 // Relations
