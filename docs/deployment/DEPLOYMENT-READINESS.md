@@ -16,9 +16,15 @@
 - Production container definition uses a multi-stage build, non-root runtime, and health check.
 - Backup and restore scripts verify custom-format archives and checksums; restore requires explicit confirmation.
 
+## Validation evidence — 2026-10-24
+
+- `pnpm verify` **PASSED**: typecheck, lint, tests, and production builds completed successfully.
+- Lint and build completed with existing warnings only; no errors were reported.
+- The local run did not execute the CI PostgreSQL service, migration application, browser dependency installation, or end-to-end suite, so those remain CI/staging evidence items.
+
 ## Evidence and blockers
 
-The repository was audited, but full verification commands and external staging were not completed in this pass. No deployment credentials, production database, monitoring account, DNS, or staging target are available to this workspace. Therefore staging, production deployment, restore execution, load testing, and alert delivery remain **BLOCKED/NOT RUN** rather than passed.
+No deployment credentials, production database, monitoring account, DNS, or staging target are available to this workspace. Therefore staging, production deployment, restore execution, load testing, and alert delivery remain **BLOCKED/NOT RUN** rather than passed.
 
 Known operational prerequisites: managed PostgreSQL with TLS and backups, secret manager values, HTTPS/DNS, monitoring and alert destinations, synthetic pilot accounts, and authorized release owner.
 
