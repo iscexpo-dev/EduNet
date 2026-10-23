@@ -12,6 +12,7 @@ import type { Config } from 'drizzle-kit';
 export default {
   schema: [
     './src/schema.ts',
+    './src/platform-schema.ts',
     '../../services/content/src/schema.ts',
     '../../services/assessments/src/schema.ts',
     '../../services/notifications/src/schema.ts',

@@ -39,6 +39,9 @@ importers:
       '@edunet/i18n':
         specifier: workspace:*
         version: link:../../packages/i18n
+      '@edunet/offline':
+        specifier: workspace:*
+        version: link:../../packages/offline
       '@edunet/types':
         specifier: workspace:*
         version: link:../../packages/types
@@ -198,6 +201,9 @@ importers:
       typescript:
         specifier: ^5.5.0
         version: 5.9.3
+      vitest:
+        specifier: ^4.1.11
+        version: 4.1.11(@types/node@22.20.4)(vite@6.4.4)
 
   packages/observability:
     dependencies:
@@ -211,6 +217,18 @@ importers:
       '@types/express':
         specifier: ^4.17.21
         version: 4.17.25
+      '@types/node':
+        specifier: ^22.0.0
+        version: 22.20.4
+      typescript:
+        specifier: ^5.5.0
+        version: 5.9.3
+      vitest:
+        specifier: ^4.1.11
+        version: 4.1.11(@types/node@22.20.4)(vite@6.4.4)
+
+  packages/offline:
+    devDependencies:
       '@types/node':
         specifier: ^22.0.0
         version: 22.20.4
@@ -290,6 +308,49 @@ importers:
       typescript:
         specifier: ^5.5.0
         version: 5.9.3
+
+  services/ai:
+    dependencies:
+      '@edunet/database':
+        specifier: workspace:*
+        version: link:../../packages/database
+      '@edunet/observability':
+        specifier: workspace:*
+        version: link:../../packages/observability
+      '@edunet/rbac':
+        specifier: workspace:*
+        version: link:../../packages/rbac
+      '@edunet/validation':
+        specifier: workspace:*
+        version: link:../../packages/validation
+      drizzle-orm:
+        specifier: ^0.33.0
+        version: 0.33.0(postgres@3.4.9)
+      express:
+        specifier: ^4.19.0
+        version: 4.22.3
+      postgres:
+        specifier: ^3.4.0
+        version: 3.4.9
+      zod:
+        specifier: ^3.23.0
+        version: 3.25.76
+    devDependencies:
+      '@types/express':
+        specifier: ^4.17.21
+        version: 4.17.25
+      '@types/node':
+        specifier: ^22.0.0
+        version: 22.20.4
+      tsx:
+        specifier: ^4.16.0
+        version: 4.23.15
+      typescript:
+        specifier: ^5.5.0
+        version: 5.9.3
+      vitest:
+        specifier: ^4.1.11
+        version: 4.1.11(@types/node@22.20.4)(vite@6.4.4)
 
   services/analytics:
     dependencies:
@@ -444,6 +505,49 @@ importers:
         specifier: ^5.5.0
         version: 5.9.3
 
+  services/communication:
+    dependencies:
+      '@edunet/database':
+        specifier: workspace:*
+        version: link:../../packages/database
+      '@edunet/observability':
+        specifier: workspace:*
+        version: link:../../packages/observability
+      '@edunet/rbac':
+        specifier: workspace:*
+        version: link:../../packages/rbac
+      '@edunet/validation':
+        specifier: workspace:*
+        version: link:../../packages/validation
+      drizzle-orm:
+        specifier: ^0.33.0
+        version: 0.33.0(postgres@3.4.9)
+      express:
+        specifier: ^4.19.0
+        version: 4.22.3
+      postgres:
+        specifier: ^3.4.0
+        version: 3.4.9
+      zod:
+        specifier: ^3.23.0
+        version: 3.25.76
+    devDependencies:
+      '@types/express':
+        specifier: ^4.17.21
+        version: 4.17.25
+      '@types/node':
+        specifier: ^22.0.0
+        version: 22.20.4
+      tsx:
+        specifier: ^4.16.0
+        version: 4.23.15
+      typescript:
+        specifier: ^5.5.0
+        version: 5.9.3
+      vitest:
+        specifier: ^4.1.11
+        version: 4.1.11(@types/node@22.20.4)(vite@6.4.4)
+
   services/content:
     dependencies:
       '@edunet/database':
@@ -535,6 +639,49 @@ importers:
       '@types/jsonwebtoken':
         specifier: ^9.0.0
         version: 9.0.10
+      '@types/node':
+        specifier: ^22.0.0
+        version: 22.20.4
+      tsx:
+        specifier: ^4.16.0
+        version: 4.23.15
+      typescript:
+        specifier: ^5.5.0
+        version: 5.9.3
+      vitest:
+        specifier: ^4.1.11
+        version: 4.1.11(@types/node@22.20.4)(vite@6.4.4)
+
+  services/engagement:
+    dependencies:
+      '@edunet/database':
+        specifier: workspace:*
+        version: link:../../packages/database
+      '@edunet/observability':
+        specifier: workspace:*
+        version: link:../../packages/observability
+      '@edunet/rbac':
+        specifier: workspace:*
+        version: link:../../packages/rbac
+      '@edunet/validation':
+        specifier: workspace:*
+        version: link:../../packages/validation
+      drizzle-orm:
+        specifier: ^0.33.0
+        version: 0.33.0(postgres@3.4.9)
+      express:
+        specifier: ^4.19.0
+        version: 4.22.3
+      postgres:
+        specifier: ^3.4.0
+        version: 3.4.9
+      zod:
+        specifier: ^3.23.0
+        version: 3.25.76
+    devDependencies:
+      '@types/express':
+        specifier: ^4.17.21
+        version: 4.17.25
       '@types/node':
         specifier: ^22.0.0
         version: 22.20.4
@@ -814,6 +961,49 @@ importers:
         specifier: ^5.1.6
         version: 5.9.3
 
+  services/platform:
+    dependencies:
+      '@edunet/database':
+        specifier: workspace:*
+        version: link:../../packages/database
+      '@edunet/observability':
+        specifier: workspace:*
+        version: link:../../packages/observability
+      '@edunet/rbac':
+        specifier: workspace:*
+        version: link:../../packages/rbac
+      '@edunet/validation':
+        specifier: workspace:*
+        version: link:../../packages/validation
+      drizzle-orm:
+        specifier: ^0.33.0
+        version: 0.33.0(postgres@3.4.9)
+      express:
+        specifier: ^4.19.0
+        version: 4.22.3
+      postgres:
+        specifier: ^3.4.0
+        version: 3.4.9
+      zod:
+        specifier: ^3.23.0
+        version: 3.25.76
+    devDependencies:
+      '@types/express':
+        specifier: ^4.17.21
+        version: 4.17.25
+      '@types/node':
+        specifier: ^22.0.0
+        version: 22.20.4
+      tsx:
+        specifier: ^4.16.0
+        version: 4.23.15
+      typescript:
+        specifier: ^5.5.0
+        version: 5.9.3
+      vitest:
+        specifier: ^4.1.11
+        version: 4.1.11(@types/node@22.20.4)(vite@6.4.4)
+
   services/search:
     dependencies:
       '@edunet/database':
@@ -914,6 +1104,52 @@ importers:
       typescript:
         specifier: ^5.5.0
         version: 5.9.3
+      vitest:
+        specifier: ^4.1.11
+        version: 4.1.11(@types/node@22.20.4)(vite@6.4.4)
+
+  services/support:
+    dependencies:
+      '@edunet/database':
+        specifier: workspace:*
+        version: link:../../packages/database
+      '@edunet/observability':
+        specifier: workspace:*
+        version: link:../../packages/observability
+      '@edunet/rbac':
+        specifier: workspace:*
+        version: link:../../packages/rbac
+      '@edunet/validation':
+        specifier: workspace:*
+        version: link:../../packages/validation
+      drizzle-orm:
+        specifier: ^0.33.0
+        version: 0.33.0(postgres@3.4.9)
+      express:
+        specifier: ^4.19.0
+        version: 4.22.3
+      postgres:
+        specifier: ^3.4.0
+        version: 3.4.9
+      zod:
+        specifier: ^3.23.0
+        version: 3.25.76
+    devDependencies:
+      '@types/express':
+        specifier: ^4.17.21
+        version: 4.17.25
+      '@types/node':
+        specifier: ^22.0.0
+        version: 22.20.4
+      tsx:
+        specifier: ^4.16.0
+        version: 4.23.15
+      typescript:
+        specifier: ^5.5.0
+        version: 5.9.3
+      vitest:
+        specifier: ^4.1.11
+        version: 4.1.11(@types/node@22.20.4)(vite@6.4.4)
 
   services/users:
     dependencies:
@@ -3201,7 +3437,7 @@ packages:
       '@vitest/spy': 4.1.11
       estree-walker: 3.0.3
       magic-string: 0.30.21
-      vite: 6.4.4(@types/node@20.19.43)
+      vite: 6.4.4(@types/node@22.20.4)
     dev: true
 
   /@vitest/pretty-format@4.1.11:

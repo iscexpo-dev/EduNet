@@ -1,6 +1,20 @@
 // Core domain types for EduNet
 
-export type UserRole = 'student' | 'teacher' | 'parent' | 'admin' | 'tutor';
+export type UserRole =
+  | 'student'
+  | 'teacher'
+  | 'parent'
+  | 'tutor'
+  | 'mentor'
+  | 'school_admin'
+  | 'institution_admin'
+  | 'district_admin'
+  | 'national_admin'
+  | 'content_moderator'
+  | 'support_agent'
+  | 'finance'
+  | 'super_admin'
+  | 'admin';
 
 export type OrganizationType = 'school' | 'district' | 'university' | 'training_center';
 

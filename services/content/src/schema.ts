@@ -1,26 +1,115 @@
-import { pgTable, uuid, text, timestamp, jsonb, index, unique, integer, boolean } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, text, timestamp, jsonb, index, unique, integer, boolean, varchar } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 import { courses, users } from '@edunet/database';
+
+// Course modules: sections/chapters, optionally nested via parentId.
+export const courseModules = pgTable('course_modules', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  courseId: uuid('course_id').references(() => courses.id, { onDelete: 'cascade' }).notNull(),
+  parentId: uuid('parent_id'),
+  title: text('title').notNull(),
+  description: text('description'),
+  order: integer('order').default(0).notNull(),
+  isPublished: boolean('is_published').default(false).notNull(),
+  deletedAt: timestamp('deleted_at'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => ({
+  courseIdx: index('course_modules_course_idx').on(table.courseId),
+  orderIdx: index('course_modules_order_idx').on(table.courseId, table.order),
+  parentIdx: index('course_modules_parent_idx').on(table.parentId),
+}));
 
 // Lessons - Content units within courses
 export const lessons = pgTable('lessons', {
   id: uuid('id').defaultRandom().primaryKey(),
   courseId: uuid('course_id').references(() => courses.id, { onDelete: 'cascade' }).notNull(),
+  moduleId: uuid('module_id').references(() => courseModules.id, { onDelete: 'set null' }),
   title: text('title').notNull(),
   description: text('description'),
   type: text('type').notNull(), // video, text, document, interactive, quiz
   content: jsonb('content'), // Structured content based on type
   order: text('order').notNull(), // Display order within course
   duration: text('duration'), // e.g., "30m", "1h"
+  category: varchar('category', { length: 80 }),
+  tags: jsonb('tags').default([]).notNull(),
   isPublished: text('is_published').default('false').notNull(), // true, false
   publishedAt: timestamp('published_at'),
+  scheduledFor: timestamp('scheduled_for'),
   deletedAt: timestamp('deleted_at'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 }, (table) => ({
   courseIdx: index('lessons_course_id_idx').on(table.courseId),
+  moduleIdx: index('lessons_module_idx').on(table.moduleId),
   orderIdx: index('lessons_order_idx').on(table.courseId, table.order),
   isPublishedIdx: index('lessons_is_published_idx').on(table.isPublished),
+  categoryIdx: index('lessons_category_idx').on(table.category),
+}));
+
+// Learning objectives and course prerequisites
+export const learningObjectives = pgTable('learning_objectives', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  courseId: uuid('course_id').references(() => courses.id, { onDelete: 'cascade' }).notNull(),
+  description: text('description').notNull(),
+  order: integer('order').default(0).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (table) => ({
+  courseIdx: index('learning_objectives_course_idx').on(table.courseId, table.order),
+}));
+
+export const lessonObjectives = pgTable('lesson_objectives', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  lessonId: uuid('lesson_id').references(() => lessons.id, { onDelete: 'cascade' }).notNull(),
+  objectiveId: uuid('objective_id').references(() => learningObjectives.id, { onDelete: 'cascade' }).notNull(),
+}, (table) => ({
+  pairIdx: unique('lesson_objectives_pair_unique').on(table.lessonId, table.objectiveId),
+}));
+
+export const coursePrerequisites = pgTable('course_prerequisites', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  courseId: uuid('course_id').references(() => courses.id, { onDelete: 'cascade' }).notNull(),
+  prerequisiteCourseId: uuid('prerequisite_course_id').references(() => courses.id, { onDelete: 'cascade' }).notNull(),
+}, (table) => ({
+  pairIdx: unique('course_prerequisites_pair_unique').on(table.courseId, table.prerequisiteCourseId),
+}));
+
+// Personal learning state
+export const lessonBookmarks = pgTable('lesson_bookmarks', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  lessonId: uuid('lesson_id').references(() => lessons.id, { onDelete: 'cascade' }).notNull(),
+  studentId: uuid('student_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (table) => ({
+  pairIdx: unique('lesson_bookmarks_pair_unique').on(table.lessonId, table.studentId),
+  studentIdx: index('lesson_bookmarks_student_idx').on(table.studentId),
+}));
+
+export const lessonNotes = pgTable('lesson_notes', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  lessonId: uuid('lesson_id').references(() => lessons.id, { onDelete: 'cascade' }).notNull(),
+  studentId: uuid('student_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  content: text('content').notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => ({
+  pairIdx: unique('lesson_notes_pair_unique').on(table.lessonId, table.studentId),
+  studentIdx: index('lesson_notes_student_idx').on(table.studentId),
+}));
+
+// Editorial workflow: draft -> submitted -> approved/rejected -> published.
+export const contentReviews = pgTable('content_reviews', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  lessonId: uuid('lesson_id').references(() => lessons.id, { onDelete: 'cascade' }).notNull(),
+  submittedBy: uuid('submitted_by').references(() => users.id, { onDelete: 'set null' }),
+  reviewerId: uuid('reviewer_id').references(() => users.id, { onDelete: 'set null' }),
+  status: varchar('status', { length: 20 }).default('submitted').notNull(), // submitted | approved | rejected
+  comments: text('comments'),
+  decidedAt: timestamp('decided_at'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (table) => ({
+  lessonIdx: index('content_reviews_lesson_idx').on(table.lessonId, table.createdAt),
+  statusIdx: index('content_reviews_status_idx').on(table.status),
 }));
 
 // Lesson Progress - Student progress through lessons

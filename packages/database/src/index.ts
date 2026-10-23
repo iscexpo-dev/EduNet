@@ -4,6 +4,7 @@ import { eq } from 'drizzle-orm';
 import * as schema from './schema';
 
 export * from './schema';
+export * from './platform-schema';
 
 type Database = ReturnType<typeof drizzle<typeof schema>>;
 

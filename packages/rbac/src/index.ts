@@ -8,25 +8,33 @@
  */
 
 import jwt, { JwtPayload } from 'jsonwebtoken';
+import {
+  ROLES,
+  PRIVILEGED_ROLES,
+  PERMISSIONS,
+  ROLE_PERMISSIONS,
+  ALL_ROLES,
+  hasPermission,
+  hasAnyPermission,
+  isPrivilegedRole,
+  isKnownRole,
+  permissionsForRole,
+} from './permissions';
+import type { Permission } from './permissions';
 
-export const ROLES = {
-  STUDENT: 'student',
-  TEACHER: 'teacher',
-  PARENT: 'parent',
-  TUTOR: 'tutor',
-  ADMIN: 'admin',
-} as const;
-
-export type Role = (typeof ROLES)[keyof typeof ROLES];
-
-/**
- * Roles that bypass role checks entirely.
- *
- * Admins are organisation-scoped operational staff, not superusers over the
- * whole installation: tenant isolation is enforced separately by
- * `assertSameOrganization` / ownership checks, never by the role gate.
- */
-export const PRIVILEGED_ROLES: readonly string[] = [ROLES.ADMIN];
+export {
+  ROLES,
+  PRIVILEGED_ROLES,
+  PERMISSIONS,
+  ROLE_PERMISSIONS,
+  ALL_ROLES,
+  hasPermission,
+  hasAnyPermission,
+  isPrivilegedRole,
+  isKnownRole,
+  permissionsForRole,
+};
+export type { Role, Permission } from './permissions';
 
 export interface AuthenticatedUser {
   id: string;
@@ -37,7 +45,7 @@ export interface AuthenticatedUser {
 /** True when `userRole` is explicitly allowed, or is a privileged role. */
 export function hasRole(userRole: string | undefined, allowedRoles: readonly string[]): boolean {
   if (!userRole) return false;
-  if (PRIVILEGED_ROLES.includes(userRole)) return true;
+  if (isPrivilegedRole(userRole)) return true;
   return allowedRoles.includes(userRole);
 }
 
@@ -121,6 +129,28 @@ export function authorize(...allowedRoles: string[]) {
     }
 
     if (!hasRole(req.user.role, allowedRoles)) {
+      res.status(403).json({ error: 'Insufficient permissions' });
+      return;
+    }
+
+    next();
+  };
+}
+
+/**
+ * Express middleware factory enforcing a granular permission.
+ *
+ * Prefer this over `authorize()` for new routes: it keeps role semantics in a
+ * single matrix and lets new roles be added without editing every service.
+ */
+export function requirePermission(...required: Permission[]) {
+  return (req: MinimalRequest, res: MinimalResponse, next: NextFunction): void => {
+    if (!req.user) {
+      res.status(401).json({ error: 'Not authenticated' });
+      return;
+    }
+
+    if (!hasPermission(req.user.role, required)) {
       res.status(403).json({ error: 'Insufficient permissions' });
       return;
     }
