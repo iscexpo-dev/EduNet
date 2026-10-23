@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192" role="img" aria-label="EduNet">
+  <rect width="192" height="192" rx="40" fill="#0284c7"/>
+  <path d="M96 44 36 74l60 30 60-30-60-30Z" fill="#fff"/>
+  <path d="M56 96v30c0 12 18 22 40 22s40-10 40-22V96l-40 20-40-20Z" fill="#e0f2fe"/>
+</svg>
