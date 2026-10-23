@@ -1,15 +1,18 @@
 import express from 'express';
+import { bootstrapService } from '@edunet/observability';
 import { registerRoutes } from './routes';
 
-export { authenticate, authorize, AuthRequest } from './middleware';
-
-const app = express();
-const PORT = process.env.PORT || 3001;
-
-app.use(express.json());
-
-registerRoutes(app);
-
-app.listen(PORT, () => {
-  console.log(`Identity service running on port ${PORT}`);
+const app = bootstrapService({
+  serviceName: 'identity',
+  registerRoutes: (expressApp: express.Express) => registerRoutes(expressApp),
+  port: Number(process.env.PORT) || 3001,
 });
+
+if (process.env.NODE_ENV !== 'test' && require.main === module) {
+  app.start();
+}
+
+export { app as service };
+
+// Preserve the public middleware surface for backwards compatibility.
+export { authenticate, authorize, AuthRequest } from './middleware';
