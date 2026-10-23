@@ -8,12 +8,16 @@
   --background-end-rgb: 255, 255, 255;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --foreground-rgb: 255, 255, 255;
-    --background-start-rgb: 0, 0, 0;
-    --background-end-rgb: 0, 0, 0;
-  }
+.dark {
+  --foreground-rgb: 243, 244, 246;
+  --background-start-rgb: 7, 10, 17;
+  --background-end-rgb: 11, 18, 32;
+}
+
+/* Bengali UI: chosen font stack and looser line-height, per design system */
+html[lang='bn'] body {
+  font-family: 'Noto Sans Bengali', 'Hind Siliguri', 'Kalpurush', 'SolaimanLipi', system-ui, sans-serif;
+  line-height: 1.75;
 }
 
 body {
@@ -24,4 +28,15 @@ body {
       rgb(var(--background-end-rgb))
     )
     rgb(var(--background-start-rgb));
+}
+
+/* Accessibility: honour reduced-motion for skeletons and animations */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
