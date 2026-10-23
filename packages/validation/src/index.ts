@@ -50,11 +50,18 @@ export const assignmentSchema = z.object({
   description: z.string().min(1).max(5000),
   dueDate: z.string().datetime(),
   maxPoints: z.number().int().min(0).max(100000),
+  // Late/resubmission policy
+  latePolicy: z.enum(['accept', 'penalized', 'locked']).default('accept'),
+  latePenaltyPercent: z.number().int().min(0).max(100).default(0),
+  allowResubmission: z.boolean().default(false),
+  resubmissionDeadline: z.string().datetime().optional(),
 });
+
+export const assignmentUpdateSchema = assignmentSchema.partial();
 
 export const submissionSchema = z.object({
   assignmentId: z.string().uuid(),
-  content: z.string().trim().min(1).max(10000),
+  content: z.string().trim().min(1).max(50000),
 });
 
 // Assessment validation schemas

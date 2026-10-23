@@ -121,6 +121,8 @@ export async function createSubmission(data: {
   studentId: string;
   organizationId: string;
   content: string;
+  isLate?: boolean;
+  attachmentIds?: string[];
 }) {
   const db = getDb();
   const [validTarget] = await db
@@ -149,7 +151,76 @@ export async function createSubmission(data: {
       studentId: data.studentId,
       content: data.content,
       submittedAt: new Date(),
+      attemptNumber: 1,
+      isLate: data.isLate ?? false,
+      attachmentIds: data.attachmentIds ?? [],
     })
+    .returning();
+  return submission;
+}
+
+/** Applies a resubmission: new content, incremented attempt, refreshed lateness. */
+export async function applyResubmission(
+  id: string,
+  organizationId: string,
+  data: { content: string; isLate: boolean },
+  attemptNumber: number,
+) {
+  const db = getDb();
+  const [submission] = await db
+    .update(submissions)
+    .set({
+      content: data.content,
+      isLate: data.isLate,
+      attemptNumber,
+      submittedAt: new Date(),
+      // A resubmission restarts the grading lifecycle.
+      grade: null,
+      feedback: null,
+      gradedAt: null,
+      gradedBy: null,
+      updatedAt: new Date(),
+    })
+    .where(
+      and(
+        eq(submissions.id, id),
+        inArray(
+          submissions.assignmentId,
+          db
+            .select({ id: assignments.id })
+            .from(assignments)
+            .innerJoin(courses, eq(assignments.courseId, courses.id))
+            .where(eq(courses.organizationId, organizationId)),
+        ),
+      ),
+    )
+    .returning();
+  return submission;
+}
+
+/** Autosaves a draft: content-only update without touching submission facts. */
+export async function autosaveSubmission(
+  id: string,
+  organizationId: string,
+  content: string,
+) {
+  const db = getDb();
+  const [submission] = await db
+    .update(submissions)
+    .set({ content, updatedAt: new Date() })
+    .where(
+      and(
+        eq(submissions.id, id),
+        inArray(
+          submissions.assignmentId,
+          db
+            .select({ id: assignments.id })
+            .from(assignments)
+            .innerJoin(courses, eq(assignments.courseId, courses.id))
+            .where(eq(courses.organizationId, organizationId)),
+        ),
+      ),
+    )
     .returning();
   return submission;
 }
@@ -206,4 +277,178 @@ export async function deleteSubmission(id: string, organizationId: string) {
     )
     .returning();
   return submission;
+}
+
+// ---------------------------------------------------------------------------
+// Assignment expansion: rubrics, revisions, events, grade history
+// ---------------------------------------------------------------------------
+
+import { rubricCriteria as rubricCriteriaTable, submissionRevisions, submissionEvents, submissionGradeRevisions } from '@edunet/database';
+
+export async function listRubricCriteria(assignmentId: string, organizationId: string) {
+  const db = getDb();
+  const rows = await db
+    .select({ criterion: rubricCriteriaTable })
+    .from(rubricCriteriaTable)
+    .innerJoin(assignments, eq(rubricCriteriaTable.assignmentId, assignments.id))
+    .innerJoin(courses, eq(assignments.courseId, courses.id))
+    .where(and(eq(assignments.id, assignmentId), eq(courses.organizationId, organizationId)))
+    .orderBy(rubricCriteriaTable.order);
+  return rows.map(({ criterion }) => criterion);
+}
+
+/** Replaces the whole rubric for an assignment (teacher/admin action). */
+export async function replaceRubricCriteria(
+  assignmentId: string,
+  organizationId: string,
+  criteria: { description: string; maxPoints: number; order: number }[],
+) {
+  const db = getDb();
+  const assignment = await findAssignmentById(assignmentId, organizationId);
+  if (!assignment) return null;
+  await db.delete(rubricCriteriaTable).where(eq(rubricCriteriaTable.assignmentId, assignmentId));
+  if (criteria.length === 0) return [];
+  const inserted = await db
+    .insert(rubricCriteriaTable)
+    .values(criteria.map((entry, index) => ({
+      assignmentId,
+      description: entry.description.slice(0, 300),
+      maxPoints: entry.maxPoints,
+      order: entry.order ?? index,
+    })))
+    .returning();
+  return inserted;
+}
+
+export async function recordSubmissionRevision(data: {
+  submissionId: string;
+  previousContent: string | null;
+  newContent: string;
+  attemptNumber: number;
+  reason: 'create' | 'resubmission' | 'autosave';
+}) {
+  const db = getDb();
+  const [revision] = await db
+    .insert(submissionRevisions)
+    .values({
+      submissionId: data.submissionId,
+      previousContent: data.previousContent,
+      newContent: data.newContent,
+      attemptNumber: data.attemptNumber,
+      reason: data.reason,
+      createdAt: new Date(),
+    })
+    .returning();
+  return revision;
+}
+
+export async function listSubmissionRevisions(submissionId: string, organizationId: string) {
+  const db = getDb();
+  const rows = await db
+    .select({ revision: submissionRevisions })
+    .from(submissionRevisions)
+    .innerJoin(submissions, eq(submissionRevisions.submissionId, submissions.id))
+    .where(
+      and(
+        eq(submissionRevisions.submissionId, submissionId),
+        inArray(
+          submissions.assignmentId,
+          db
+            .select({ id: assignments.id })
+            .from(assignments)
+            .innerJoin(courses, eq(assignments.courseId, courses.id))
+            .where(eq(courses.organizationId, organizationId)),
+        ),
+      ),
+    )
+    .orderBy(submissionRevisions.createdAt);
+  return rows.map(({ revision }) => revision);
+}
+
+export async function recordSubmissionEvent(data: {
+  submissionId: string;
+  actorId: string | null;
+  action: 'submitted' | 'resubmitted' | 'graded' | 'regraded' | 'autosaved';
+  metadata?: Record<string, unknown>;
+}) {
+  const db = getDb();
+  const [event] = await db
+    .insert(submissionEvents)
+    .values({
+      submissionId: data.submissionId,
+      actorId: data.actorId,
+      action: data.action,
+      metadata: data.metadata ?? null,
+      createdAt: new Date(),
+    })
+    .returning();
+  return event;
+}
+
+export async function listSubmissionEvents(submissionId: string, organizationId: string) {
+  const db = getDb();
+  const rows = await db
+    .select({ event: submissionEvents })
+    .from(submissionEvents)
+    .innerJoin(submissions, eq(submissionEvents.submissionId, submissions.id))
+    .where(
+      and(
+        eq(submissionEvents.submissionId, submissionId),
+        inArray(
+          submissions.assignmentId,
+          db
+            .select({ id: assignments.id })
+            .from(assignments)
+            .innerJoin(courses, eq(assignments.courseId, courses.id))
+            .where(eq(courses.organizationId, organizationId)),
+        ),
+      ),
+    )
+    .orderBy(submissionEvents.createdAt);
+  return rows.map(({ event }) => event);
+}
+
+export async function recordGradeRevision(data: {
+  submissionId: string;
+  adjustedBy: string | null;
+  previousGrade: number | null;
+  newGrade: number;
+  reason: string;
+}) {
+  const db = getDb();
+  const [revision] = await db
+    .insert(submissionGradeRevisions)
+    .values({
+      submissionId: data.submissionId,
+      adjustedBy: data.adjustedBy,
+      previousGrade: data.previousGrade,
+      newGrade: data.newGrade,
+      reason: data.reason,
+      createdAt: new Date(),
+    })
+    .returning();
+  return revision;
+}
+
+export async function listGradeRevisions(submissionId: string, organizationId: string) {
+  const db = getDb();
+  const rows = await db
+    .select({ revision: submissionGradeRevisions })
+    .from(submissionGradeRevisions)
+    .innerJoin(submissions, eq(submissionGradeRevisions.submissionId, submissions.id))
+    .where(
+      and(
+        eq(submissionGradeRevisions.submissionId, submissionId),
+        inArray(
+          submissions.assignmentId,
+          db
+            .select({ id: assignments.id })
+            .from(assignments)
+            .innerJoin(courses, eq(assignments.courseId, courses.id))
+            .where(eq(courses.organizationId, organizationId)),
+        ),
+      ),
+    )
+    .orderBy(submissionGradeRevisions.createdAt);
+  return rows.map(({ revision }) => revision);
 }

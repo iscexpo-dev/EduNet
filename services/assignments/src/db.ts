@@ -71,6 +71,10 @@ export async function createAssignment(data: {
   description: string;
   dueDate: Date;
   maxPoints: number;
+  latePolicy?: string;
+  latePenaltyPercent?: number;
+  allowResubmission?: boolean;
+  resubmissionDeadline?: Date | null;
 }) {
   const db = getDb();
   const [course] = await db
@@ -100,6 +104,10 @@ export async function createAssignment(data: {
       description: data.description,
       dueDate: data.dueDate,
       maxPoints: data.maxPoints,
+      latePolicy: data.latePolicy ?? 'accept',
+      latePenaltyPercent: data.latePenaltyPercent ?? 0,
+      allowResubmission: data.allowResubmission ?? false,
+      resubmissionDeadline: data.resubmissionDeadline ?? null,
       createdAt: new Date(),
       updatedAt: new Date(),
     })
@@ -115,6 +123,10 @@ export async function updateAssignment(
     description?: string;
     dueDate?: Date;
     maxPoints?: number;
+    latePolicy?: string;
+    latePenaltyPercent?: number;
+    allowResubmission?: boolean;
+    resubmissionDeadline?: Date | null;
   }
 ) {
   const db = getDb();

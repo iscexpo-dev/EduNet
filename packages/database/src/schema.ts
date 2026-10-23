@@ -107,6 +107,12 @@ export const assignments = pgTable('assignments', {
   description: text('description').notNull(),
   dueDate: timestamp('due_date').notNull(),
   maxPoints: integer('max_points').notNull(),
+  // Late policy: accept (late submissions allowed with penalty), penalized
+  // (accepted but visually flagged), locked (late submissions rejected).
+  latePolicy: varchar('late_policy', { length: 20 }).default('accept').notNull(),
+  latePenaltyPercent: integer('late_penalty_percent').default(0).notNull(),
+  allowResubmission: boolean('allow_resubmission').default(false).notNull(),
+  resubmissionDeadline: timestamp('resubmission_deadline'),
   isActive: boolean('is_active').default(true).notNull(),
   deletedAt: timestamp('deleted_at'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
@@ -126,6 +132,11 @@ export const submissions = pgTable('submissions', {
   studentId: uuid('student_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
   content: text('content').notNull(),
   submittedAt: timestamp('submitted_at').defaultNow().notNull(),
+  // Attempt ordering for resubmissions; 1 for the first submission.
+  attemptNumber: integer('attempt_number').default(1).notNull(),
+  isLate: boolean('is_late').default(false).notNull(),
+  // media_files ids attached to this submission (access-controlled there).
+  attachmentIds: jsonb('attachment_ids').default([]).notNull(),
   grade: integer('grade'),
   feedback: text('feedback'),
   gradedAt: timestamp('graded_at'),
@@ -140,6 +151,62 @@ export const submissions = pgTable('submissions', {
   studentGradeIdx: index('submissions_student_grade_idx').on(table.studentId, table.grade),
   assignmentGradeIdx: index('submissions_assignment_grade_idx').on(table.assignmentId, table.grade),
 }));
+
+// Assignment rubrics: one row per criterion; grade total is computed server-side.
+export const rubricCriteria = pgTable('rubric_criteria', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  assignmentId: uuid('assignment_id').references(() => assignments.id, { onDelete: 'cascade' }).notNull(),
+  description: varchar('description', { length: 300 }).notNull(),
+  maxPoints: integer('max_points').notNull(),
+  order: integer('order').notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (table) => ({
+  assignmentIdx: index('rubric_criteria_assignment_idx').on(table.assignmentId),
+  orderIdx: index('rubric_criteria_assignment_order_idx').on(table.assignmentId, table.order),
+}));
+
+// Submission content revisions: audit trail of content changes (resubmissions, autosaves).
+export const submissionRevisions = pgTable('submission_revisions', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  submissionId: uuid('submission_id').references(() => submissions.id, { onDelete: 'cascade' }).notNull(),
+  previousContent: text('previous_content'),
+  newContent: text('new_content').notNull(),
+  attemptNumber: integer('attempt_number').default(1).notNull(),
+  // resubmission | autosave | create
+  reason: varchar('reason', { length: 20 }).default('create').notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (table) => ({
+  submissionIdx: index('submission_revisions_submission_idx').on(table.submissionId),
+  createdIdx: index('submission_revisions_created_idx').on(table.createdAt),
+}));
+
+// Submission events: who did what to a submission (submit/grade/regrade/autosave).
+export const submissionEvents = pgTable('submission_events', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  submissionId: uuid('submission_id').references(() => submissions.id, { onDelete: 'cascade' }).notNull(),
+  // actor may be null only when origin explicitly unauthenticated (never in practice; kept for seed tools)
+  actorId: uuid('actor_id').references(() => users.id, { onDelete: 'set null' }),
+  action: varchar('action', { length: 30 }).notNull(),
+  metadata: jsonb('metadata'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (table) => ({
+  submissionIdx: index('submission_events_submission_idx').on(table.submissionId),
+  actionIdx: index('submission_events_action_idx').on(table.action),
+}));
+
+// Grade revisions: audit every grade change after the first grading.
+export const submissionGradeRevisions = pgTable('submission_grade_revisions', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  submissionId: uuid('submission_id').references(() => submissions.id, { onDelete: 'cascade' }).notNull(),
+  adjustedBy: uuid('adjusted_by').references(() => users.id, { onDelete: 'set null' }),
+  previousGrade: integer('previous_grade'),
+  newGrade: integer('new_grade').notNull(),
+  reason: varchar('reason', { length: 300 }).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (table) => ({
+  submissionIdx: index('submission_grade_revisions_submission_idx').on(table.submissionId),
+}));
+
 
 // Identity: audit trail for every authentication-relevant event.
 // Events are security data, not analytics data; entries carry only a

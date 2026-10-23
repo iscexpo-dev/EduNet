@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { assignmentSchema } from '@edunet/validation';
+import { assignmentSchema, assignmentUpdateSchema } from '@edunet/validation';
 import {
   findCourseById,
   findAssignmentById,
@@ -48,6 +48,9 @@ export async function createAssignmentHandler(req: AuthRequest, res: Response) {
       organizationId,
       teacherId: course.teacherId,
       dueDate: new Date(data.dueDate),
+      resubmissionDeadline: data.resubmissionDeadline
+        ? new Date(data.resubmissionDeadline)
+        : null,
     });
     res.status(201).json(assignment);
   } catch (error: any) {
@@ -105,7 +108,7 @@ export async function updateAssignmentHandler(req: AuthRequest, res: Response) {
     if (!organizationId) return;
 
     const { id } = req.params;
-    const data = assignmentSchema.partial().parse(req.body);
+    const data = assignmentUpdateSchema.parse(req.body);
 
     const existing = await findAssignmentById(id, organizationId);
     if (!existing) {
@@ -120,6 +123,11 @@ export async function updateAssignmentHandler(req: AuthRequest, res: Response) {
     const assignment = await updateAssignment(id, organizationId, {
       ...data,
       dueDate: data.dueDate ? new Date(data.dueDate) : undefined,
+      resubmissionDeadline: data.resubmissionDeadline
+        ? new Date(data.resubmissionDeadline)
+        : data.resubmissionDeadline === null
+          ? null
+          : undefined,
     });
     res.json(assignment);
   } catch (error: any) {
