@@ -1,304 +1,138 @@
 # EduNet Roadmap Gap Matrix
 
+Last updated: 2026-10-23
+Baseline: `main` at `2dc560f` plus the AI service completion in the working tree
+Source of truth for requirements: `docs/product/PRODUCT-FOUNDATION.md`
+
 ## Status Legend
-- COMPLETE: Fully implemented and verified
-- PARTIAL: Core exists, needs expansion
-- MISSING: Not implemented
-- NEEDS_HARDENING: Exists but needs security/robustness work
-- BLOCKED: Cannot proceed without dependencies
 
-## 1. Foundation
-| Item | Status | Notes |
-|------|--------|-------|
-| Product vision | PARTIAL | docs/product/ needed |
-| Product scope | PARTIAL | Needs formal definition |
-| MVP scope | COMPLETE | Core LMS functional |
-| Personas | MISSING | Not documented |
-| User journeys | PARTIAL | Basic flows exist |
-| Functional requirements | PARTIAL | Scattered across docs |
-| Non-functional requirements | MISSING | Not documented |
-| Acceptance criteria | MISSING | Not defined |
-| Success metrics | MISSING | Not defined |
-| KPI definitions | MISSING | Not defined |
-| Budget model | MISSING | Not defined |
-| Team structure | MISSING | Not defined |
-| Delivery milestones | PARTIAL | Phases exist |
-| Risk register | MISSING | Not defined |
-| Dependency register | MISSING | Not defined |
-| Decision log | MISSING | Not defined |
-| Product roadmap | PARTIAL | This document |
-| Release roadmap | MISSING | Not defined |
+| Status | Meaning |
+|--------|---------|
+| `VERIFIED` | Implemented and proven by an executable gate (test/build/migration) in the current evidence set |
+| `COMPLETE` | Implemented and covered by tests, but not independently re-verified this session |
+| `PARTIAL` | Core backend or primitive exists; a user-facing or operational layer is missing |
+| `NEEDS HARDENING` | Feature exists but a known security/reliability gap must close before launch |
+| `MISSING` | No implementation |
+| `BLOCKED` | Cannot progress without an external dependency or environment |
+| `CI ONLY` | Gate is configured and has passed previously, but cannot run in this sandbox |
 
-## 2. Architecture
-| Item | Status | Notes |
-|------|--------|-------|
-| Domain boundaries | COMPLETE | 12 services |
-| Service boundaries | COMPLETE | Clear separation |
-| API-first architecture | COMPLETE | Express services |
-| Event architecture | PARTIAL | Basic event bus exists |
-| Modular architecture | COMPLETE | Monorepo structure |
-| Web architecture | COMPLETE | Next.js + Express |
-| PWA/mobile architecture | MISSING | Not implemented |
-| Backend architecture | COMPLETE | Microservices |
-| Data architecture | PARTIAL | Basic schema exists |
-| Storage architecture | PARTIAL | Abstraction exists |
-| Media architecture | PARTIAL | Metadata only |
-| Notification architecture | PARTIAL | Basic events |
-| Search architecture | PARTIAL | ILIKE-based |
-| Analytics architecture | PARTIAL | Basic handlers |
-| AI architecture | MISSING | Not implemented |
-| Integration architecture | MISSING | No adapters |
-| Disaster recovery | MISSING | Not implemented |
-| Multi-AZ strategy | MISSING | Not implemented |
-| Multi-region strategy | MISSING | Not implemented |
+This matrix deliberately does not call a domain complete when only its API
+exists. A launch domain requires the API, the user experience, authorization
+coverage and an operational story.
 
-## 3. Technology Platform
-| Item | Status | Notes |
-|------|--------|-------|
-| Frontend framework | COMPLETE | Next.js 15 |
-| Backend framework | COMPLETE | Express 4 |
-| PostgreSQL | COMPLETE | Drizzle ORM |
-| Redis | MISSING | Not used |
-| Queues | MISSING | Not implemented |
-| Object storage abstraction | COMPLETE | storage.ts exists |
-| CDN abstraction | MISSING | Not implemented |
-| Search | PARTIAL | ILIKE-based |
-| Analytics | PARTIAL | Basic handlers |
-| AI model abstraction | MISSING | Not implemented |
-| Docker | MISSING | No containers |
-| Kubernetes readiness | MISSING | Not implemented |
-| Terraform/IaC | MISSING | Not implemented |
-| CI/CD | MISSING | No pipeline |
-| Monitoring | MISSING | Not implemented |
-| Logging | MISSING | Not implemented |
-| Tracing | MISSING | Not implemented |
-| Secrets management | MISSING | Not implemented |
-| Backup | MISSING | Not implemented |
+## Verification Snapshot
 
-## 4. Design System
-| Item | Status | Notes |
-|------|--------|-------|
-| Brand identity | PARTIAL | Basic tokens |
-| Color tokens | COMPLETE | tokens.ts |
-| Typography | PARTIAL | Basic |
-| Spacing | PARTIAL | Tailwind |
-| Grid | PARTIAL | Tailwind |
-| Icons | MISSING | Not implemented |
-| Buttons | COMPLETE | Button.tsx |
-| Inputs | COMPLETE | Input.tsx |
-| Forms | PARTIAL | Basic forms |
-| Modal | MISSING | Not implemented |
-| Drawer | MISSING | Not implemented |
-| Dropdown | MISSING | Not implemented |
-| Tabs | MISSING | Not implemented |
-| Tables | MISSING | Not implemented |
-| Pagination | MISSING | Not implemented |
-| Toast | MISSING | Not implemented |
-| Alerts | MISSING | Not implemented |
-| Empty states | PARTIAL | Basic |
-| Loading states | PARTIAL | Basic |
-| Error states | PARTIAL | Basic |
-| Skeletons | MISSING | Not implemented |
-| Accessibility states | MISSING | Not implemented |
-| Dark mode | MISSING | Not implemented |
-| Responsive behavior | PARTIAL | Tailwind |
-| Bengali typography | MISSING | Not implemented |
-| English typography | PARTIAL | Basic |
-| RTL readiness | MISSING | Not implemented |
+| Gate | Command | Result |
+|------|---------|--------|
+| Typecheck | `pnpm typecheck` | **27/27 tasks PASS** |
+| Lint | `pnpm lint` | **32/32 tasks PASS**, 0 errors, 252 warnings |
+| Unit tests | `pnpm test` | **37/37 tasks PASS**, 323 tests across 16 packages |
+| Build | `pnpm build` | **21/21 tasks PASS**, including the Next.js production build |
+| Migrations | `pnpm --filter @edunet/database migrate` | `CI ONLY` in this sandbox (no PostgreSQL binary) |
+| Database integration | `pnpm --filter @edunet/database test:integration` | `CI ONLY` |
+| Browser E2E | `pnpm --filter @edunet/web test:e2e` | `CI ONLY` |
+| Backup/restore scripts | `bash -n scripts/*.sh` | Syntax PASS; no restore drill yet |
 
-## 5. Identity + RBAC
-| Item | Status | Notes |
-|------|--------|-------|
-| Password reset | MISSING | Not implemented |
-| Email verification | MISSING | Not implemented |
-| Phone verification | MISSING | Not implemented |
-| OTP | MISSING | Not implemented |
-| OAuth/OIDC | MISSING | Not implemented |
-| SSO | MISSING | Not implemented |
-| MFA | MISSING | Not implemented |
-| Device management | MISSING | Not implemented |
-| Session management | PARTIAL | JWT only |
-| Suspicious-login detection | MISSING | Not implemented |
-| Account recovery | MISSING | Not implemented |
-| Identity audit logs | MISSING | Not implemented |
-| Role architecture | PARTIAL | 5 roles |
-| Permission matrices | MISSING | Not defined |
-| Tenant isolation | COMPLETE | orgId scoping |
+## 1-10. Product, Architecture, Platform
 
-## 6. Student Platform
-| Item | Status | Notes |
-|------|--------|-------|
-| Student profile | PARTIAL | Basic |
-| Academic profile | MISSING | Not implemented |
-| Guardian relationships | COMPLETE | parents service |
-| School/class/section | MISSING | Not implemented |
-| Subjects | PARTIAL | Course subject |
-| Skills | MISSING | Not implemented |
-| Interests | MISSING | Not implemented |
-| Learning goals | MISSING | Not implemented |
-| Attendance | MISSING | Not implemented |
-| Assignment history | PARTIAL | Basic |
-| Grade history | PARTIAL | Basic |
-| Achievements | MISSING | Not implemented |
-| Certificates | MISSING | Not implemented |
-| Learning streak | MISSING | Not implemented |
-| Activity timeline | MISSING | Not implemented |
-| Privacy controls | MISSING | Not implemented |
+| # | Workstream | Status | Evidence / Gap |
+|---|-----------|--------|----------------|
+| 1 | Product foundation | COMPLETE | `docs/product/PRODUCT-FOUNDATION.md`: vision, scope, personas, journeys, FRs, NFRs, KPIs, risks, decisions, milestones |
+| 2 | Architecture and domain boundaries | PARTIAL | 18 services, shared packages, lazy DB, canonical RBAC, single-origin gateway; no deployment topology or contract tests |
+| 3 | Design system | PARTIAL | 16 primitives in `@edunet/ui` (Button, Input, Select, Table, Tabs, Modal, Drawer, Dropdown, Toast, Alert, Badge, Card, EmptyState, FilterBar, Pagination, Skeleton), tokens, dark mode; no icon system, formal RTL audit or component docs |
+| 4 | Identity and authentication | PARTIAL | Register/login/refresh, password reset, email/phone verification, sessions, lockout, audit; MFA, OAuth/OIDC, SSO and suspicious-login detection missing |
+| 5 | RBAC and multi-tenancy | VERIFIED | Canonical `@edunet/rbac`; 40 tests; every service uses shared middleware; tenant isolation covered in integration suite (CI) |
+| 6 | Database and migrations | VERIFIED (CI ONLY locally) | Drizzle schema/migrations for LMS, platform, AI, support; constraints proven previously on PostgreSQL 16; no local DB in this sandbox |
+| 7 | Student platform | PARTIAL | Academic profiles, attendance, achievements, certificates, streaks and timeline exist in `platform`; no student UI beyond courses/assignments |
+| 8 | Parent platform | PARTIAL | Relationship-scoped child progress/grades/submissions API; no parent dashboard |
+| 9 | Teacher platform | PARTIAL | Course/lesson/assignment/quiz creation, roster and grading UI; no attendance, class analytics or workload UI |
+| 10 | LMS core | COMPLETE | Courses, modules, lessons, resources, enrolment, progress; student/teacher journeys covered by E2E (CI) |
 
-## 7. Parent Platform
-| Item | Status | Notes |
-|------|--------|-------|
-| Parent registration | COMPLETE | Via register |
-| Child linking | COMPLETE | parents service |
-| Multiple children | COMPLETE | Supported |
-| Progress dashboard | PARTIAL | Basic |
-| Attendance | MISSING | Not implemented |
-| Grades | PARTIAL | Basic |
-| Assignments | PARTIAL | Basic |
-| Teacher communication | MISSING | Not implemented |
-| Notifications | PARTIAL | Basic |
-| Calendar | MISSING | Not implemented |
-| Reports | MISSING | Not implemented |
-| Learning alerts | MISSING | Not implemented |
-| Consent management | MISSING | Not implemented |
+## 11-20. Learning Experience
 
-## 8. Teacher Platform
-| Item | Status | Notes |
-|------|--------|-------|
-| Teacher profile | PARTIAL | Basic |
-| Teacher dashboard | COMPLETE | teacher/page.tsx |
-| Classes | MISSING | Not implemented |
-| Student roster | PARTIAL | Enrollments |
-| Course creation | COMPLETE | courses service |
-| Lesson creation | COMPLETE | content service |
-| Assignments | COMPLETE | assignments service |
-| Quizzes | COMPLETE | assessments service |
-| Grading | COMPLETE | submissions service |
-| Attendance | MISSING | Not implemented |
-| Analytics | PARTIAL | analytics service |
-| Communication | MISSING | Not implemented |
-| Resource library | PARTIAL | resources |
-| Live classes | MISSING | Not implemented |
-| Teacher workload | MISSING | Not implemented |
+| # | Workstream | Status | Evidence / Gap |
+|---|-----------|--------|----------------|
+| 11 | Content, media and versioning | PARTIAL | Modules, lessons, resources, progress, version history, filesystem media with signed URLs, MIME allowlist and 25 MB cap; objectives/bookmarks/notes/reviews tables have no routes, no S3 provider |
+| 12 | Assignments and submissions | PARTIAL | Deadlines, rubrics, autosave, revisions, grade revisions, feedback, ownership checks; assignment attachments and late-submission policy missing |
+| 13 | Assessment engine | PARTIAL | Five objective types (MCQ, multiple select, true/false, short answer, fill-in-blank, matching), partial credit, manual grading, grade history, rechecks, seeded randomisation; basic student/teacher UI only |
+| 14 | Question banks and exam analytics | PARTIAL | Banks, attach/list/update, randomisation; exam item analytics and blueprint coverage missing |
+| 15 | Offline and PWA | PARTIAL | Offline queue, backoff, dedupe, conflict resolution, download planner, service worker, banner, offline page; queue is not wired into mutation flows and no background sync |
+| 16 | Internationalisation | COMPLETE | Bengali/English catalogues, `Intl` formatting, locale detection, interpolation, web language toggle; native Bengali review pending |
+| 17 | Accessibility | PARTIAL | Semantic primitives and focus styles; no WCAG 2.1 AA audit, keyboard test suite or screen-reader verification |
+| 18 | Notifications | PARTIAL | In-app notification CRUD, read state, preferences, templates; no email/SMS push adapters or delivery worker |
+| 19 | Search | PARTIAL | Tenant-scoped service; `ILIKE` matching, no ranking, facets, typo tolerance or index strategy |
+| 20 | Analytics | PARTIAL | Course, student, assignment and engagement endpoints; no dashboards, warehouse/export or KPI instrumentation |
 
-## 9. LMS Expansion
-| Item | Status | Notes |
-|------|--------|-------|
-| Course catalog | COMPLETE | courses/page.tsx |
-| Sections | MISSING | Not implemented |
-| Chapters | MISSING | Not implemented |
-| Lessons | COMPLETE | content service |
-| Learning objectives | MISSING | Not implemented |
-| Prerequisites | MISSING | Not implemented |
-| Video | MISSING | Not implemented |
-| Audio | MISSING | Not implemented |
-| PDF/document | PARTIAL | Resources |
-| Interactive lessons | MISSING | Not implemented |
-| Completion | PARTIAL | Progress tracking |
-| Progress | COMPLETE | lesson-progress |
-| Resume learning | MISSING | Not implemented |
-| Bookmarks | MISSING | Not implemented |
-| Notes | MISSING | Not implemented |
-| Favorites | MISSING | Not implemented |
-| Search | PARTIAL | search service |
-| Filtering | PARTIAL | Basic |
-| Recommendations | MISSING | Not implemented |
+## 21-30. Engagement, AI, Support, Administration
 
-## 10. Assignment System
-| Item | Status | Notes |
-|------|--------|-------|
-| Instructions | COMPLETE | description |
-| Attachments | MISSING | Not implemented |
-| Submission | COMPLETE | submissions service |
-| Resubmission | MISSING | Not implemented |
-| Deadlines | COMPLETE | dueDate |
-| Late submissions | MISSING | Not implemented |
-| Autosave | MISSING | Not implemented |
-| Rubrics | MISSING | Not implemented |
-| Grading | COMPLETE | gradeSubmission |
-| Feedback | COMPLETE | feedback field |
-| Grade calculation | PARTIAL | Basic |
-| Grade history | MISSING | Not implemented |
-| Submission audit | MISSING | Not implemented |
+| # | Workstream | Status | Evidence / Gap |
+|---|-----------|--------|----------------|
+| 21 | Communication | PARTIAL | Conversations, messages, read state, participants, reports, moderation queue, blocks, forums; no chat UI or realtime transport |
+| 22 | Calendar | PARTIAL | CRUD, attendees, reminders, ICS export, upcoming feed; no calendar UI |
+| 23 | Tutoring | PARTIAL | Tutor profiles, availability, booking, listing, update/cancel; no matching, payments or session UI |
+| 24 | Extracurricular | PARTIAL | Events, bookings, attendance; no discovery UI |
+| 25 | Live learning | PARTIAL | Live-class records, join/leave events, attendance, analytics; no video provider integration |
+| 26 | AI platform | PARTIAL | Consent gating, crisis short-circuit, PII redaction, safety screening, quota, model fallback, prompts, feedback, usage, audit, conversations/messages; no AI UI, no provider configured locally, moderation is rule-based |
+| 27 | Support and counseling | PARTIAL | Help resources, tickets, messages, escalation, counselor profiles, appointments; no support/counselor UI |
+| 28 | Academics and attendance | PARTIAL | Years, terms, classes, sections, subjects, class subjects, enrolments, attendance, grade calculation; no admin UI |
+| 29 | Administration and feature flags | PARTIAL | Flags, settings, notification templates, integrations, webhooks; no admin console |
+| 30 | Privacy and consent | PARTIAL | Consent records, AI consent enforcement, data-subject request API; export/erase execution and retention jobs missing |
 
-## 11. Assessment Engine
-| Item | Status | Notes |
-|------|--------|-------|
-| MCQ | COMPLETE | multiple_choice |
-| Multiple select | MISSING | Not implemented |
-| True/false | COMPLETE | true_false |
-| Short answer | COMPLETE | short_answer |
-| Long answer | COMPLETE | essay |
-| Matching | MISSING | Not implemented |
-| Fill-in-the-blank | MISSING | Not implemented |
-| Question banks | MISSING | Not implemented |
-| Randomized questions | MISSING | Not implemented |
-| Randomized options | MISSING | Not implemented |
-| Time limits | COMPLETE | timeLimit |
-| Attempts | COMPLETE | maxAttempts |
-| Auto grading | COMPLETE | Objective only |
-| Manual grading | MISSING | Not implemented |
-| Partial scoring | MISSING | Not implemented |
-| Exam analytics | MISSING | Not implemented |
-| Result publication | PARTIAL | Basic |
-| Recheck workflow | MISSING | Not implemented |
+## 31-40. Security, Infrastructure, Quality
 
-## 12-47. Remaining Workstreams
-| Item | Status | Notes |
-|------|--------|-------|
-| Live Learning | MISSING | Not implemented |
-| Tutoring | MISSING | Not implemented |
-| Extracurricular | MISSING | Not implemented |
-| Content Management | PARTIAL | Basic CMS |
-| Communication | MISSING | Not implemented |
-| Calendar | MISSING | Not implemented |
-| Search | PARTIAL | Basic |
-| Notifications | PARTIAL | Basic |
-| Analytics | PARTIAL | Basic |
-| AI | MISSING | Not implemented |
-| Support | MISSING | Not implemented |
-| Offline | MISSING | Not implemented |
-| Internationalization | PARTIAL | i18n package |
-| Admin | MISSING | Not implemented |
-| Institution Management | MISSING | Not implemented |
-| Integrations | MISSING | Not implemented |
-| Data Architecture | PARTIAL | Basic |
-| Security | PARTIAL | Hardened |
-| Privacy | MISSING | Not implemented |
-| Infrastructure | MISSING | Not implemented |
-| DevOps | MISSING | Not implemented |
-| Observability | MISSING | Not implemented |
-| Performance | MISSING | Not tested |
-| QA | PARTIAL | Unit tests |
-| Accessibility | MISSING | Not implemented |
-| Backup/DR | MISSING | Not implemented |
-| Documentation | PARTIAL | Basic |
-| Support Operations | MISSING | Not implemented |
-| Pilot | MISSING | Not planned |
-| Rollout | MISSING | Not planned |
-| Operations | MISSING | Not planned |
-| Business/Cost | MISSING | Not tracked |
-| KPI | MISSING | Not defined |
-| Release Governance | MISSING | Not defined |
+| # | Workstream | Status | Evidence / Gap |
+|---|-----------|--------|----------------|
+| 31 | Integrations and webhooks | PARTIAL | Integration configs and webhook endpoint registration; delivery, retries and signing not proven |
+| 32 | Audit and compliance | PARTIAL | Identity audit, platform audit with verification, AI audit; no retention policy or immutable external store |
+| 33 | Security hardening | NEEDS HARDENING | No rate limiting, no production CORS policy, tokens in localStorage, no CSP/helmet, no recent external vulnerability scan |
+| 34 | Observability | COMPLETE | Request IDs, structured logs, bounded Prometheus metrics, `/health`, `/ready`, `/metrics` across services; dashboards/alert routing not provisioned |
+| 35 | CI/CD | PARTIAL | GitHub Actions installs, migrates, lints, typechecks, runs DB integration, tests and Playwright E2E; first hosted run on the current commit pending and no deployment job |
+| 36 | Infrastructure and containers | MISSING | No Dockerfile, compose, IaC, managed-Postgres provisioning or CDN configuration |
+| 37 | API gateway / single origin | PARTIAL | `@edunet/gateway` maps all 18 prefixes, streams bodies and has 8 tests; no deployment manifest, TLS or end-to-end gateway test |
+| 38 | Backup and disaster recovery | PARTIAL | `scripts/backup-db.sh`, `scripts/restore-db.sh`, checksum and runbook; no scheduled job, media snapshot or timed restore drill |
+| 39 | Performance and load testing | MISSING | No k6/artillery scenario, p95 baseline or 10× pilot load test |
+| 40 | QA strategy | PARTIAL | 315 unit tests, 22 test files, one browser journey (CI); no contract, visual, accessibility or cross-browser suite |
 
-## Priority Implementation Order
-1. Product documentation (Phase 00)
-2. Design system expansion (Phase 03)
-3. Identity extension (password reset, email verification)
-4. Student platform expansion
-5. Teacher platform expansion
-6. LMS expansion (sections, chapters, objectives)
-7. Assignment system expansion (rubrics, resubmission)
-8. Assessment engine expansion (more question types)
-9. Communication system
-10. Calendar system
-11. Notification platform expansion
-12. Analytics platform expansion
-13. Admin platform
-14. Institution management
-15. Security hardening
-16. Infrastructure/DevOps
-17. Observability
-18. QA expansion
-19. Accessibility
-20. Backup/DR
+## 41-47. Operations and Launch
+
+| # | Workstream | Status | Evidence / Gap |
+|---|-----------|--------|----------------|
+| 41 | Documentation | PARTIAL | Product, operations, API, security and state docs being refreshed; some historical docs remain stale |
+| 42 | Pilot readiness | MISSING | No pilot school, support rota, training material, data migration plan or success baseline |
+| 43 | Rollout | MISSING | No cohort plan, feature-flag rollout sequence or go/no-go review |
+| 44 | Support operations | PARTIAL | Crisis escalation exists in code and runbook; no staffing rota or SLA tooling |
+| 45 | Cost and budget model | PARTIAL | AI token/cost metering exists; no infrastructure or support cost model |
+| 46 | KPI instrumentation | MISSING | KPI definitions exist; event collection and reporting pipeline not wired |
+| 47 | Release governance | PARTIAL | Release gates documented in the product foundation and operations runbook; no approval record or change log process |
+
+## Critical Path to Pilot
+
+Ordered by launch risk, not feature appeal:
+
+1. **Deploy and test the gateway** — the implementation exists; it still needs
+   TLS termination, upstream readiness, an end-to-end run and deployment
+   manifests before the web app can rely on one origin (blocker #37).
+2. **Containers and deployment manifests** — reproducible deploy, migrations
+   and rollback (#36, #35).
+3. **Security hardening** — rate limiting, CORS, CSP, token storage, scanner
+   (#33) before exposing any endpoint publicly.
+4. **Backup/restore drill** — prove RTO with media included (#38).
+5. **Wire offline sync** into submission/progress/autosave or clearly ship
+   offline as read-only (#15).
+6. **AI UI + provider configuration + human escalation path** — otherwise the
+   completed AI backend is unreachable (#26).
+7. **Admin, parent, communication and support UI** — current backends have no
+   user surface (#7, #8, #21, #27, #29).
+8. **Load, accessibility and Bengali review** — the remaining launch quality
+   gates (#17, #39, #16).
+9. **Pilot plan, KPI pipeline and go/no-go** (#42, #43, #46).
+
+## What Is Genuinely Done
+
+The foundation is not a scaffold: authentication is hardened, tenant isolation
+is enforced by a shared package, the LMS core works end to end, assessment
+grading is substantive, media handling is real and path-safe, offline
+primitives are deterministic and tested, AI has consent/safety/quota/audit
+controls, and every service emits health, metrics and structured logs. The
+remaining gap is predominantly the launch surface (gateway, UI, deployment,
+hardening) rather than the domain model.

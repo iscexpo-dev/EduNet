@@ -750,6 +750,31 @@ importers:
         specifier: ^4.1.11
         version: 4.1.11(@types/node@22.20.4)(vite@6.4.4)
 
+  services/gateway:
+    dependencies:
+      '@edunet/observability':
+        specifier: workspace:*
+        version: link:../../packages/observability
+      express:
+        specifier: ^4.19.0
+        version: 4.22.3
+    devDependencies:
+      '@types/express':
+        specifier: ^4.17.21
+        version: 4.17.25
+      '@types/node':
+        specifier: ^22.0.0
+        version: 22.20.4
+      tsx:
+        specifier: ^4.16.0
+        version: 4.23.15
+      typescript:
+        specifier: ^5.5.0
+        version: 5.9.3
+      vitest:
+        specifier: ^4.1.11
+        version: 4.1.11(@types/node@22.20.4)(vite@6.4.4)
+
   services/identity:
     dependencies:
       '@edunet/config':

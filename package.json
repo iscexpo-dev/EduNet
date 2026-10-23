@@ -16,6 +16,11 @@
     "lint": "turbo run lint",
     "format": "turbo run format",
     "typecheck": "turbo run typecheck",
+    "verify": "pnpm typecheck && pnpm lint && pnpm test && pnpm build",
+    "db:migrate": "pnpm --filter @edunet/database migrate",
+    "db:generate": "pnpm --filter @edunet/database migrate:generate",
+    "backup": "./scripts/backup-db.sh",
+    "restore": "./scripts/restore-db.sh",
     "clean": "turbo run clean && rm -rf node_modules"
   },
   "devDependencies": {

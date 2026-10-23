@@ -1,5 +1,11 @@
 # EduNet Production Verification
 
+> **SUPERSEDED (2026-10-23).** This file records a historical audit from
+> 2026-09-29 and its gate counts are obsolete. Use
+> `docs/EDUNET-FINAL-STATUS.md` and `docs/EDUNET-IMPLEMENTATION-STATE.md` for
+> the current evidence. The warnings below about the original false
+> production-readiness claim remain accurate history.
+
 ## Verification Date
 2026-09-29
 
