@@ -10,11 +10,11 @@
   "exclude": [
     "node_modules",
     "dist",
+    "**/*.test.ts",
+    "**/*.spec.ts",
     "build",
     ".next",
-    "**/*.test.ts",
     "**/*.test.tsx",
-    "**/*.spec.ts",
     "**/*.spec.tsx",
     "vitest.config.ts"
   ]

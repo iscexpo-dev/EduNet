@@ -1,6 +1,6 @@
-import { pgTable, uuid, text, timestamp, jsonb, index, unique } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, text, timestamp, jsonb, integer, index, unique } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
-import { courses, users } from '@edunet/database';
+import { courses, users, organizations } from '@edunet/database';
 
 // Quizzes - Assessment containers
 export const quizzes = pgTable('quizzes', {
@@ -93,4 +93,63 @@ export const quizAttemptsRelations = relations(quizAttempts, ({ one }) => ({
     fields: [quizAttempts.studentId],
     references: [users.id],
   }),
+}));
+
+// ---------------------------------------------------------------------------
+// Assessment expansion: question banks, grade history, recheck workflow
+// ---------------------------------------------------------------------------
+
+// Question banks are organization-scoped pools reusable across quizzes.
+// questions.bankId optionally links a question to a bank it was drawn from.
+export const questionBanks = pgTable('question_banks', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  organizationId: uuid('organization_id').references(() => organizations.id, { onDelete: 'cascade' }).notNull(),
+  name: text('name').notNull(),
+  subject: text('subject'),
+  createdBy: uuid('created_by').references(() => users.id, { onDelete: 'set null' }),
+  isActive: text('is_active').default('true').notNull(),
+  deletedAt: timestamp('deleted_at'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => ({
+  orgIdx: index('question_banks_org_idx').on(table.organizationId),
+  orgSubjectIdx: index('question_banks_org_subject_idx').on(table.organizationId, table.subject),
+}));
+
+// Grade revisions record every score change after auto-grading so scores are
+// auditable end-to-end (manual grading, recheck adjustments).
+export const gradeRevisions = pgTable('grade_revisions', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  attemptId: uuid('attempt_id').references(() => quizAttempts.id, { onDelete: 'cascade' }).notNull(),
+  adjustedBy: uuid('adjusted_by').references(() => users.id, { onDelete: 'set null' }),
+  previousScorePercent: integer('previous_score_percent'),
+  newScorePercent: integer('new_score_percent').notNull(),
+  prevEarnedPoints: text('prev_earned_points'),
+  newEarnedPoints: text('new_earned_points'),
+  reason: text('reason').notNull(),
+  source: text('source').default('manual_grade').notNull(), // manual_grade | recheck
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (table) => ({
+  attemptIdx: index('grade_revisions_attempt_idx').on(table.attemptId),
+}));
+
+// Recheck (challenge) workflow: a student may request review of a graded attempt.
+export const recheckRequests = pgTable('recheck_requests', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  attemptId: uuid('attempt_id').references(() => quizAttempts.id, { onDelete: 'cascade' }).notNull(),
+  studentId: uuid('student_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  questionId: uuid('question_id'),
+  reason: text('reason').notNull(),
+  // pending | approved | rejected
+  status: text('status').default('pending').notNull(),
+  decidedBy: uuid('decided_by').references(() => users.id, { onDelete: 'set null' }),
+  decisionNote: text('decision_note'),
+  decidedAt: timestamp('decided_at'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => ({
+  attemptIdx: index('recheck_requests_attempt_idx').on(table.attemptId),
+  studentIdx: index('recheck_requests_student_idx').on(table.studentId),
+  statusIdx: index('recheck_requests_status_idx').on(table.status),
+  attemptStatusIdx: index('recheck_requests_attempt_status_idx').on(table.attemptId, table.status),
 }));
