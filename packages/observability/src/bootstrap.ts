@@ -1,6 +1,8 @@
 import express from 'express';
+import type { Server } from 'node:http';
 import type { ReadyCheck } from './health';
 import { createLogger } from './logger';
+import type { Logger } from './logger';
 import { requestLogger, errorHandler } from './http';
 import { mountHealthEndpoints } from './health';
 import { createMetrics } from './metrics';
@@ -45,6 +47,9 @@ function validateProductionConfiguration(): void {
   }
 }
 
+const BIND_RETRY_DELAY_MS = 500;
+const BIND_MAX_ATTEMPTS = 40;
+
 export function bootstrapService(options: ServiceBootstrapOptions): ServiceBootstrapResult {
   const { serviceName, registerRoutes } = options;
   validateProductionConfiguration();
@@ -83,15 +88,52 @@ export function bootstrapService(options: ServiceBootstrapOptions): ServiceBoots
   const port = options.port ?? (Number(process.env.PORT) || 3000);
 
   function start() {
-    const server = app.listen(port, () => {
-      log.info(`${serviceName} listening`, { port });
-    });
+    let server: Server | undefined;
     let stopping = false;
+    let retryTimer: ReturnType<typeof setTimeout> | undefined;
+
+    const tryListen = (attempt: number): void => {
+      if (stopping) return;
+      const current = app.listen(port, () => {
+        log.info(`${serviceName} listening`, { port });
+      });
+      server = current;
+      current.on('error', (err: NodeJS.ErrnoException) => {
+        if (stopping || server !== current) return;
+        if (err.code === 'EADDRINUSE') {
+          if (attempt < BIND_MAX_ATTEMPTS) {
+            log.warn('port_in_use_retrying', { port, attempt: attempt + 1 });
+            retryTimer = setTimeout(() => tryListen(attempt + 1), BIND_RETRY_DELAY_MS);
+          } else {
+            log.error('port_bind_failed', { port, code: err.code });
+            process.exit(1);
+          }
+          return;
+        }
+        log.error('server_error', { code: err.code, message: err.message });
+        throw err;
+      });
+    };
+
+    tryListen(0);
+
     const stop = (): Promise<void> => {
       if (stopping) return Promise.resolve();
       stopping = true;
+      if (retryTimer) clearTimeout(retryTimer);
       return new Promise((resolve, reject) => {
-        server.close((err) => (err ? reject(err) : resolve()));
+        if (!server) {
+          resolve();
+          return;
+        }
+        server.close((err?: Error) => {
+          const code = (err as NodeJS.ErrnoException | undefined)?.code;
+          if (!err || code === 'ERR_SERVER_NOT_RUNNING') {
+            resolve();
+          } else {
+            reject(err);
+          }
+        });
       });
     };
     const handleSignal = (signal: string) => {
