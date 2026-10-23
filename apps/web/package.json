@@ -25,7 +25,8 @@
     "react-dom": "^18.3.0",
     "zod": "^3.23.0",
     "clsx": "^2.1.0",
-    "tailwind-merge": "^2.3.0"
+    "tailwind-merge": "^2.3.0",
+    "@edunet/offline": "workspace:*"
   },
   "devDependencies": {
     "@playwright/test": "^1.47.0",
