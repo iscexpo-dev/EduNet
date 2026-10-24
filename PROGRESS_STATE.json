@@ -3,7 +3,7 @@
   "schemaVersion": "1.0.0",
   "project": "EduNet",
   "purpose": "Canonical resumable execution state for autonomous agents. Update after every meaningful checkpoint.",
-  "lastUpdated": "2026-10-24T11:50:00Z",
+  "lastUpdated": "2026-10-24T11:55:00Z",
   "repository": {
     "path": "/vercel/share/v0-project",
     "remote": "https://github.com/iscexpo-dev/EduNet.git",
@@ -13,7 +13,7 @@
     "reportedHistoricalCommitExists": true,
     "reportedHistoricalCommitIsAncestor": true,
     "note": "The prompt names /Users/khulnasoft/Projects/edunet-agent-launch and commit ef96741. The live checkout is /vercel/share/v0-project at 8273870, which descends from ef96741. All verification is against the live checkout.",
-    "verifiedCommit": "b26268b",
+    "verifiedCommit": "e854bf2",
     "pushStatus": "NOT PUSHED \u2014 repository history is PR-based (merge commits); direct push to main not performed"
   },
   "environment": {
@@ -286,9 +286,9 @@
     }
   },
   "activeCheckpoint": {
-    "id": "checkpoint-8-token-storage",
-    "description": "Token storage moved to httpOnly access/refresh cookies with in-memory web access token; resume at remaining launch-surface gaps.",
-    "startedAt": "2026-10-24T11:30:00Z",
+    "id": "checkpoint-10-offline-sync",
+    "description": "Offline queue wired into assignment submission and lesson completion via reconnect flush; resume at remaining launch-surface gaps.",
+    "startedAt": "2026-10-24T11:55:00Z",
     "status": "COMPLETE"
   },
   "checkpoints": [
@@ -425,6 +425,20 @@
       "artifacts": [
         "e5ed1ee"
       ]
+    },
+    {
+      "id": "checkpoint-10-offline-sync",
+      "at": "2026-10-24T11:55:00Z",
+      "summary": "Added useOfflineSync queue flush and wired offline assignment submit/lesson completion; full gates pass (107 tasks, 380 tests, 32 files).",
+      "evidence": [
+        "/tmp/gates10.log"
+      ],
+      "artifacts": [
+        "apps/web/src/hooks/useOfflineSync.ts",
+        "apps/web/src/components/OfflineBanner.tsx",
+        "apps/web/src/app/my-courses/[id]/assignments/[assignmentId]/page.tsx",
+        "apps/web/src/app/my-courses/[id]/learn/page.tsx"
+      ]
     }
   ],
   "blockers": [
@@ -454,7 +468,7 @@
     }
   ],
   "nextActions": [
-    "Continue launch-surface gaps: admin web console, offline queue wiring, accessibility baseline.",
+    "Continue launch-surface gaps: admin web console, accessibility baseline, remaining assessment/note/bookmark offline flows.",
     "Close remaining security hardening: shared rate-limit store, DAST, MFA/SSO."
   ],
   "filesOfRecord": {
