@@ -13,7 +13,7 @@
     "reportedHistoricalCommitExists": true,
     "reportedHistoricalCommitIsAncestor": true,
     "note": "The prompt names /Users/khulnasoft/Projects/edunet-agent-launch and commit ef96741. The live checkout is /vercel/share/v0-project at 8273870, which descends from ef96741. All verification is against the live checkout.",
-    "verifiedCommit": "84f0d58",
+    "verifiedCommit": "bc9f844",
     "pushStatus": "NOT PUSHED — repository history is PR-based (merge commits); direct push to main not performed"
   },
   "environment": {
@@ -286,9 +286,9 @@
     }
   },
   "activeCheckpoint": {
-    "id": "checkpoint-4-parent-and-api-origin",
-    "description": "Parent dashboard + service hardening; web API origin centralized.",
-    "startedAt": "2026-10-24T10:35:00Z",
+    "id": "checkpoint-5-commit",
+    "description": "Checkpoint committed; resume at the remaining launch-surface gaps.",
+    "startedAt": "2026-10-24T10:55:00Z",
     "status": "COMPLETE"
   },
   "checkpoints": [
@@ -355,6 +355,14 @@
         "services/parents/src/policy.ts",
         "services/parents/src/policy.test.ts",
         "docs/api/endpoints.md"
+      ]
+    },
+    {
+      "id": "checkpoint-5-commit",
+      "at": "2026-10-24T10:55:00Z",
+      "summary": "Committed parent dashboard, parents-service hardening and web API-origin fix as bc9f844.",
+      "artifacts": [
+        "bc9f844"
       ]
     }
   ],
