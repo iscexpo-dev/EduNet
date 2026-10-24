@@ -21,6 +21,7 @@
     "@edunet/types": "workspace:*",
     "@edunet/ui": "workspace:*",
     "@edunet/validation": "workspace:*",
+    "@vercel/speed-insights": "^2.0.0",
     "clsx": "^2.1.0",
     "next": "^15.5.28",
     "react": "^18.3.0",
