@@ -83,7 +83,7 @@ Ordered by risk. Items marked `[!]` need external infrastructure.
 - [x] Root `README.md` status matches executed evidence.
 - [x] Gap matrix and implementation state cite this run.
 - [~] Final report generated from `docs/FINAL_REPORT_TEMPLATE.md` (see run report in chat; persist if required).
-- [ ] State files committed.
+- [x] State files committed (84f0d58; push deferred to PR workflow).
 
 ## Definition of done for this run
 

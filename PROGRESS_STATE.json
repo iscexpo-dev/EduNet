@@ -3,7 +3,7 @@
   "schemaVersion": "1.0.0",
   "project": "EduNet",
   "purpose": "Canonical resumable execution state for autonomous agents. Update after every meaningful checkpoint.",
-  "lastUpdated": "2026-10-24T10:20:00Z",
+  "lastUpdated": "2026-10-24T10:30:00Z",
   "repository": {
     "path": "/vercel/share/v0-project",
     "remote": "https://github.com/iscexpo-dev/EduNet.git",
@@ -12,7 +12,9 @@
     "reportedHistoricalCommit": "ef96741",
     "reportedHistoricalCommitExists": true,
     "reportedHistoricalCommitIsAncestor": true,
-    "note": "The prompt names /Users/khulnasoft/Projects/edunet-agent-launch and commit ef96741. The live checkout is /vercel/share/v0-project at 8273870, which descends from ef96741. All verification is against the live checkout."
+    "note": "The prompt names /Users/khulnasoft/Projects/edunet-agent-launch and commit ef96741. The live checkout is /vercel/share/v0-project at 8273870, which descends from ef96741. All verification is against the live checkout.",
+    "verifiedCommit": "84f0d58",
+    "pushStatus": "NOT PUSHED — repository history is PR-based (merge commits); direct push to main not performed"
   },
   "environment": {
     "os": "linux",
@@ -284,9 +286,9 @@
     }
   },
   "activeCheckpoint": {
-    "id": "checkpoint-1-baseline-reverification",
-    "description": "Baseline gates re-executed; high dependency advisory fixed; assessment question-bank listing corrected and exposed.",
-    "startedAt": "2026-10-24T10:05:00Z",
+    "id": "checkpoint-3-commit",
+    "description": "Verified checkpoint committed locally; push deferred to the repository PR workflow.",
+    "startedAt": "2026-10-24T10:28:00Z",
     "status": "COMPLETE"
   },
   "checkpoints": [
@@ -330,6 +332,14 @@
         "docs/EDUNET-ROADMAP-GAP-MATRIX.md",
         "docs/EDUNET-FINAL-STATUS.md",
         "docs/deployment/DEPLOYMENT-READINESS.md"
+      ]
+    },
+    {
+      "id": "checkpoint-3-commit",
+      "at": "2026-10-24T10:30:00Z",
+      "summary": "Committed 18 files as 84f0d58. Push not performed because the repository uses pull-request merges into main.",
+      "artifacts": [
+        "84f0d58"
       ]
     }
   ],
