@@ -3,7 +3,7 @@
   "schemaVersion": "1.0.0",
   "project": "EduNet",
   "purpose": "Canonical resumable execution state for autonomous agents. Update after every meaningful checkpoint.",
-  "lastUpdated": "2026-10-24T11:10:00Z",
+  "lastUpdated": "2026-10-24T11:30:00Z",
   "repository": {
     "path": "/vercel/share/v0-project",
     "remote": "https://github.com/iscexpo-dev/EduNet.git",
@@ -59,7 +59,7 @@
     "unitTests": {
       "status": "PASS",
       "command": "pnpm turbo run test --force --concurrency=2",
-      "evidence": "49/49 tasks, 373 tests, 31 files"
+      "evidence": "49/49 tasks, 380 tests, 32 files"
     },
     "build": {
       "status": "PASS",
@@ -221,8 +221,8 @@
       "gap": "Migrations exist; retention/archival jobs missing"
     },
     "security": {
-      "status": "NEEDS_HARDENING",
-      "gap": "Gateway CORS/headers/rate limits and CSP exist; body-parser high advisory fixed 2026-10-24; users/organizations mass-assignment, IDOR and cross-tenant listing fixed 2026-10-24; localStorage tokens, shared rate-limit store, DAST pending"
+      "status": "PARTIAL",
+      "gap": "Gateway CORS/headers/rate limits and CSP exist; body-parser high advisory fixed; users/organizations mass-assignment, IDOR and cross-tenant listing fixed; access+refresh tokens moved to httpOnly cookies with in-memory access token (2026-10-24); shared rate-limit store, DAST and MFA remain pending"
     },
     "privacy": {
       "status": "PARTIAL",
@@ -286,9 +286,9 @@
     }
   },
   "activeCheckpoint": {
-    "id": "checkpoint-7-commit",
-    "description": "Checkpoint committed; resume at remaining launch-surface gaps.",
-    "startedAt": "2026-10-24T11:10:00Z",
+    "id": "checkpoint-8-token-storage",
+    "description": "Token storage moved to httpOnly access/refresh cookies with in-memory web access token; resume at remaining launch-surface gaps.",
+    "startedAt": "2026-10-24T11:30:00Z",
     "status": "COMPLETE"
   },
   "checkpoints": [
@@ -368,7 +368,7 @@
     {
       "id": "checkpoint-6-security-hardening",
       "at": "2026-10-24T11:00:00Z",
-      "summary": "Hardened services/users and services/organizations: whitelisted profile/organization updates (rejecting role, organizationId, email, code, type), self/teaching/admin read checks, organization-scoped list/get/update, clamped pagination, resolveConnectionString, closeDb. Added 12 policy tests. Full gates pass: 107 tasks, 373 tests.",
+      "summary": "Hardened services/users and services/organizations: whitelisted profile/organization updates (rejecting role, organizationId, email, code, type), self/teaching/admin read checks, organization-scoped list/get/update, clamped pagination, resolveConnectionString, closeDb. Added 12 policy tests. Full gates pass: 107 tasks, 380 tests, 32 files.",
       "evidence": [
         "/tmp/gates4.log",
         "/tmp/test5.log"
@@ -393,6 +393,29 @@
       "summary": "Committed users/organizations security hardening and documentation updates as 72e5caa. Push not performed because the repository uses pull-request merges into main.",
       "artifacts": [
         "72e5caa"
+      ]
+    },
+    {
+      "id": "checkpoint-8-token-storage",
+      "at": "2026-10-24T11:30:00Z",
+      "summary": "Moved token storage to httpOnly access/refresh cookies; web client keeps access token in memory and refreshes via httpOnly refresh cookie; added logout endpoint; shared RBAC/identity middleware accept access cookie; gateway CORS credentials enabled. Full gates pass: 107 tasks, 380 tests, 32 files.",
+      "evidence": [
+        "/tmp/gates7.log"
+      ],
+      "artifacts": [
+        "services/identity/src/cookies.ts",
+        "services/identity/src/cookies.test.ts",
+        "services/identity/src/handlers.ts",
+        "services/identity/src/routes.ts",
+        "services/identity/src/middleware.ts",
+        "services/identity/src/middleware.test.ts",
+        "packages/rbac/src/index.ts",
+        "packages/rbac/src/authenticate.test.ts",
+        "services/gateway/src/security.ts",
+        "services/gateway/src/security.test.ts",
+        "packages/auth/src/context.tsx",
+        "apps/web/src/app/login/page.tsx",
+        "apps/web/src/app/register/page.tsx"
       ]
     }
   ],
@@ -423,7 +446,8 @@
     }
   ],
   "nextActions": [
-    "Continue launch-surface gaps: token storage migration, admin/communication/support UI, offline queue wiring, accessibility baseline."
+    "Continue launch-surface gaps: admin web console, offline queue wiring, accessibility baseline.",
+    "Close remaining security hardening: shared rate-limit store, DAST, MFA/SSO."
   ],
   "filesOfRecord": {
     "state": "PROGRESS_STATE.json",

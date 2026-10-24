@@ -9,7 +9,7 @@
 items below are completed.
 
 > **2026-10-24 re-verification:** typecheck 35/35, lint 32/32 (0 errors),
-> tests 47/47 tasks / 361 tests, forced build 29/29, `db:check` PASS (4
+> tests 49/49 tasks / 380 tests, forced build 29/29, `db:check` PASS (4
 > migrations), `ops:test` PASS and `format:check` PASS. A new high advisory
 > (GHSA-27r3-jxmh-p828, `body-parser@1.20.8` on 40 paths) was fixed with a root
 > pnpm override to `^1.20.9`; `pnpm audit --audit-level=high` passes with one
@@ -73,10 +73,11 @@ GitHub-hosted runner; the first green CI run is still required evidence.
 
 ## 4. Residual launch risks
 
-1. **Token storage:** access/refresh tokens remain in browser `localStorage`.
-   The CSP reduces XSS impact but does not eliminate token theft. Moving to
-   `httpOnly`, `Secure`, `SameSite` cookies remains a launch blocker for a
-   high-risk pilot.
+1. **Token storage:** access/refresh tokens were moved to httpOnly cookies.
+   The identity service issues `edunet_access` and path-scoped `edunet_refresh`
+   cookies; the web client keeps the access token in memory and refreshes through
+   the httpOnly cookie. Production cookie attributes and final pilot sign-off
+   remain outstanding.
 2. **Rate limiting:** the gateway limiter is in-process. Use one gateway
    replica or move to a shared store before horizontal scaling.
 3. **Parent/admin web UI:** the parent and administrator journeys exist as
@@ -97,7 +98,8 @@ GitHub-hosted runner; the first green CI run is still required evidence.
   secret manager values and monitoring.
 - A passing four-role smoke test against staging.
 - A restore drill into a disposable database with recorded RPO/RTO evidence.
-- Security sign-off on token storage, shared rate limiting, backup encryption
+- Security sign-off on token storage (implemented), shared rate limiting,
+  backup encryption
   and AI provider retention terms for minors.
 - Pilot approval, support rota, and a named release owner.
 

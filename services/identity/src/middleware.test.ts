@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import jwt from 'jsonwebtoken';
 import { authenticate, authorize } from './middleware';
 import { generateAccessToken } from './auth';
+import { ACCESS_COOKIE } from './cookies';
 
 describe('Auth Middleware', () => {
   const originalEnv = process.env;
@@ -84,6 +85,23 @@ describe('Auth Middleware', () => {
       expect(req.user).toBeDefined();
       expect(req.user.id).toBe('123');
       expect(req.user.role).toBe('student');
+    });
+
+    it('should accept a valid token supplied in the httpOnly cookie', () => {
+      const token = generateAccessToken({ userId: '123', role: 'student', organizationId: 'o1' });
+      const req: any = { headers: { cookie: `theme=dark; ${ACCESS_COOKIE}=${token}` } };
+      const res: any = {
+        statusCode: 200,
+        body: undefined,
+        status(code: number) { this.statusCode = code; return this; },
+        json(data: any) { this.body = data; return this; },
+      };
+      const next = vi.fn();
+
+      authenticate(req, res, next);
+
+      expect(next).toHaveBeenCalled();
+      expect(req.user.id).toBe('123');
     });
 
     it('should reject expired token', () => {

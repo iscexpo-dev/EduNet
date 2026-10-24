@@ -121,8 +121,9 @@ Browser (Next.js)
 | Minor → AI | Consent record + safety screening + crisis escalation |
 | Media → public | Signed, expiring URLs; MIME allowlist; 25 MB cap |
 
-Known gaps: rate limiting, CORS policy, CSP/security headers, token storage in
-localStorage, and a recent external vulnerability scan.
+Known gaps: shared rate-limit store, deployment-specific CORS policy, CSP
+configuration review, and a recent external vulnerability scan. Token storage now
+uses httpOnly cookies with an in-memory access token in the web client.
 
 ## Scalability Path
 

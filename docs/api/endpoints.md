@@ -6,7 +6,8 @@
 |--------|----------|------|-------------|
 | POST | `/register` | None | Register new user |
 | POST | `/login` | None | Login and get tokens |
-| POST | `/refresh` | None | Refresh access token |
+| POST | `/refresh` | None | Rotate access token via httpOnly refresh cookie |
+| POST | `/logout` | None | Clear auth cookies and revoke session |
 | GET | `/me` | Bearer | Get current user profile |
 
 ## Organizations (`/api/organizations`)
@@ -137,7 +138,9 @@
 
 ## Identity extensions (`/api/auth`)
 
-All routes except register/login/refresh/password-reset require a Bearer token.
+Access tokens are accepted as Bearer headers or as the httpOnly `edunet_access`
+cookie. Refresh tokens live in the httpOnly `edunet_refresh` cookie scoped to
+`/api/auth`.
 
 | Method | Endpoint | Auth | Description |
 |--------|----------|------|-------------|

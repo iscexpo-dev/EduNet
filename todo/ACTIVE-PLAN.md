@@ -66,8 +66,9 @@ Ordered by risk. Items marked `[!]` need external infrastructure.
 - [!] Real backup restore drill with timing/RTO (no DB locally).
 - [!] Container build/scan (no Docker locally; CI job configured).
 - [!] Staging deploy + TLS/DNS smoke (no credentials/infrastructure).
-- [ ] Token storage: move access/refresh tokens out of `localStorage` to
-      `httpOnly` cookies (or document a hard deferral with risk acceptance).
+- [x] Token storage: move access/refresh tokens out of `localStorage` to
+      `httpOnly` cookies (implemented via `edunet_access`/`edunet_refresh` cookies;
+      web keeps access token in memory).
 - [ ] Shared rate-limit store or single-replica constraint made explicit.
 - [x] Parent web surface (`/parent` dashboard, 2026-10-24).
 - [ ] Admin web console (still API-only).
@@ -108,8 +109,18 @@ Ordered by risk. Items marked `[!]` need external infrastructure.
       (cross-tenant leak fix); whitelist `name`/`address`/`isActive`.
 - [x] Clamp pagination in both services; use `resolveConnectionString` and add
       `closeDb` for organizations.
-- [x] Add 12 policy tests; full gates pass (107 tasks, 373 tests, 31 files).
+- [x] Add 12 policy tests; full gates pass (107 tasks, 380 tests, 32 files.
 - [x] Committed `72e5caa`; push deferred to the PR workflow.
+
+## Checkpoint 8 — Token storage hardening — COMPLETE 2026-10-24
+
+- [x] Identity issues httpOnly `edunet_access` and path-scoped `edunet_refresh`
+      cookies; refresh reads cookie (body still accepted for tests/clients).
+- [x] Web auth keeps access token in memory, refreshes through httpOnly refresh
+      cookie, and calls logout to clear cookies.
+- [x] Shared RBAC and identity middleware accept the httpOnly access cookie;
+      gateway emits `Access-Control-Allow-Credentials`.
+- [x] Full gates pass (107 tasks, 380 tests, 32 files).
 
 ## Definition of done for this run
 

@@ -1,14 +1,15 @@
 # EduNet Security
 
 Last updated: 2026-10-24
-Status: authenticated core and CSP are hardened; token storage and shared rate limiting remain launch blockers.
+Status: authenticated core and CSP are hardened; httpOnly token storage and shared rate limiting are the remaining launch-hardening items.
 
 ## 1. Authentication
 
 | Control           | Implementation                                                                                                                       |
 | ----------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| Access token      | JWT, 7-day expiry, `tokenKind: access`                                                                                               |
-| Refresh token     | JWT, 30-day expiry, `tokenKind: refresh`                                                                                             |
+| Access token      | JWT, 7-day expiry, `tokenKind: access`; httpOnly cookie `edunet_access` (web client keeps the token in memory)                      |
+| Refresh token     | JWT, 30-day expiry, `tokenKind: refresh`; httpOnly cookie `edunet_refresh` scoped to `/api/auth`                                   |
+| Cookie attributes | httpOnly, `Secure` in production, `SameSite=Lax`; refresh cookie path is `/api/auth`                                                 |
 | Cross-use         | Access tokens rejected as refresh and vice versa                                                                                     |
 | Secret            | `JWT_SECRET` required; placeholder rejected in production                                                                            |
 | Password hashing  | bcrypt, configurable `BCRYPT_COST` (default 10, production target 12)                                                                |
@@ -89,17 +90,19 @@ There is no application-level field encryption yet.
 | Rate limiting      | Gateway fixed-window per IP and prefix; stricter for auth/AI. In-process only                                          |
 | Security headers   | Gateway sets `nosniff`, `DENY`, referrer policy, permissions policy, COOP/CORP; HSTS opt-in                            |
 | CSP                | Nonce-based per request in the web app; `strict-dynamic`; `upgrade-insecure-requests` outside development; HSTS opt-in |
-| Token storage      | **localStorage — migrate to httpOnly cookies** (launch blocker)                                                        |
+| Token storage      | **Access token in memory + httpOnly `edunet_access` cookie; refresh token in httpOnly `edunet_refresh` cookie (implemented 2026-10-24)** |
 | Dependency scan    | `pnpm audit --audit-level=high` in CI; Trivy image scans in CI                                                         |
 | Secret scan        | gitleaks in CI                                                                                                         |
 | Secret management  | Environment variables / platform secret manager; no vault integration in code                                          |
 | Startup validation | Production env validation fails fast on missing secrets and insecure transport                                         |
 | Logging of secrets | Reviewed paths avoid logging tokens/keys                                                                               |
 
-Remaining launch blockers: httpOnly token storage, a shared rate-limit store
-before running more than one gateway replica, DAST, MFA, and a transactional
-email/SMS provider. CSP and dependency/image scanning are implemented in the
-repository and CI; the first green CI run is still required evidence.
+Remaining launch blockers: shared rate-limit store before running more than
+one gateway replica, DAST, MFA, and a transactional email/SMS provider. Token
+storage now uses httpOnly cookies (access plus path-scoped refresh), with the
+web client keeping only the access token in memory; CSP and dependency/image
+scanning are implemented in the repository and CI; the first green CI run is
+still required evidence.
 
 ## 7. Threat Model (abbreviated)
 
@@ -144,7 +147,7 @@ See `docs/operations/OPERATIONS.md` for severity levels and the on-call flow.
 - [x] Rate limiting on auth, reset, AI and search (gateway, in-process)
 - [x] CORS allowlist for the production web origin
 - [x] CSP with per-request nonce, frame-ancestors and HSTS opt-in
-- [ ] Access/refresh tokens in httpOnly, Secure, SameSite cookies
+- [x] Access/refresh tokens in httpOnly, Secure, SameSite cookies (access + refresh implemented)
 - [ ] First green CI run with dependency audit, gitleaks and Trivy scans
 - [ ] Secret manager or sealed environment; no long-lived shared JWT secret
 - [ ] Tenant-isolation test for every new handler

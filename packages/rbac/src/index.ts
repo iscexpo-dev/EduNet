@@ -36,6 +36,8 @@ export {
 };
 export type { Role, Permission } from './permissions';
 
+export const ACCESS_TOKEN_COOKIE = 'edunet_access';
+
 export interface AuthenticatedUser {
   id: string;
   role: string;
@@ -83,6 +85,23 @@ export interface AccessTokenClaims extends JwtPayload {
   organizationId: string;
 }
 
+function readCookie(req: MinimalRequest, name: string): string | undefined {
+  const header = req.headers?.cookie;
+  if (typeof header !== 'string') return undefined;
+  for (const part of header.split(';')) {
+    const separator = part.indexOf('=');
+    if (separator === -1) continue;
+    if (part.slice(0, separator).trim() !== name) continue;
+    const value = part.slice(separator + 1).trim();
+    try {
+      return decodeURIComponent(value);
+    } catch {
+      return value;
+    }
+  }
+  return undefined;
+}
+
 /**
  * Express middleware that verifies the bearer access token and populates
  * `req.user`. Rejects missing, malformed, expired, wrong-secret and
@@ -90,14 +109,18 @@ export interface AccessTokenClaims extends JwtPayload {
  */
 export function authenticate(req: MinimalRequest, res: MinimalResponse, next: NextFunction): void {
   const authHeader = req.headers?.authorization;
+  const token =
+    typeof authHeader === 'string' && authHeader.startsWith('Bearer ')
+      ? authHeader.substring(7)
+      : readCookie(req, ACCESS_TOKEN_COOKIE);
 
-  if (typeof authHeader !== 'string' || !authHeader.startsWith('Bearer ')) {
+  if (!token) {
     res.status(401).json({ error: 'No token provided' });
     return;
   }
 
   try {
-    const claims = jwt.verify(authHeader.substring(7), resolveSecret()) as AccessTokenClaims;
+    const claims = jwt.verify(token, resolveSecret()) as AccessTokenClaims;
 
     // Access tokens are issued with tokenKind='access'; refuse refresh tokens.
     if (claims.tokenKind !== 'access') {

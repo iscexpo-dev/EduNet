@@ -3,6 +3,7 @@ import {
   registerHandler,
   loginHandler,
   refreshTokenHandler,
+  logoutHandler,
   passwordResetRequestHandler,
   passwordResetConfirmHandler,
   verificationRequestHandler,
@@ -21,6 +22,7 @@ export function registerRoutes(app: any) {
   router.post('/register', registerHandler);
   router.post('/login', loginHandler);
   router.post('/refresh', refreshTokenHandler);
+  router.post('/logout', logoutHandler);
   router.post('/password-reset/request', passwordResetRequestHandler);
   router.post('/password-reset/confirm', passwordResetConfirmHandler);
 

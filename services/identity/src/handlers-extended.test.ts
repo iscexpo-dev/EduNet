@@ -66,6 +66,9 @@ function fakeRes() {
   let body: unknown;
   const statuses: number[] = [];
   const res = {
+    cookie: vi.fn(() => res),
+    clearCookie: vi.fn(() => res),
+    end: vi.fn(() => res),
     status(code: number) {
       status = code;
       statuses.push(code);

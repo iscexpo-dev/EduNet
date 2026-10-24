@@ -25,7 +25,7 @@ against the live checkout.
 | Install | `pnpm install` | **PASS** after adding a `body-parser` override (see below) |
 | Typecheck | `pnpm turbo run typecheck --concurrency=2` | **PASS — 35/35 tasks** |
 | Lint | `pnpm turbo run lint --concurrency=2` | **PASS — 32/32 tasks, 0 errors, 259 warnings** |
-| Unit tests | `pnpm turbo run test --force --concurrency=2` | **PASS — 49/49 tasks, 373 tests, 31 files** |
+| Unit tests | `pnpm turbo run test --force --concurrency=2` | **PASS — 49/49 tasks, 380 tests, 32 files** |
 | Production build | `pnpm turbo run build --force --concurrency=2` | **PASS — 29/29 tasks, Next.js build included** |
 | Dependency audit | `pnpm audit --audit-level=high` | **PASS** after fix; 1 moderate dev-only advisory remains |
 | Migration static check | `pnpm db:check` | **PASS** — 4 migrations consistent, latest `0003_futuristic_sway`; live check skipped |
@@ -278,14 +278,14 @@ entry points because Next.js transpiles them.
 | Admin / Flags / Settings | PARTIAL | Backend; no console |
 | Privacy & Consent | PARTIAL | Consent + data requests; no export/erase execution or retention jobs |
 | Integrations / Webhooks | PARTIAL | Config only; delivery/signing unproven |
-| Security Hardening | NEEDS HARDENING | No rate limiting/CORS/CSP; tokens in localStorage; scan pending |
+| Security Hardening | PARTIAL | Gateway enforces CORS/headers/rate limits; httpOnly access/refresh token cookies implemented; CSP present; external scan pending |
 | Observability | COMPLETE | Logs, request IDs, metrics, health/ready; no dashboards/alerts |
 | CI/CD | PARTIAL | Gates configured; hosted run pending; no deploy job |
 | Infrastructure | MISSING | No containers/IaC/CDN; services now start from compiled `dist` |
 | API Gateway | PARTIAL | `@edunet/gateway` maps all prefixes and is unit-tested; not integration-tested or deployed |
 | Backup/DR | PARTIAL | Scripts + runbook; no drill or media snapshot |
 | Performance / Load | MISSING | No load test |
-| QA | PARTIAL | 315 unit tests; one E2E journey (CI); no contract/visual/a11y suites |
+| QA | PARTIAL | 380 unit tests; one E2E journey (CI); no contract/visual/a11y suites |
 | Documentation | PARTIAL | Product/ops/state/API refreshed; some historical docs remain stale |
 | Pilot / Rollout / Operations | MISSING | No pilot plan, cohort rollout or staffing rota |
 
@@ -313,8 +313,8 @@ entry points because Next.js transpiles them.
 
 1. Deploy and end-to-end test the gateway (TLS, timeouts, upstream health).
 2. Add container/build manifests and a deployment/rollback job to CI.
-3. Harden the edge: rate limiting, CORS, security headers, token storage,
-   dependency scan.
+3. Harden the edge: rate limiting, CORS, security headers, dependency scan;
+   token storage now uses httpOnly access/refresh cookies.
 4. Drill backup and restore, including the media volume, and record the RTO.
 5. Wire the offline queue into progress/autosave/submission flows.
 6. Add the AI, parent, admin, communication and support UI surfaces.

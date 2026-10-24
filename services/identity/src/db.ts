@@ -84,6 +84,7 @@ export type AuditEventType =
   | 'phone_verification_requested'
   | 'phone_verification_confirmed'
   | 'session_revoked'
+  | 'logout'
   | 'lockout';
 
 export async function recordAuditEvent(data: {

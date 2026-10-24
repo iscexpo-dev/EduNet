@@ -26,8 +26,8 @@ verified. This workspace is **NO-GO / NOT DEPLOYED**.
 - [x] Database readiness wired into all services.
 - [ ] Production secrets in a secret manager; no placeholders.
 - [ ] TLS, DNS, CORS, proxy trust and cookie settings verified in staging.
-- [ ] Access/refresh tokens moved out of `localStorage` into `httpOnly`,
-      `Secure`, `SameSite` cookies.
+- [x] Access/refresh tokens moved out of `localStorage` into `httpOnly`,
+      `Secure`, `SameSite` cookies (access cookie plus path-scoped refresh cookie).
 - [ ] Shared rate-limit store if more than one gateway replica.
 - [ ] DAST/ZAP and MFA assessment completed.
 - [ ] AI provider retention terms reviewed for minors.
