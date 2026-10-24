@@ -95,7 +95,7 @@ const calendarEventSchema = z.object({
   classId: z.string().uuid().optional(),
   visibility: z.enum(['private', 'organization', 'class', 'public']).optional(),
   recurrenceRule: z.string().max(300).optional(),
-  metadata: z.record(z.unknown()).optional(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
 });
 
 const tutoringSessionSchema = z.object({
@@ -669,7 +669,7 @@ export async function addLiveClassEventHandler(req: AuthRequest, res: Response) 
       .object({
         type: z.enum(['chat', 'question', 'poll', 'poll_response', 'hand_raise']),
         body: z.string().max(2000).optional(),
-        metadata: z.record(z.unknown()).optional(),
+        metadata: z.record(z.string(), z.unknown()).optional(),
       })
       .parse(req.body);
     return res.status(201).json(

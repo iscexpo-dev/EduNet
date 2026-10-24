@@ -1,8 +1,8 @@
 import express from 'express';
 import type { Server } from 'node:http';
+import { assertEnvironment, type RuntimeRole } from '@edunet/config';
 import type { ReadyCheck } from './health';
 import { createLogger } from './logger';
-import type { Logger } from './logger';
 import { requestLogger, errorHandler } from './http';
 import { mountHealthEndpoints } from './health';
 import { createMetrics } from './metrics';
@@ -25,6 +25,10 @@ export interface ServiceBootstrapOptions {
   port?: number;
   /** Readiness probe definition; defaults to always-ready. */
   readyCheck?: ReadyCheck;
+  /** Runtime role controls which environment requirements apply. */
+  role?: RuntimeRole;
+  /** Maximum time to wait for in-flight requests during shutdown. */
+  shutdownTimeoutMs?: number;
 }
 
 export interface ServiceBootstrapResult {
@@ -34,25 +38,16 @@ export interface ServiceBootstrapResult {
   getMetrics: () => string;
 }
 
-function validateProductionConfiguration(): void {
-  if (process.env.NODE_ENV !== 'production') return;
-
-  const jwtSecret = process.env.JWT_SECRET ?? '';
-  if (jwtSecret.length < 32 || jwtSecret.startsWith('replace-with-')) {
-    throw new Error('JWT_SECRET must be a configured 32+ character secret in production');
-  }
-
-  if (!process.env.DATABASE_URL && !process.env.DB_HOST) {
-    throw new Error('DATABASE_URL or DB_HOST must be configured in production');
-  }
-}
-
 const BIND_RETRY_DELAY_MS = 500;
 const BIND_MAX_ATTEMPTS = 40;
 
 export function bootstrapService(options: ServiceBootstrapOptions): ServiceBootstrapResult {
   const { serviceName, registerRoutes } = options;
-  validateProductionConfiguration();
+  const log = createLogger();
+  const validation = assertEnvironment({ role: options.role ?? 'service' });
+  for (const warning of validation.warnings) {
+    log.warn('environment_warning', { variable: warning.variable, detail: warning.message });
+  }
   process.env.SERVICE_NAME = serviceName;
 
   const app = express();
@@ -60,7 +55,6 @@ export function bootstrapService(options: ServiceBootstrapOptions): ServiceBoots
   app.use(express.json({ limit: '1mb' }));
 
   const { observeHttpRequest, format } = createMetrics(serviceName);
-  const log = createLogger();
 
   app.use(requestLogger(log));
   app.use((req, res, next) => {
@@ -91,6 +85,7 @@ export function bootstrapService(options: ServiceBootstrapOptions): ServiceBoots
     let server: Server | undefined;
     let stopping = false;
     let retryTimer: ReturnType<typeof setTimeout> | undefined;
+    const shutdownTimeoutMs = options.shutdownTimeoutMs ?? 10_000;
 
     const tryListen = (attempt: number): void => {
       if (stopping) return;
@@ -137,8 +132,25 @@ export function bootstrapService(options: ServiceBootstrapOptions): ServiceBoots
       });
     };
     const handleSignal = (signal: string) => {
-      log.info('shutdown_requested', { signal });
-      void stop().then(() => process.exit(0)).catch(() => process.exit(1));
+      log.info('shutdown_requested', { signal, timeoutMs: shutdownTimeoutMs });
+      const timer = setTimeout(() => {
+        log.error('shutdown_timeout', { timeoutMs: shutdownTimeoutMs });
+        process.exit(1);
+      }, shutdownTimeoutMs);
+      timer.unref();
+      void stop()
+        .then(() => {
+          clearTimeout(timer);
+          log.info('shutdown_complete');
+          process.exit(0);
+        })
+        .catch((error) => {
+          clearTimeout(timer);
+          log.error('shutdown_failed', {
+            message: error instanceof Error ? error.message : String(error),
+          });
+          process.exit(1);
+        });
     };
     process.once('SIGTERM', () => handleSignal('SIGTERM'));
     process.once('SIGINT', () => handleSignal('SIGINT'));

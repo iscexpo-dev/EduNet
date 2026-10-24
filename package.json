@@ -21,11 +21,16 @@
     "db:generate": "pnpm --filter @edunet/database migrate:generate",
     "backup": "./scripts/backup-db.sh",
     "restore": "./scripts/restore-db.sh",
-    "clean": "turbo run clean && rm -rf node_modules"
+    "clean": "turbo run clean && rm -rf node_modules",
+    "db:check": "pnpm --filter @edunet/database migrate:check",
+    "format:check": "prettier --check 'docs/deployment/**/*.md' 'docs/pilot/**/*.md' 'deploy/**/*.{yml,yaml,md,json}' 'scripts/perf/*.mjs' 'scripts/smoke-test.mjs'",
+    "ops:test": "./scripts/test-operations.sh",
+    "perf:baseline": "node scripts/perf/baseline.mjs",
+    "smoke:staging": "node scripts/smoke-test.mjs"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
-    "next": "^15.0.0",
+    "next": "^15.5.28",
     "prettier": "^3.3.0",
     "turbo": "^2.0.0",
     "typescript": "^5.5.0"
@@ -33,7 +38,9 @@
   "pnpm": {
     "overrides": {
       "vite": "^6.4.3",
-      "esbuild": "^0.25.0"
+      "esbuild": "^0.25.0",
+      "minimatch@>=9.0.0 <9.0.8": "^9.0.9",
+      "postcss@<8.5.18": "^8.5.31"
     }
   },
   "engines": {

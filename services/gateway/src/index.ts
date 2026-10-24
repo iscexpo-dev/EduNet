@@ -14,6 +14,7 @@ const service = bootstrapService({
   serviceName: 'gateway',
   registerRoutes,
   port,
+  role: 'gateway',
 });
 
 // Trust exactly the configured number of proxy hops so rate limiting sees the
@@ -25,6 +26,11 @@ service.app.set('trust proxy', Number.isFinite(trustProxy) ? trustProxy : 0);
 if (process.env.NODE_ENV !== 'test' && require.main === module) {
   service.start();
 }
+
+// Unknown API paths must fail as JSON, never with an Express HTML page.
+service.app.use((_req, res) => {
+  res.status(404).json({ error: 'Not found' });
+});
 
 export const app = service.app;
 export { service };

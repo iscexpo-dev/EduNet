@@ -126,6 +126,20 @@ describe('password reset request (anti-enumeration)', () => {
     await passwordResetRequestHandler(fakeReq({ body: { email: 'user@school.edu' } }), res as never);
     expect(last().body).not.toHaveProperty('token');
   });
+
+  it('never returns the token in production even when delivery is misconfigured', async () => {
+    const previous = process.env.NODE_ENV;
+    process.env.NODE_ENV = 'production';
+    try {
+      vi.mocked(findUserByEmail).mockResolvedValue({ id: 'user-1', deletedAt: null } as never);
+      const { res, last } = fakeRes();
+      await passwordResetRequestHandler(fakeReq({ body: { email: 'user@school.edu' } }), res as never);
+      expect(last().status).toBe(202);
+      expect(last().body).not.toHaveProperty('token');
+    } finally {
+      process.env.NODE_ENV = previous;
+    }
+  });
 });
 
 describe('password reset confirm', () => {

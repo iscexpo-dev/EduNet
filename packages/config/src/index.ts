@@ -34,3 +34,5 @@ export const config = {
     supportedLocales: ['en', 'bn'],
   },
 } as const;
+
+export * from './env';

@@ -73,6 +73,15 @@ function anonymizeFromRequest(req: Request): string | null {
   }
 }
 
+/**
+ * Development-only token exposure. Production must never return password-reset
+ * or verification tokens in an HTTP response, even when email delivery is
+ * misconfigured.
+ */
+function exposeDevelopmentTokens(): boolean {
+  return process.env.NODE_ENV !== 'production' && process.env.DELIVER_EMAILS !== 'true';
+}
+
 const LOCKED_RESPONSE = { error: 'Too many failed attempts. Try again later.' };
 
 export async function registerHandler(req: Request, res: Response) {
@@ -129,7 +138,7 @@ export async function registerHandler(req: Request, res: Response) {
       refreshToken,
       // Returned only while email delivery is disabled (sandbox/testing).
       // In production the token is dispatched by the notification service.
-      verificationToken: process.env.DELIVER_EMAILS === 'true' ? undefined : rawToken,
+      verificationToken: exposeDevelopmentTokens() ? rawToken : undefined,
       user: {
         id: user.id,
         email: user.email,
@@ -301,7 +310,7 @@ export async function passwordResetRequestHandler(req: Request, res: Response) {
 
     // The token is returned only while delivery is disabled (sandbox/testing);
     // production delivers it via the notification service.
-    if (process.env.DELIVER_EMAILS === 'true') {
+    if (!exposeDevelopmentTokens()) {
       return res.status(202).json(RESET_ACCEPTED);
     }
     return res.status(202).json({ ...RESET_ACCEPTED, token: rawToken });
@@ -365,7 +374,7 @@ export async function verificationRequestHandler(req: AuthRequest, res: Response
       organizationId: req.user.organizationId ?? null,
       eventType: `${kind}_requested` as AuditEventType,
     });
-    if (process.env.DELIVER_EMAILS === 'true') {
+    if (!exposeDevelopmentTokens()) {
       return res.status(202).json({ accepted: true });
     }
     return res.status(202).json({ accepted: true, token: rawToken });

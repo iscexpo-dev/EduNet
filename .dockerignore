@@ -1,9 +1,42 @@
-node_modules
+# Version control and CI
 .git
+.gitignore
+.github
+
+# Dependencies and build output are produced inside the image
+node_modules
+**/node_modules
 .next
+**/.next
 .turbo
-backups
+**/.turbo
+dist
+**/dist
+*.tsbuildinfo
+
+# Secrets and local data
+.env
+.env.*
+!.env.example
 .data
-.env*
+backups
+**/*.dump
+**/*.dump.enc
+**/*.sha256
+
+# Tests, reports and local tooling
+**/*.test.ts
+**/*.test.tsx
+**/*.spec.ts
+**/*.spec.tsx
+e2e
 playwright-report
 test-results
+coverage
+docs
+state
+skills
+agent
+prompts
+todo
+.vercel
