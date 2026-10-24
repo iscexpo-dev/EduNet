@@ -63,7 +63,7 @@ coverage and an operational story.
 | 14 | Question banks and exam analytics | PARTIAL | Banks, attach/list/update, paginated bank-question listing (`GET /question-banks/:id/questions`, 2026-10-24), randomisation; exam item analytics and blueprint coverage missing |
 | 15 | Offline and PWA | PARTIAL | Offline queue, backoff, dedupe, conflict resolution, download planner, service worker, banner, offline page; queue is not wired into mutation flows and no background sync |
 | 16 | Internationalisation | COMPLETE | Bengali/English catalogues, `Intl` formatting, locale detection, interpolation, web language toggle; native Bengali review pending |
-| 17 | Accessibility | PARTIAL | Semantic primitives and focus styles; no WCAG 2.1 AA audit, keyboard test suite or screen-reader verification |
+| 17 | Accessibility | PARTIAL | Semantic primitives and focus styles; no WCAG 2.1 AA audit, keyboard test suite or screen-reader verification; skip link added in admin console |
 | 18 | Notifications | PARTIAL | In-app notification CRUD, read state, preferences, templates; no email/SMS push adapters or delivery worker |
 | 19 | Search | PARTIAL | Tenant-scoped service; `ILIKE` matching, no ranking, facets, typo tolerance or index strategy |
 | 20 | Analytics | PARTIAL | Course, student, assignment and engagement endpoints; no dashboards, warehouse/export or KPI instrumentation |

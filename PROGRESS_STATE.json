@@ -250,7 +250,7 @@
     },
     "accessibility": {
       "status": "PARTIAL",
-      "gap": "Semantic primitives; no WCAG 2.1 AA audit"
+      "gap": "Semantic primitives; skip link added in admin console; no WCAG 2.1 AA audit"
     },
     "backupDr": {
       "status": "PARTIAL",

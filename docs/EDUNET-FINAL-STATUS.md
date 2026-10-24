@@ -57,7 +57,7 @@ domains.
 | 13 | Parent platform | **PARTIAL** | Parent dashboard at `/parent`; relationship API hardened; attendance UI and self-service linking missing |
 | 14 | Offline and PWA | **PARTIAL** | Queue/service worker/banner; queue wired into assignment submit and lesson progress; remaining assessment/note/bookmark flows |
 | 15 | Internationalisation | **PASS** | Bengali/English catalogues and toggle; native review pending |
-| 16 | Accessibility | **FAIL** | No WCAG audit or assistive-technology test |
+| 16 | Accessibility | **FAIL** | No WCAG 2.1 AA audit; baseline skip-link added in admin console |
 | 17 | Notifications | **PARTIAL** | In-app only; no email/SMS/push adapters |
 | 18 | Search | **PARTIAL** | `ILIKE` only; no ranking/facets |
 | 19 | Analytics | **PARTIAL** | APIs only; no dashboards or KPI pipeline |

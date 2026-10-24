@@ -75,7 +75,7 @@ Ordered by risk. Items marked `[!]` need external infrastructure.
 - [x] Replace hardcoded `localhost:3001` API origins with `NEXT_PUBLIC_API_URL`.
 - [x] Offline queue wired into submission/progress (2026-10-24); autosave
       still sends immediately and is not queued yet.
-- [ ] Accessibility audit baseline (keyboard/focus/labels/contrast).
+- [x] Accessibility audit baseline (keyboard/focus/labels/contrast).
 - [ ] Search normalization/ranking for Bengali + English.
 - [ ] AI provider configuration and human escalation path.
 - [ ] KPI collection pipeline from persisted data.

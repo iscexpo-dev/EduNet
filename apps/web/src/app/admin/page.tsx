@@ -138,6 +138,12 @@ export default function AdminDashboardPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
+      <a
+        href="#admin-main"
+        className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:rounded-md focus:bg-white focus:px-4 focus:py-2 focus:text-sm focus:text-gray-900"
+      >
+        Skip to content
+      </a>
       <nav className="bg-white dark:bg-gray-900 shadow-sm border-b dark:border-gray-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex h-16 items-center justify-between">
           <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">Admin Console</h1>
@@ -149,7 +155,7 @@ export default function AdminDashboardPage() {
         </div>
       </nav>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+      <main id="admin-main" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
         <Card>
           <CardHeader>
             <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Users</h2>
