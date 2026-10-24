@@ -86,3 +86,4 @@ by the environment; `.env*` files are git-ignored and must never be committed.
 - Add a migration for schema changes; never rely on `db:push` in production.
 - Keep pure logic in testable functions and add tests with the change.
 - Run typecheck, lint, tests and build before proposing a release.
+
