@@ -3,7 +3,7 @@
   "schemaVersion": "1.0.0",
   "project": "EduNet",
   "purpose": "Canonical resumable execution state for autonomous agents. Update after every meaningful checkpoint.",
-  "lastUpdated": "2026-10-24T11:30:00Z",
+  "lastUpdated": "2026-10-24T11:40:00Z",
   "repository": {
     "path": "/vercel/share/v0-project",
     "remote": "https://github.com/iscexpo-dev/EduNet.git",
@@ -13,7 +13,7 @@
     "reportedHistoricalCommitExists": true,
     "reportedHistoricalCommitIsAncestor": true,
     "note": "The prompt names /Users/khulnasoft/Projects/edunet-agent-launch and commit ef96741. The live checkout is /vercel/share/v0-project at 8273870, which descends from ef96741. All verification is against the live checkout.",
-    "verifiedCommit": "72e5caa",
+    "verifiedCommit": "e5ed1ee",
     "pushStatus": "NOT PUSHED \u2014 repository history is PR-based (merge commits); direct push to main not performed"
   },
   "environment": {
@@ -416,6 +416,14 @@
         "packages/auth/src/context.tsx",
         "apps/web/src/app/login/page.tsx",
         "apps/web/src/app/register/page.tsx"
+      ]
+    },
+    {
+      "id": "checkpoint-9-commit",
+      "at": "2026-10-24T11:40:00Z",
+      "summary": "Committed token-storage hardening and documentation updates as e5ed1ee. Push not performed because the repository uses pull-request merges into main.",
+      "artifacts": [
+        "e5ed1ee"
       ]
     }
   ],
