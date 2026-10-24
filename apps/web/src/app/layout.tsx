@@ -41,8 +41,10 @@ export default async function RootLayout({
       </head>
       <body>
         <LocaleProvider>
-          <OfflineBanner />
-          <AuthProvider>{children}</AuthProvider>
+          <AuthProvider>
+            <OfflineBanner />
+            {children}
+          </AuthProvider>
           <ServiceWorkerRegister />
         </LocaleProvider>
       </body>
