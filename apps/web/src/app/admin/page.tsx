@@ -52,6 +52,8 @@ export default function AdminDashboardPage() {
   const [usersError, setUsersError] = useState('');
   const [organizationsError, setOrganizationsError] = useState('');
   const [auditEventsError, setAuditEventsError] = useState('');
+  const [actionError, setActionError] = useState('');
+  const [actionMessage, setActionMessage] = useState('');
 
   useEffect(() => {
     if (!token || !isAdmin) {
@@ -136,6 +138,42 @@ export default function AdminDashboardPage() {
     );
   }
 
+  const performVerify = async (userId: string) => {
+    setActionError('');
+    setActionMessage('');
+    try {
+      const response = await fetch(apiUrl(`/api/users/${userId}/verify`), {
+        method: 'PUT',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!response.ok) {
+        const data = await response.json().catch(() => null);
+        throw new Error(data?.error || 'Unable to verify user.');
+      }
+      setActionMessage('User verified.');
+    } catch (error) {
+      setActionError(error instanceof Error ? error.message : 'Unable to verify user.');
+    }
+  };
+
+  const performDelete = async (userId: string) => {
+    setActionError('');
+    setActionMessage('');
+    try {
+      const response = await fetch(apiUrl(`/api/users/${userId}`), {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!response.ok) {
+        const data = await response.json().catch(() => null);
+        throw new Error(data?.error || 'Unable to delete user.');
+      }
+      setActionMessage('User deleted.');
+    } catch (error) {
+      setActionError(error instanceof Error ? error.message : 'Unable to delete user.');
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
       <a
@@ -156,6 +194,9 @@ export default function AdminDashboardPage() {
       </nav>
 
       <main id="admin-main" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+        {actionMessage ? <p className="text-sm text-green-700">{actionMessage}</p> : null}
+        {actionError ? <div role="alert" className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-700">{actionError}</div> : null}
+
         <Card>
           <CardHeader>
             <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Users</h2>
@@ -174,6 +215,16 @@ export default function AdminDashboardPage() {
                     </p>
                     <p className="text-sm text-gray-600">{user.email}</p>
                     <p className="text-xs text-gray-500">Verified: {user.isVerified ? 'yes' : 'no'}</p>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {!user.isVerified ? (
+                        <Button variant="outline" size="sm" onClick={() => void performVerify(user.id)}>
+                          Verify
+                        </Button>
+                      ) : null}
+                      <Button variant="secondary" size="sm" onClick={() => void performDelete(user.id)}>
+                        Delete
+                      </Button>
+                    </div>
                   </li>
                 ))}
               </ul>
