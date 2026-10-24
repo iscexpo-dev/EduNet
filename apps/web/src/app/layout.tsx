@@ -5,6 +5,7 @@ import { AuthProvider } from '@edunet/auth';
 import { LocaleProvider } from '@/lib/i18n';
 import { ServiceWorkerRegister } from '@/components/ServiceWorkerRegister';
 import { OfflineBanner } from '@/components/OfflineBanner';
+import { SpeedInsights } from '@vercel/speed-insights/next';
 
 export const metadata: Metadata = {
   title: 'EduNet - Education Platform',
@@ -44,6 +45,7 @@ export default async function RootLayout({
           <OfflineBanner />
           <AuthProvider>{children}</AuthProvider>
           <ServiceWorkerRegister />
+          <SpeedInsights />
         </LocaleProvider>
       </body>
     </html>
