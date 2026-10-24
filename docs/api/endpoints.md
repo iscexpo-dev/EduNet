@@ -184,6 +184,7 @@ All routes except register/login/refresh/password-reset require a Bearer token.
 |--------|----------|------|-------------|
 | POST | `/question-banks` | Teacher/Admin | Create question bank |
 | GET | `/question-banks` | Teacher/Admin | List question banks |
+| GET | `/question-banks/:id/questions` | Teacher/Admin | List questions in a bank (paginated) |
 | PUT | `/question-banks/:id` | Teacher/Admin | Update question bank |
 | POST | `/questions/attach-to-bank` | Teacher/Admin | Attach questions to a bank |
 | GET | `/quiz-attempts/:id/presentation` | Student | Randomised questions/options without answers |

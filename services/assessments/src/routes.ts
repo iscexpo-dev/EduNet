@@ -20,6 +20,7 @@ import {
 import {
   createBankHandler,
   listBankHandler,
+  listBankQuestionsHandler,
   updateBankHandler,
   attachQuestionsHandler,
   presentationHandler,
@@ -50,6 +51,7 @@ export function registerRoutes(app: any) {
   // Question bank routes
   router.post('/question-banks', authenticate, authorize('teacher', 'admin'), createBankHandler);
   router.get('/question-banks', authenticate, authorize('teacher', 'admin'), listBankHandler);
+  router.get('/question-banks/:id/questions', authenticate, authorize('teacher', 'admin'), listBankQuestionsHandler);
   router.put('/question-banks/:id', authenticate, authorize('teacher', 'admin'), updateBankHandler);
   router.post('/questions/attach-to-bank', authenticate, authorize('teacher', 'admin'), attachQuestionsHandler);
 

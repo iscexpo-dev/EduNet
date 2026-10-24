@@ -1,8 +1,9 @@
 # EduNet Roadmap Gap Matrix
 
-Last updated: 2026-10-23
-Baseline: `main` at `2dc560f` plus the AI service completion in the working tree
+Last updated: 2026-10-24
+Baseline: `main` at `8273870` (descends from the reported `ef96741`)
 Source of truth for requirements: `docs/product/PRODUCT-FOUNDATION.md`
+Resumable state: `PROGRESS_STATE.json` · checklist: `todo/ACTIVE-PLAN.md`
 
 ## Status Legend
 
@@ -24,15 +25,18 @@ coverage and an operational story.
 
 | Gate | Command | Result |
 |------|---------|--------|
-| Typecheck | `pnpm typecheck` | **35/35 tasks PASS** |
-| Lint | `pnpm lint` | **32/32 tasks PASS**, 0 errors, 252 warnings |
-| Unit tests | `pnpm test` | **45/45 tasks PASS**, 334 tests across 16 packages |
-| Build | `pnpm build` | **29/29 tasks PASS**, including the Next.js production build |
-| Production start | `node dist/index.js` | **PASS** — all 19 services `/health` 200; built web `/` 200 |
+| Typecheck | `pnpm turbo run typecheck --concurrency=2` | **35/35 tasks PASS** (2026-10-24) |
+| Lint | `pnpm turbo run lint --concurrency=2` | **32/32 tasks PASS**, 0 errors, 259 warnings |
+| Unit tests | `pnpm turbo run test --force --concurrency=2` | **46/46 tasks PASS**, 353 tests across 28 files |
+| Build | `pnpm turbo run build --force --concurrency=2` | **29/29 tasks PASS**, including the Next.js production build |
+| Dependency audit | `pnpm audit --audit-level=high` | **PASS** after the `body-parser` override; 1 moderate dev-only advisory |
+| Migration static check | `pnpm db:check` | **PASS** — 4 migrations consistent |
+| Operations self-test | `pnpm ops:test` | **PASS** |
+| Production start | `node dist/index.js` | **PASS (previous run)** — 19 services `/health` 200; not re-run this checkpoint |
 | Migrations | `pnpm --filter @edunet/database migrate` | `CI ONLY` in this sandbox (no PostgreSQL binary) |
 | Database integration | `pnpm --filter @edunet/database test:integration` | `CI ONLY` |
 | Browser E2E | `pnpm --filter @edunet/web test:e2e` | `CI ONLY` |
-| Backup/restore scripts | `bash -n scripts/*.sh` | Syntax PASS; no restore drill yet |
+| Backup/restore scripts | `pnpm ops:test` | PASS with stubs; real timed restore still not run |
 
 ## 1-10. Product, Architecture, Platform
 
@@ -56,7 +60,7 @@ coverage and an operational story.
 | 11 | Content, media and versioning | PARTIAL | Modules, lessons, resources, progress, version history, filesystem media with signed URLs, MIME allowlist and 25 MB cap; objectives/bookmarks/notes/reviews tables have no routes, no S3 provider |
 | 12 | Assignments and submissions | PARTIAL | Deadlines, rubrics, autosave, revisions, grade revisions, feedback, ownership checks; assignment attachments and late-submission policy missing |
 | 13 | Assessment engine | PARTIAL | Five objective types (MCQ, multiple select, true/false, short answer, fill-in-blank, matching), partial credit, manual grading, grade history, rechecks, seeded randomisation; basic student/teacher UI only |
-| 14 | Question banks and exam analytics | PARTIAL | Banks, attach/list/update, randomisation; exam item analytics and blueprint coverage missing |
+| 14 | Question banks and exam analytics | PARTIAL | Banks, attach/list/update, paginated bank-question listing (`GET /question-banks/:id/questions`, 2026-10-24), randomisation; exam item analytics and blueprint coverage missing |
 | 15 | Offline and PWA | PARTIAL | Offline queue, backoff, dedupe, conflict resolution, download planner, service worker, banner, offline page; queue is not wired into mutation flows and no background sync |
 | 16 | Internationalisation | COMPLETE | Bengali/English catalogues, `Intl` formatting, locale detection, interpolation, web language toggle; native Bengali review pending |
 | 17 | Accessibility | PARTIAL | Semantic primitives and focus styles; no WCAG 2.1 AA audit, keyboard test suite or screen-reader verification |

@@ -1,7 +1,11 @@
 # TODO Index
 
-`todo/100-production-gates.md` is the current gate ledger. The numbered files in
-this directory (00–16) are the original implementation checklists and are kept
+`todo/ACTIVE-PLAN.md` is the current resumable execution checklist.
+`PROGRESS_STATE.json` at the repository root is the machine-readable state and
+must be updated after every meaningful checkpoint.
+
+`todo/100-production-gates.md` is the production gate ledger. The numbered files
+in this directory (00–16) are the original implementation checklists and are kept
 for historical traceability; many boxes are stale.
 
 Use these instead:

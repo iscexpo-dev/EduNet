@@ -1,0 +1,391 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "schemaVersion": "1.0.0",
+  "project": "EduNet",
+  "purpose": "Canonical resumable execution state for autonomous agents. Update after every meaningful checkpoint.",
+  "lastUpdated": "2026-10-24T10:20:00Z",
+  "repository": {
+    "path": "/vercel/share/v0-project",
+    "remote": "https://github.com/iscexpo-dev/EduNet.git",
+    "branch": "main",
+    "headAtAuditStart": "8273870",
+    "reportedHistoricalCommit": "ef96741",
+    "reportedHistoricalCommitExists": true,
+    "reportedHistoricalCommitIsAncestor": true,
+    "note": "The prompt names /Users/khulnasoft/Projects/edunet-agent-launch and commit ef96741. The live checkout is /vercel/share/v0-project at 8273870, which descends from ef96741. All verification is against the live checkout."
+  },
+  "environment": {
+    "os": "linux",
+    "node": "v24.16.0",
+    "pnpm": "8.15.0",
+    "postgresAvailable": false,
+    "dockerAvailable": false,
+    "psqlAvailable": false,
+    "playwrightBrowsersInstalled": false,
+    "notes": [
+      "No PostgreSQL server or psql client: migrations, DB integration tests and real restore drills are BLOCKED locally.",
+      "No Docker/Podman: container builds are BLOCKED locally but configured in CI.",
+      "Long typecheck runs previously OOM-killed (exit 137) because stale `turbo run dev` watchers were still resident; watchers were terminated and runs must use limited concurrency."
+    ]
+  },
+  "workspace": {
+    "type": "pnpm workspace + turbo monorepo",
+    "apps": 1,
+    "services": 19,
+    "packages": 12,
+    "testFiles": 29,
+    "webPages": 21,
+    "database": "PostgreSQL via Drizzle ORM",
+    "migrations": [
+      "0000_happy_switch.sql",
+      "0001_silly_excalibur.sql",
+      "0002_assignment_grading.sql",
+      "0003_futuristic_sway.sql"
+    ]
+  },
+  "validation": {
+    "typecheck": {
+      "status": "PASS",
+      "command": "pnpm turbo run typecheck --concurrency=2",
+      "evidence": "35/35 tasks, 0 errors"
+    },
+    "lint": {
+      "status": "PASS",
+      "command": "pnpm turbo run lint --concurrency=2",
+      "evidence": "32/32 tasks, 0 errors, 259 warnings"
+    },
+    "unitTests": {
+      "status": "PASS",
+      "command": "pnpm turbo run test --force --concurrency=2",
+      "evidence": "46/46 tasks, 353 tests, 28 files"
+    },
+    "build": {
+      "status": "PASS",
+      "command": "pnpm turbo run build --force --concurrency=2",
+      "evidence": "29/29 tasks including Next.js production build"
+    },
+    "audit": {
+      "status": "PASS",
+      "command": "pnpm audit --audit-level=high",
+      "evidence": "0 high/critical after body-parser override; 1 moderate dev-only"
+    },
+    "migrationStaticCheck": {
+      "status": "PASS",
+      "command": "pnpm db:check",
+      "evidence": "4 migrations consistent, latest 0003_futuristic_sway; live check skipped"
+    },
+    "opsScripts": {
+      "status": "PASS",
+      "command": "pnpm ops:test",
+      "evidence": "backup/encryption/verify/restore gates/tamper/media PASS with stubs"
+    },
+    "formatCheck": {
+      "status": "PASS",
+      "command": "pnpm format:check",
+      "evidence": "all matched files formatted"
+    },
+    "databaseIntegration": {
+      "status": "BLOCKED",
+      "reason": "No PostgreSQL in environment; CI only"
+    },
+    "browserE2E": {
+      "status": "BLOCKED",
+      "reason": "No Playwright browser installed; CI only"
+    },
+    "containerBuild": {
+      "status": "BLOCKED",
+      "reason": "No Docker in environment; CI only"
+    },
+    "restoreDrill": {
+      "status": "BLOCKED",
+      "reason": "No PostgreSQL and no authorized disposable database"
+    }
+  },
+  "workstreams": {
+    "foundation": {
+      "status": "COMPLETE",
+      "evidence": "docs/product/PRODUCT-FOUNDATION.md"
+    },
+    "architecture": {
+      "status": "PARTIAL",
+      "gap": "Modular services and gateway exist; deployment topology/contract tests incomplete"
+    },
+    "technologyPlatform": {
+      "status": "PARTIAL",
+      "gap": "Runtime packaging fixed; containers configured but unbuilt locally"
+    },
+    "designSystem": {
+      "status": "PARTIAL",
+      "gap": "16 primitives, tokens, dark mode; no icon system/RTL audit"
+    },
+    "identity": {
+      "status": "PASS",
+      "gap": "Core auth hardened; MFA/OAuth/SSO missing and documented as deferred"
+    },
+    "rbac": {
+      "status": "PASS",
+      "gap": "Canonical @edunet/rbac middleware; tenant isolation tests exist"
+    },
+    "student": {
+      "status": "PARTIAL",
+      "gap": "Core learning UI; advanced academic surfaces backend-only"
+    },
+    "parent": {
+      "status": "PARTIAL",
+      "gap": "Child-scoped APIs and smoke coverage; no parent web UI"
+    },
+    "teacher": {
+      "status": "PARTIAL",
+      "gap": "Core authoring/grading UI; attendance/analytics UI missing"
+    },
+    "lms": {
+      "status": "PASS",
+      "gap": "Courses, enrolment, lessons, progress work end to end"
+    },
+    "assignments": {
+      "status": "PASS",
+      "gap": "Deadlines, rubrics, autosave, revisions, grading history"
+    },
+    "assessment": {
+      "status": "PARTIAL",
+      "gap": "Engine complete; bank-question listing added with validated pagination (2026-10-24); UI basic; item analytics missing"
+    },
+    "liveLearning": {
+      "status": "PARTIAL",
+      "gap": "Records/attendance; no video provider integration"
+    },
+    "tutoring": {
+      "status": "PARTIAL",
+      "gap": "Backend booking/availability; no UI or payments"
+    },
+    "extracurricular": {
+      "status": "PARTIAL",
+      "gap": "Events/bookings backend; no discovery UI"
+    },
+    "content": {
+      "status": "PARTIAL",
+      "gap": "Lessons/media/signed URLs/versions; objectives/bookmarks/notes routes missing; no S3 provider"
+    },
+    "communication": {
+      "status": "PARTIAL",
+      "gap": "Messaging/moderation/forums backend; no chat UI or realtime"
+    },
+    "calendar": {
+      "status": "PARTIAL",
+      "gap": "Backend and ICS export; no calendar UI"
+    },
+    "search": {
+      "status": "PARTIAL",
+      "gap": "Tenant-scoped ILIKE; no ranking/facets/Bengali normalization"
+    },
+    "notifications": {
+      "status": "PARTIAL",
+      "gap": "In-app only; no email/SMS/push delivery adapters"
+    },
+    "analytics": {
+      "status": "PARTIAL",
+      "gap": "Endpoints only; no dashboards or KPI pipeline"
+    },
+    "ai": {
+      "status": "PARTIAL",
+      "gap": "Consent/safety/quota/audit backend; no UI; provider unconfigured"
+    },
+    "support": {
+      "status": "PARTIAL",
+      "gap": "Tickets/escalation backend; no support UI or staffing rota"
+    },
+    "offline": {
+      "status": "PARTIAL",
+      "gap": "Queue/service worker exist; queue not wired into mutation flows"
+    },
+    "internationalization": {
+      "status": "PASS",
+      "gap": "Bengali/English catalogues and toggle; native review pending"
+    },
+    "admin": {
+      "status": "PARTIAL",
+      "gap": "Flags/settings/audit/integrations backend; no admin console"
+    },
+    "institutionManagement": {
+      "status": "PARTIAL",
+      "gap": "Academics backend; no admin UI"
+    },
+    "integrations": {
+      "status": "PARTIAL",
+      "gap": "Registration/config only; delivery signing/retry unproven"
+    },
+    "dataArchitecture": {
+      "status": "PARTIAL",
+      "gap": "Migrations exist; retention/archival jobs missing"
+    },
+    "security": {
+      "status": "NEEDS_HARDENING",
+      "gap": "Gateway CORS/headers/rate limits and CSP exist; body-parser high advisory fixed 2026-10-24; localStorage tokens, shared rate-limit store, DAST pending"
+    },
+    "privacy": {
+      "status": "PARTIAL",
+      "gap": "Consent and data-request API; export/erase execution missing"
+    },
+    "infrastructure": {
+      "status": "PARTIAL",
+      "gap": "Dockerfiles/compose present; IaC/CDN/managed DB not provisioned"
+    },
+    "devops": {
+      "status": "PARTIAL",
+      "gap": "CI gates configured; hosted green run and deploy/rollback job unverified"
+    },
+    "observability": {
+      "status": "PASS",
+      "gap": "Logs, request IDs, metrics, health/ready; no dashboards/alert routing"
+    },
+    "performance": {
+      "status": "PARTIAL",
+      "gap": "In-process baseline script; no deployed load test"
+    },
+    "qa": {
+      "status": "PARTIAL",
+      "gap": "Unit/integration/E2E configured; no contract/visual/a11y suites"
+    },
+    "accessibility": {
+      "status": "PARTIAL",
+      "gap": "Semantic primitives; no WCAG 2.1 AA audit"
+    },
+    "backupDr": {
+      "status": "PARTIAL",
+      "gap": "Scripts, encryption, checksums, runbook; no real timed restore"
+    },
+    "documentation": {
+      "status": "PARTIAL",
+      "gap": "Most docs current; historical TODO files remain stale"
+    },
+    "pilot": {
+      "status": "PARTIAL",
+      "gap": "docs/pilot/PILOT-PLAN.md exists; execution NOT STARTED"
+    },
+    "rollout": {
+      "status": "MISSING",
+      "gap": "No cohort rollout plan/execution"
+    },
+    "operations": {
+      "status": "PARTIAL",
+      "gap": "Runbooks exist; no 24x7 staffing, SLA tooling or real incidents"
+    },
+    "businessCost": {
+      "status": "PARTIAL",
+      "gap": "AI metering only; no full cost model"
+    },
+    "kpi": {
+      "status": "PARTIAL",
+      "gap": "Definitions exist; collection/reporting pipeline not wired"
+    },
+    "releaseGovernance": {
+      "status": "PARTIAL",
+      "gap": "Gates documented; no approval record/changelog process"
+    }
+  },
+  "activeCheckpoint": {
+    "id": "checkpoint-1-baseline-reverification",
+    "description": "Baseline gates re-executed; high dependency advisory fixed; assessment question-bank listing corrected and exposed.",
+    "startedAt": "2026-10-24T10:05:00Z",
+    "status": "COMPLETE"
+  },
+  "checkpoints": [
+    {
+      "id": "resume-state-bootstrap",
+      "at": "2026-10-24T00:00:00Z",
+      "summary": "Inspected live repository, reconciled HEAD 8273870 with the prompt's reported ef96741 baseline, terminated stale dev watchers causing OOM, and created canonical state/plan artifacts.",
+      "artifacts": [
+        "PROGRESS_STATE.json",
+        "docs/FINAL_REPORT_TEMPLATE.md",
+        "todo/ACTIVE-PLAN.md"
+      ]
+    },
+    {
+      "id": "checkpoint-1-baseline-reverification",
+      "at": "2026-10-24T10:20:00Z",
+      "summary": "Re-executed all locally runnable gates. Typecheck 35/35, lint 32/32 (0 errors, 259 warnings), tests 46/46 tasks / 353 tests, forced build 29/29, audit PASS after fix, db:check PASS, ops:test PASS, format PASS. DB integration/E2E/containers/restore remain blocked.",
+      "evidence": [
+        "/tmp/validation.log",
+        "/tmp/forcebuild.log",
+        "/tmp/forcetest.log",
+        "/tmp/audit2.log"
+      ],
+      "artifacts": [
+        "package.json",
+        "pnpm-lock.yaml",
+        "services/assessments/src/db.ts",
+        "services/assessments/src/expansion-handlers.ts",
+        "services/assessments/src/pagination.ts",
+        "services/assessments/src/pagination.test.ts",
+        "services/assessments/src/routes.ts",
+        "docs/api/endpoints.md"
+      ]
+    },
+    {
+      "id": "checkpoint-2-docs-truth-pass",
+      "at": "2026-10-24T10:22:00Z",
+      "summary": "Updated implementation state, gap matrix, final status and deployment readiness with executed evidence; recorded the body-parser fix and question-bank pagination work.",
+      "artifacts": [
+        "docs/EDUNET-IMPLEMENTATION-STATE.md",
+        "docs/EDUNET-ROADMAP-GAP-MATRIX.md",
+        "docs/EDUNET-FINAL-STATUS.md",
+        "docs/deployment/DEPLOYMENT-READINESS.md"
+      ]
+    }
+  ],
+  "blockers": [
+    {
+      "id": "no-postgres",
+      "severity": "high",
+      "detail": "No PostgreSQL server/psql in this sandbox. Migration application, DB integration and real restore cannot be executed locally.",
+      "workaround": "CI provisions postgres:16; run there or supply a disposable DATABASE_URL."
+    },
+    {
+      "id": "no-docker",
+      "severity": "medium",
+      "detail": "No container runtime locally; Dockerfiles and compose are static-verified only.",
+      "workaround": "CI container job builds images."
+    },
+    {
+      "id": "no-playwright",
+      "severity": "medium",
+      "detail": "Playwright browsers are not installed; browser E2E is CI-only.",
+      "workaround": "Run `pnpm --filter @edunet/web exec playwright install chromium` in CI."
+    },
+    {
+      "id": "external-deploy-credentials",
+      "severity": "high",
+      "detail": "No cloud account, domain, TLS or staging credentials are available. No deployment or pilot enrollment may be claimed.",
+      "workaround": "Complete docs/deployment/GO-LIVE-CHECKLIST.md once authorized infrastructure exists."
+    }
+  ],
+  "nextActions": [
+    "Commit the verified checkpoint with the state artifacts.",
+    "Run database integration and a timed restore in CI or against a disposable PostgreSQL instance.",
+    "Run browser E2E and container build/scan in CI.",
+    "Continue launch-surface gaps: token storage, parent/admin UI, offline queue wiring, accessibility baseline.",
+    "Update PROGRESS_STATE.json and todo/ACTIVE-PLAN.md after each checkpoint."
+  ],
+  "filesOfRecord": {
+    "state": "PROGRESS_STATE.json",
+    "todo": "todo/ACTIVE-PLAN.md",
+    "finalReportTemplate": "docs/FINAL_REPORT_TEMPLATE.md",
+    "implementationState": "docs/EDUNET-IMPLEMENTATION-STATE.md",
+    "gapMatrix": "docs/EDUNET-ROADMAP-GAP-MATRIX.md",
+    "finalStatus": "docs/EDUNET-FINAL-STATUS.md",
+    "deploymentReadiness": "docs/deployment/DEPLOYMENT-READINESS.md",
+    "releaseRunbook": "docs/deployment/RELEASE-RUNBOOK.md",
+    "pilotPlan": "docs/pilot/PILOT-PLAN.md"
+  },
+  "updateProtocol": {
+    "when": "After each meaningful checkpoint (validation run, fix merged, phase completed, blocker changed).",
+    "steps": [
+      "Update lastUpdated and activeCheckpoint.",
+      "Append a checkpoint entry with evidence paths.",
+      "Update validation statuses with exact command results.",
+      "Update the affected workstream status and gap.",
+      "Tick the matching item in todo/ACTIVE-PLAN.md.",
+      "Never mark PASS without executed evidence."
+    ]
+  }
+}

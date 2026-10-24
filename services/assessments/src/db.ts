@@ -1,4 +1,4 @@
-import { and, eq, inArray, desc } from 'drizzle-orm';
+import { and, eq, inArray, desc, sql } from 'drizzle-orm';
 import { courses, users, resolveConnectionString } from '@edunet/database';
 import postgres from 'postgres';
 import { drizzle } from 'drizzle-orm/postgres-js';
@@ -426,17 +426,13 @@ export async function listQuestionsByBank(bankId: string, organizationId: string
     .innerJoin(courses, eq(schema.quizzes.courseId, courses.id))
     .where(
       and(
-        eq(schema.questions.metadata, schema.questions.metadata), // no-op placeholder
+        sql`${schema.questions.metadata} ->> 'bankId' = ${bankId}`,
         eq(courses.organizationId, organizationId),
       ),
     )
     .limit(limit)
     .offset(offset);
-  void bankId;
-  return result.map(({ question }) => question).filter((question) => {
-    const metadata = question.metadata as { bankId?: string } | null;
-    return metadata?.bankId === bankId;
-  });
+  return result.map(({ question }) => question);
 }
 
 export async function attachQuestionsToBank(questionIds: string[], bankId: string, organizationId: string) {
@@ -450,7 +446,7 @@ export async function attachQuestionsToBank(questionIds: string[], bankId: strin
   const updated = await db
     .update(schema.questions)
     .set({
-      metadata: { bankId },
+      metadata: sql`coalesce(${schema.questions.metadata}, '{}'::jsonb) || jsonb_build_object('bankId', ${bankId}::text)`,
       updatedAt: new Date(),
     })
     .where(and(inArray(schema.questions.id, questionIds), inArray(schema.questions.quizId, quizzesInOrg)))

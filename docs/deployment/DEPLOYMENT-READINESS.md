@@ -3,10 +3,18 @@
 **Assessment date:** 2026-10-24  
 **Repository:** `iscexpo-dev/EduNet` (local checkout `/vercel/share/v0-project`)  
 **Branch:** `main`  
-**Base commit:** `ca29753`  
+**Base commit:** `8273870` (re-verified 2026-10-24; prior pass was `ca29753`)  
 **Release commit:** recorded in the release record after the final commit  
 **Decision:** **NO-GO for production / NOT DEPLOYED** until the external evidence
 items below are completed.
+
+> **2026-10-24 re-verification:** typecheck 35/35, lint 32/32 (0 errors),
+> tests 46/46 tasks / 353 tests, forced build 29/29, `db:check` PASS (4
+> migrations), `ops:test` PASS and `format:check` PASS. A new high advisory
+> (GHSA-27r3-jxmh-p828, `body-parser@1.20.8` on 40 paths) was fixed with a root
+> pnpm override to `^1.20.9`; `pnpm audit --audit-level=high` passes with one
+> moderate dev-only advisory remaining. Resumable state is in
+> `PROGRESS_STATE.json` and `todo/ACTIVE-PLAN.md`.
 
 ## 1. Scope of this readiness pass
 

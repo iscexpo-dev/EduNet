@@ -1,13 +1,74 @@
 # EduNet Implementation State
 
-Last updated: 2026-10-23
-Branch: `main` (`2dc560f`) plus uncommitted AI service and documentation work
+Last updated: 2026-10-24
+Branch: `main` (`8273870` at re-verification start; see the checkpoint below)
 Requirements: `docs/product/PRODUCT-FOUNDATION.md`
 Gap analysis: `docs/EDUNET-ROADMAP-GAP-MATRIX.md`
+Resumable state: `PROGRESS_STATE.json` · checklist: `todo/ACTIVE-PLAN.md`
 
 ## Status Legend
 
 `VERIFIED` · `COMPLETE` · `PARTIAL` · `MISSING` · `NEEDS HARDENING` · `BLOCKED` · `CI ONLY`
+
+---
+
+## 2026-10-24 Re-verification (live checkout)
+
+The live checkout is `/vercel/share/v0-project` on `main` at `8273870`, which
+descends from the prompt's reported `ef96741`. The prompt's filesystem path
+(`/Users/khulnasoft/Projects/edunet-agent-launch`) does not exist in this
+environment. No prior status claim was trusted; every gate below was executed
+against the live checkout.
+
+| Gate | Command | Result |
+|------|---------|--------|
+| Install | `pnpm install` | **PASS** after adding a `body-parser` override (see below) |
+| Typecheck | `pnpm turbo run typecheck --concurrency=2` | **PASS — 35/35 tasks** |
+| Lint | `pnpm turbo run lint --concurrency=2` | **PASS — 32/32 tasks, 0 errors, 259 warnings** |
+| Unit tests | `pnpm turbo run test --force --concurrency=2` | **PASS — 46/46 tasks, 353 tests, 28 files** |
+| Production build | `pnpm turbo run build --force --concurrency=2` | **PASS — 29/29 tasks, Next.js build included** |
+| Dependency audit | `pnpm audit --audit-level=high` | **PASS** after fix; 1 moderate dev-only advisory remains |
+| Migration static check | `pnpm db:check` | **PASS** — 4 migrations consistent, latest `0003_futuristic_sway`; live check skipped |
+| Operations self-test | `pnpm ops:test` | **PASS** — backup, encryption, verify, restore gates, tamper detection, media |
+| Format check | `pnpm format:check` | **PASS** |
+| PostgreSQL integration | `pnpm --filter @edunet/database test:integration` | **BLOCKED** — no PostgreSQL/psql in this environment |
+| Browser E2E | `pnpm --filter @edunet/web test:e2e` | **BLOCKED** — no Playwright browser installed |
+| Container build | CI `container` job | **BLOCKED locally** — no Docker runtime |
+| Restore drill | `scripts/restore-drill.sh` against real DB | **BLOCKED** — no disposable PostgreSQL |
+
+Environment: Node `v24.16.0`, pnpm `8.15.0`, Linux sandbox without PostgreSQL,
+Docker, `psql` or Playwright browsers. An earlier long typecheck was OOM-killed
+(exit 137) because stale `turbo run dev` watchers were still resident; the
+watchers were terminated and all gates above used limited concurrency.
+
+### Fixes in this checkpoint
+
+1. **High dependency advisory (GHSA-27r3-jxmh-p828).** `express@4.22.3` pulled
+   `body-parser@1.20.8` on 40 paths. Added a root pnpm override
+   `body-parser@<1.20.9: ^1.20.9`; the lockfile now resolves `1.20.9` and
+   `pnpm audit --audit-level=high` passes.
+2. **Question-bank listing was incorrect and unusable.** `listQuestionsByBank`
+   filtered `bankId` in application memory after applying SQL `limit`/`offset`,
+   used a no-op `metadata = metadata` predicate, and had no route. It now filters
+   in SQL with `metadata ->> 'bankId'`, returns a correctly paginated result, and
+   is exposed at `GET /api/assessments/question-banks/:id/questions`
+   (teacher/admin, tenant-scoped, 404 for a bank outside the organization).
+3. **Attaching questions destroyed existing metadata.** `attachQuestionsToBank`
+   replaced the whole `metadata` object; it now merges `bankId` into the existing
+   JSONB object.
+4. **Unvalidated pagination.** Added `parsePagination` with clamping
+   (limit 1–200, non-negative offset) and unit tests, used by both bank list
+   endpoints.
+
+Resumable state artifacts added: `PROGRESS_STATE.json`,
+`todo/ACTIVE-PLAN.md`, `docs/FINAL_REPORT_TEMPLATE.md`.
+
+### Still not proven
+
+Migrations against a real database, PostgreSQL integration and tenant-isolation
+suites, browser E2E, container build/scan, a timed restore, staging deployment,
+load testing, accessibility audit, and pilot execution remain **BLOCKED or NOT
+RUN** in this environment. They are not passes.
 
 ---
 
