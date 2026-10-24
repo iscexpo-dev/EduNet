@@ -87,6 +87,29 @@ Ordered by risk. Items marked `[!]` need external infrastructure.
 - [x] Final report generated from `docs/FINAL_REPORT_TEMPLATE.md` (see run report in chat).
 - [x] State files committed (84f0d58; push deferred to PR workflow).
 
+## Checkpoint 5 — Parent surface and API origin — COMPLETE 2026-10-24
+
+- [x] Add `/parent` dashboard with children, courses, grades and
+      loading/empty/error/unauthorized states.
+- [x] Harden parents service (same-org linking, path-param access, whitelisted
+      updates, clamped pagination, grade permission, lazy DB).
+- [x] Replace 16 hardcoded `localhost:3001` origins with `apiUrl()` and
+      `NEXT_PUBLIC_API_URL`.
+- [x] Make dashboard links role-aware; logout redirects to `/login`.
+- [x] Parents tests 8/8; web typecheck/lint/build pass; committed `bc9f844`.
+
+## Checkpoint 6 — Users/organizations security hardening — COMPLETE 2026-10-24
+
+- [x] Users: reject `role`/`organizationId`/`email`/verification changes; allow
+      only profile fields.
+- [x] Users: restrict `GET /:id` to self, teacher/tutor/mentor or admin in the
+      same organization (IDOR fix).
+- [x] Organizations: scope list/get/update to the caller's organization
+      (cross-tenant leak fix); whitelist `name`/`address`/`isActive`.
+- [x] Clamp pagination in both services; use `resolveConnectionString` and add
+      `closeDb` for organizations.
+- [x] Add 12 policy tests; full gates pass (107 tasks, 373 tests, 31 files).
+
 ## Definition of done for this run
 
 - Baseline gates re-executed and recorded.

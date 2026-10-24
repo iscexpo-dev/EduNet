@@ -1,5 +1,4 @@
 import { Request, Response } from 'express';
-import { userSchema } from '@edunet/validation';
 import bcrypt from 'bcryptjs';
 import {
   findUserById,
@@ -9,6 +8,7 @@ import {
   verifyUser,
   deleteUser,
 } from './db';
+import { canReadUser, parsePagination, sanitizeProfileUpdate } from './policy';
 
 interface AuthRequest extends Request {
   user?: {
@@ -39,6 +39,10 @@ export async function getUserHandler(req: AuthRequest, res: Response) {
       return res.status(404).json({ error: 'User not found' });
     }
 
+    if (!req.user || !canReadUser(req.user.id, req.user.role, id)) {
+      return res.status(403).json({ error: 'You are not authorized to view this user' });
+    }
+
     const { passwordHash, ...userWithoutPassword } = user;
     res.json(userWithoutPassword);
   } catch (error: any) {
@@ -51,8 +55,7 @@ export async function listUsersHandler(req: AuthRequest, res: Response) {
     const organizationId = requireOrganizationId(req, res);
     if (!organizationId) return;
 
-    const limit = parseInt(req.query.limit as string) || 50;
-    const offset = parseInt(req.query.offset as string) || 0;
+    const { limit, offset } = parsePagination(req.query);
 
     const users = await listUsersByOrganization(organizationId, limit, offset);
 
@@ -69,7 +72,7 @@ export async function updateUserHandler(req: AuthRequest, res: Response) {
     if (!organizationId) return;
 
     const { id } = req.params;
-    const data = userSchema.partial().parse(req.body);
+    const data = sanitizeProfileUpdate(req.body);
 
     const existing = await findUserById(id, organizationId);
     if (!existing) {

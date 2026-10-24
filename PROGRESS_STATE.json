@@ -3,7 +3,7 @@
   "schemaVersion": "1.0.0",
   "project": "EduNet",
   "purpose": "Canonical resumable execution state for autonomous agents. Update after every meaningful checkpoint.",
-  "lastUpdated": "2026-10-24T10:45:00Z",
+  "lastUpdated": "2026-10-24T11:05:00Z",
   "repository": {
     "path": "/vercel/share/v0-project",
     "remote": "https://github.com/iscexpo-dev/EduNet.git",
@@ -13,8 +13,8 @@
     "reportedHistoricalCommitExists": true,
     "reportedHistoricalCommitIsAncestor": true,
     "note": "The prompt names /Users/khulnasoft/Projects/edunet-agent-launch and commit ef96741. The live checkout is /vercel/share/v0-project at 8273870, which descends from ef96741. All verification is against the live checkout.",
-    "verifiedCommit": "bc9f844",
-    "pushStatus": "NOT PUSHED — repository history is PR-based (merge commits); direct push to main not performed"
+    "verifiedCommit": "8306a10",
+    "pushStatus": "NOT PUSHED \u2014 repository history is PR-based (merge commits); direct push to main not performed"
   },
   "environment": {
     "os": "linux",
@@ -35,7 +35,7 @@
     "apps": 1,
     "services": 19,
     "packages": 12,
-    "testFiles": 29,
+    "testFiles": 31,
     "webPages": 21,
     "database": "PostgreSQL via Drizzle ORM",
     "migrations": [
@@ -59,7 +59,7 @@
     "unitTests": {
       "status": "PASS",
       "command": "pnpm turbo run test --force --concurrency=2",
-      "evidence": "47/47 tasks, 361 tests, 29 files"
+      "evidence": "49/49 tasks, 373 tests, 31 files"
     },
     "build": {
       "status": "PASS",
@@ -122,7 +122,7 @@
     },
     "identity": {
       "status": "PASS",
-      "gap": "Core auth hardened; MFA/OAuth/SSO missing and documented as deferred"
+      "gap": "Core auth hardened; user profile updates whitelisted and user reads restricted to self/teaching/admin in-org; MFA/OAuth/SSO missing and documented as deferred"
     },
     "rbac": {
       "status": "PASS",
@@ -222,7 +222,7 @@
     },
     "security": {
       "status": "NEEDS_HARDENING",
-      "gap": "Gateway CORS/headers/rate limits and CSP exist; body-parser high advisory fixed 2026-10-24; localStorage tokens, shared rate-limit store, DAST pending"
+      "gap": "Gateway CORS/headers/rate limits and CSP exist; body-parser high advisory fixed 2026-10-24; users/organizations mass-assignment, IDOR and cross-tenant listing fixed 2026-10-24; localStorage tokens, shared rate-limit store, DAST pending"
     },
     "privacy": {
       "status": "PARTIAL",
@@ -286,9 +286,9 @@
     }
   },
   "activeCheckpoint": {
-    "id": "checkpoint-5-commit",
-    "description": "Checkpoint committed; resume at the remaining launch-surface gaps.",
-    "startedAt": "2026-10-24T10:55:00Z",
+    "id": "checkpoint-6-security-hardening",
+    "description": "Users and organizations hardened; resume at remaining launch-surface gaps after commit.",
+    "startedAt": "2026-10-24T11:00:00Z",
     "status": "COMPLETE"
   },
   "checkpoints": [
@@ -364,6 +364,28 @@
       "artifacts": [
         "bc9f844"
       ]
+    },
+    {
+      "id": "checkpoint-6-security-hardening",
+      "at": "2026-10-24T11:00:00Z",
+      "summary": "Hardened services/users and services/organizations: whitelisted profile/organization updates (rejecting role, organizationId, email, code, type), self/teaching/admin read checks, organization-scoped list/get/update, clamped pagination, resolveConnectionString, closeDb. Added 12 policy tests. Full gates pass: 107 tasks, 373 tests.",
+      "evidence": [
+        "/tmp/gates4.log",
+        "/tmp/test5.log"
+      ],
+      "artifacts": [
+        "services/users/src/policy.ts",
+        "services/users/src/policy.test.ts",
+        "services/users/src/handlers.ts",
+        "services/users/vitest.config.ts",
+        "services/users/package.json",
+        "services/organizations/src/policy.ts",
+        "services/organizations/src/policy.test.ts",
+        "services/organizations/src/handlers.ts",
+        "services/organizations/src/db.ts",
+        "services/organizations/vitest.config.ts",
+        "services/organizations/package.json"
+      ]
     }
   ],
   "blockers": [
@@ -393,9 +415,8 @@
     }
   ],
   "nextActions": [
-    "Run the full validation suite after the parent/web changes.",
-    "Commit the checkpoint.",
-    "Continue launch-surface gaps: token storage, admin/communication/support UI, offline queue wiring, accessibility baseline."
+    "Commit checkpoint 6.",
+    "Continue launch-surface gaps: token storage migration, admin/communication/support UI, offline queue wiring, accessibility baseline."
   ],
   "filesOfRecord": {
     "state": "PROGRESS_STATE.json",

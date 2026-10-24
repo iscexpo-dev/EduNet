@@ -25,7 +25,7 @@ against the live checkout.
 | Install | `pnpm install` | **PASS** after adding a `body-parser` override (see below) |
 | Typecheck | `pnpm turbo run typecheck --concurrency=2` | **PASS — 35/35 tasks** |
 | Lint | `pnpm turbo run lint --concurrency=2` | **PASS — 32/32 tasks, 0 errors, 259 warnings** |
-| Unit tests | `pnpm turbo run test --force --concurrency=2` | **PASS — 47/47 tasks, 361 tests, 29 files** |
+| Unit tests | `pnpm turbo run test --force --concurrency=2` | **PASS — 49/49 tasks, 373 tests, 31 files** |
 | Production build | `pnpm turbo run build --force --concurrency=2` | **PASS — 29/29 tasks, Next.js build included** |
 | Dependency audit | `pnpm audit --audit-level=high` | **PASS** after fix; 1 moderate dev-only advisory remains |
 | Migration static check | `pnpm db:check` | **PASS** — 4 migrations consistent, latest `0003_futuristic_sway`; live check skipped |
@@ -69,6 +69,16 @@ watchers were terminated and all gates above used limited concurrency.
    `inArray` lookups instead of loading every student/parent, same-organization
    linking, `:childId` path-param support, whitelisted relationship updates,
    clamped pagination, and grade-permission enforcement; added 8 unit tests.
+7. **Users and organizations privilege/tenant defects.** `PUT /api/users/:id`
+   spread a partial user schema into the update, letting an admin change
+   `role`, `organizationId`, `email` or verification state; updates now accept
+   only `firstName`, `lastName`, `phoneNumber` and `avatarUrl` and reject any
+   other key. `GET /api/users/:id` was readable by any authenticated user in the
+   organization; it now allows self, teacher/tutor/mentor or an administrator.
+   `GET /api/organizations` returned every tenant and `GET/PUT /:id` accepted any
+   id; all three are now scoped to the caller's organization, and organization
+   updates only accept `name`, `address` and `isActive`. Pagination is clamped
+   in both services, and 12 unit tests cover the new policies.
 
 Resumable state artifacts added: `PROGRESS_STATE.json`,
 `todo/ACTIVE-PLAN.md`, `docs/FINAL_REPORT_TEMPLATE.md`.

@@ -945,6 +945,9 @@ importers:
       typescript:
         specifier: ^5.5.0
         version: 5.9.3
+      vitest:
+        specifier: ^4.1.12
+        version: 4.1.12(@types/node@22.20.4)(vite@6.4.5)
 
   services/parents:
     dependencies:
@@ -1245,6 +1248,9 @@ importers:
       typescript:
         specifier: ^5.5.0
         version: 5.9.3
+      vitest:
+        specifier: ^4.1.12
+        version: 4.1.12(@types/node@22.20.4)(vite@6.4.5)
 
 packages:
 

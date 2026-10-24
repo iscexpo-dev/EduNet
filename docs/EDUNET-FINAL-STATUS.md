@@ -5,7 +5,7 @@ Commit: `main` at `8273870` at re-verification start
 Verification environment: Linux sandbox without PostgreSQL, Docker or Playwright browsers
 
 > **2026-10-24 re-verification:** typecheck 35/35, lint 32/32 (0 errors,
-> 259 warnings), tests 47/47 tasks / 361 tests, forced build 29/29, dependency
+> 259 warnings), tests 49/49 tasks / 373 tests, forced build 29/29, dependency
 > audit PASS after a `body-parser` override, `db:check` PASS (4 migrations),
 > ops self-test PASS, format PASS. Question-bank listing was fixed and exposed
 > with validated pagination. Database integration, browser E2E, container build,
@@ -17,7 +17,7 @@ Verification environment: Linux sandbox without PostgreSQL, Docker or Playwright
 **CORE PLATFORM BUILT — NOT READY FOR PUBLIC LAUNCH.**
 
 The LMS, identity, tenancy, content, assessment, offline primitives, AI backend,
-single-origin gateway and most domain APIs are implemented and covered by 361
+single-origin gateway and most domain APIs are implemented and covered by 373
 automated tests. The release is blocked by launch-surface work: gateway
 deployment and TLS, containers and deployment, security hardening, a proven
 restore, load and accessibility validation, and user interfaces for the newer
@@ -28,8 +28,8 @@ domains.
 | Gate | Result | Evidence |
 |------|--------|----------|
 | Typecheck | **PASS** | 35/35 tasks |
-| Lint | **PASS** | 32/32 tasks, 0 errors (252 warnings) |
-| Unit tests | **PASS** | 47/47 tasks, 361 tests, 29 files |
+| Lint | **PASS** | 32/32 tasks, 0 errors (259 warnings) |
+| Unit tests | **PASS** | 49/49 tasks, 373 tests, 31 files |
 | Production build | **PASS** | 29/29 tasks, Next.js build included |
 | Production start smoke | **PASS** | all 19 services `node dist/index.js` + `/health` 200; built web `/` 200 |
 | Database migrations | **NOT VERIFIED** | CI-only; no PostgreSQL in sandbox |
@@ -80,7 +80,7 @@ domains.
 | 36 | API gateway | **PARTIAL** | `@edunet/gateway` maps all prefixes, applies CORS/headers/rate limits and has 19 tests; not deployed, TLS-terminated or end-to-end tested |
 | 37 | Backup and DR | **PARTIAL** | Scripts/checksums/runbook; no drill, schedule or media backup |
 | 38 | Performance and load | **FAIL** | No load test or p95 baseline |
-| 39 | QA | **PARTIAL** | 361 unit tests, 1 E2E journey in CI; no contract/visual/a11y suites |
+| 39 | QA | **PARTIAL** | 373 unit tests, 1 E2E journey in CI; no contract/visual/a11y suites |
 | 40 | Documentation | **PARTIAL** | Product/ops/state/API updated; some historical docs remain stale |
 | 41 | Pilot readiness | **FAIL** | No pilot institution, training, rota or data migration plan |
 | 42 | Rollout | **FAIL** | No cohort plan or go/no-go review |

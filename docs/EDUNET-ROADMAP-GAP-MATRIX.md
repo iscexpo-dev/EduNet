@@ -27,7 +27,7 @@ coverage and an operational story.
 |------|---------|--------|
 | Typecheck | `pnpm turbo run typecheck --concurrency=2` | **35/35 tasks PASS** (2026-10-24) |
 | Lint | `pnpm turbo run lint --concurrency=2` | **32/32 tasks PASS**, 0 errors, 259 warnings |
-| Unit tests | `pnpm turbo run test --force --concurrency=2` | **47/47 tasks PASS**, 361 tests across 29 files |
+| Unit tests | `pnpm turbo run test --force --concurrency=2` | **49/49 tasks PASS**, 373 tests across 31 files |
 | Build | `pnpm turbo run build --force --concurrency=2` | **29/29 tasks PASS**, including the Next.js production build |
 | Dependency audit | `pnpm audit --audit-level=high` | **PASS** after the `body-parser` override; 1 moderate dev-only advisory |
 | Migration static check | `pnpm db:check` | **PASS** — 4 migrations consistent |

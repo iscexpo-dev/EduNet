@@ -14,17 +14,17 @@
 | Method | Endpoint | Auth | Description |
 |--------|----------|------|-------------|
 | POST | `/` | Admin | Create organization |
-| GET | `/` | Any | List organizations |
-| GET | `/:id` | Any | Get organization |
-| PUT | `/:id` | Admin | Update organization |
+| GET | `/` | Bearer | List own organization only (tenant-scoped) |
+| GET | `/:id` | Bearer | Get own organization only (403 otherwise) |
+| PUT | `/:id` | Admin | Update own organization; only name/address/isActive |
 
 ## Users (`/api/users`)
 
 | Method | Endpoint | Auth | Description |
 |--------|----------|------|-------------|
 | GET | `/` | Admin/Teacher | List users |
-| GET | `/:id` | Any | Get user |
-| PUT | `/:id` | Admin | Update user |
+| GET | `/:id` | Bearer | Get user; self, teacher/tutor/mentor or admin in same org |
+| PUT | `/:id` | Admin | Update profile only (firstName/lastName/phoneNumber/avatarUrl) |
 | PUT | `/:id/password` | Any | Update password |
 | PUT | `/:id/verify` | Admin | Verify user |
 | DELETE | `/:id` | Admin | Delete user |
