@@ -1,0 +1,265 @@
+# Local pilot/demo deployment only. This is NOT a production configuration:
+# PostgreSQL and the gateway speak plain HTTP inside the Compose network.
+# Use docker-compose.staging.yml (or a managed platform) for real traffic.
+#
+# Required in deploy/compose/.env: POSTGRES_PASSWORD, JWT_SECRET,
+# MEDIA_SIGNING_SECRET. See .env.example.
+name: edunet-local
+
+x-api-image: &api-image
+  build:
+    context: ../..
+    dockerfile: Dockerfile
+    target: runtime
+  image: edunet-api:local
+
+x-api-env: &api-env
+  NODE_ENV: development
+  LOG_LEVEL: ${LOG_LEVEL:-info}
+  DATABASE_URL: 'postgres://edunet:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@postgres:5432/edunet'
+  JWT_SECRET: '${JWT_SECRET:?JWT_SECRET is required}'
+  MEDIA_SIGNING_SECRET: '${MEDIA_SIGNING_SECRET:?MEDIA_SIGNING_SECRET is required}'
+  MEDIA_STORAGE_PATH: /var/lib/edunet/media
+  AI_REQUIRE_CONSENT: 'true'
+
+x-api-service: &api-service
+  <<: *api-image
+  restart: unless-stopped
+  depends_on:
+    migrate:
+      condition: service_completed_successfully
+
+x-api-healthcheck: &api-healthcheck
+  test:
+    [
+      'CMD-SHELL',
+      'node -e "fetch(''http://127.0.0.1:''+(process.env.PORT||3000)+''/health'').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"',
+    ]
+  interval: 30s
+  timeout: 5s
+  retries: 3
+  start_period: 30s
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: edunet
+      POSTGRES_PASSWORD: '${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}'
+      POSTGRES_DB: edunet
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U edunet -d edunet']
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    ports:
+      - '127.0.0.1:5432:5432'
+
+  migrate:
+    build:
+      context: ../..
+      dockerfile: Dockerfile
+      target: migrate
+    image: edunet-migrate:local
+    command: ['pnpm', '--filter', '@edunet/database', 'migrate']
+    environment:
+      DATABASE_URL: 'postgres://edunet:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@postgres:5432/edunet'
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: 'no'
+
+  identity:
+    <<: *api-service
+    command: ['node', 'services/identity/dist/index.js']
+    environment:
+      <<: *api-env
+      PORT: '3001'
+    healthcheck: *api-healthcheck
+  organizations:
+    <<: *api-service
+    command: ['node', 'services/organizations/dist/index.js']
+    environment:
+      <<: *api-env
+      PORT: '3002'
+    healthcheck: *api-healthcheck
+  users:
+    <<: *api-service
+    command: ['node', 'services/users/dist/index.js']
+    environment:
+      <<: *api-env
+      PORT: '3003'
+    healthcheck: *api-healthcheck
+  courses:
+    <<: *api-service
+    command: ['node', 'services/courses/dist/index.js']
+    environment:
+      <<: *api-env
+      PORT: '3004'
+    healthcheck: *api-healthcheck
+  enrollments:
+    <<: *api-service
+    command: ['node', 'services/enrollments/dist/index.js']
+    environment:
+      <<: *api-env
+      PORT: '3005'
+    healthcheck: *api-healthcheck
+  assignments:
+    <<: *api-service
+    command: ['node', 'services/assignments/dist/index.js']
+    environment:
+      <<: *api-env
+      PORT: '3006'
+    healthcheck: *api-healthcheck
+  submissions:
+    <<: *api-service
+    command: ['node', 'services/submissions/dist/index.js']
+    environment:
+      <<: *api-env
+      PORT: '3007'
+    healthcheck: *api-healthcheck
+  content:
+    <<: *api-service
+    command: ['node', 'services/content/dist/index.js']
+    environment:
+      <<: *api-env
+      PORT: '3008'
+    volumes:
+      - media_data:/var/lib/edunet/media
+    healthcheck: *api-healthcheck
+  assessments:
+    <<: *api-service
+    command: ['node', 'services/assessments/dist/index.js']
+    environment:
+      <<: *api-env
+      PORT: '3009'
+    healthcheck: *api-healthcheck
+  notifications:
+    <<: *api-service
+    command: ['node', 'services/notifications/dist/index.js']
+    environment:
+      <<: *api-env
+      PORT: '3010'
+    healthcheck: *api-healthcheck
+  parents:
+    <<: *api-service
+    command: ['node', 'services/parents/dist/index.js']
+    environment:
+      <<: *api-env
+      PORT: '3011'
+    healthcheck: *api-healthcheck
+  search:
+    <<: *api-service
+    command: ['node', 'services/search/dist/index.js']
+    environment:
+      <<: *api-env
+      PORT: '3012'
+    healthcheck: *api-healthcheck
+  analytics:
+    <<: *api-service
+    command: ['node', 'services/analytics/dist/index.js']
+    environment:
+      <<: *api-env
+      PORT: '3013'
+    healthcheck: *api-healthcheck
+  engagement:
+    <<: *api-service
+    command: ['node', 'services/engagement/dist/index.js']
+    environment:
+      <<: *api-env
+      PORT: '3014'
+    healthcheck: *api-healthcheck
+  communication:
+    <<: *api-service
+    command: ['node', 'services/communication/dist/index.js']
+    environment:
+      <<: *api-env
+      PORT: '3015'
+    healthcheck: *api-healthcheck
+  support:
+    <<: *api-service
+    command: ['node', 'services/support/dist/index.js']
+    environment:
+      <<: *api-env
+      PORT: '3016'
+    healthcheck: *api-healthcheck
+  platform:
+    <<: *api-service
+    command: ['node', 'services/platform/dist/index.js']
+    environment:
+      <<: *api-env
+      PORT: '3017'
+    healthcheck: *api-healthcheck
+  ai:
+    <<: *api-service
+    command: ['node', 'services/ai/dist/index.js']
+    environment:
+      <<: *api-env
+      PORT: '3018'
+    healthcheck: *api-healthcheck
+
+  gateway:
+    <<: *api-service
+    command: ['node', 'services/gateway/dist/index.js']
+    environment:
+      <<: *api-env
+      PORT: '8080'
+      GATEWAY_PORT: '8080'
+      TRUST_PROXY: '0'
+      CORS_ORIGINS: '${CORS_ORIGINS:-http://localhost:3000}'
+      ENABLE_HSTS: 'false'
+      IDENTITY_URL: 'http://identity:3001'
+      ORGANIZATIONS_URL: 'http://organizations:3002'
+      USERS_URL: 'http://users:3003'
+      COURSES_URL: 'http://courses:3004'
+      ENROLLMENTS_URL: 'http://enrollments:3005'
+      ASSIGNMENTS_URL: 'http://assignments:3006'
+      SUBMISSIONS_URL: 'http://submissions:3007'
+      CONTENT_URL: 'http://content:3008'
+      ASSESSMENTS_URL: 'http://assessments:3009'
+      NOTIFICATIONS_URL: 'http://notifications:3010'
+      PARENTS_URL: 'http://parents:3011'
+      SEARCH_URL: 'http://search:3012'
+      ANALYTICS_URL: 'http://analytics:3013'
+      ENGAGEMENT_URL: 'http://engagement:3014'
+      COMMUNICATION_URL: 'http://communication:3015'
+      SUPPORT_URL: 'http://support:3016'
+      PLATFORM_URL: 'http://platform:3017'
+      AI_URL: 'http://ai:3018'
+    ports:
+      - '8080:8080'
+    healthcheck: *api-healthcheck
+
+  web:
+    build:
+      context: ../..
+      dockerfile: apps/web/Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: '${NEXT_PUBLIC_API_URL:-http://localhost:8080}'
+    image: edunet-web:local
+    restart: unless-stopped
+    depends_on:
+      gateway:
+        condition: service_healthy
+    environment:
+      NEXT_PUBLIC_API_URL: '${NEXT_PUBLIC_API_URL:-http://localhost:8080}'
+      ENABLE_HSTS: 'false'
+    ports:
+      - '3000:3000'
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          'node -e "fetch(''http://127.0.0.1:3000/api/health'').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"',
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+volumes:
+  pgdata:
+  media_data:
