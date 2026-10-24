@@ -1,7 +1,7 @@
 # EduNet Final Status
 
 Date: 2026-10-24 (re-verified)
-Commit: `main` at `8273870` at re-verification start
+Commit: `main` at `d37530f` at final verification
 Verification environment: Linux sandbox without PostgreSQL, Docker or Playwright browsers
 
 > **2026-10-24 re-verification:** typecheck 35/35, lint 32/32 (0 errors,
