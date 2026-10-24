@@ -55,7 +55,7 @@ domains.
 | 11 | Student platform | **PARTIAL** | Academic/attendance/achievement backend; no UI |
 | 12 | Teacher platform | **PARTIAL** | Core authoring/grading UI; attendance and analytics UI missing |
 | 13 | Parent platform | **PARTIAL** | Parent dashboard at `/parent`; relationship API hardened; attendance UI and self-service linking missing |
-| 14 | Offline and PWA | **PARTIAL** | Queue/service worker/banner; queue not wired into mutations |
+| 14 | Offline and PWA | **PARTIAL** | Queue/service worker/banner; queue wired into assignment submit and lesson progress; remaining assessment/note/bookmark flows |
 | 15 | Internationalisation | **PASS** | Bengali/English catalogues and toggle; native review pending |
 | 16 | Accessibility | **FAIL** | No WCAG audit or assistive-technology test |
 | 17 | Notifications | **PARTIAL** | In-app only; no email/SMS/push adapters |

@@ -73,8 +73,8 @@ Ordered by risk. Items marked `[!]` need external infrastructure.
 - [x] Parent web surface (`/parent` dashboard, 2026-10-24).
 - [ ] Admin web console (still API-only).
 - [x] Replace hardcoded `localhost:3001` API origins with `NEXT_PUBLIC_API_URL`.
-- [ ] Offline queue wired into submission/progress/autosave, or ship
-      read-only offline explicitly.
+- [x] Offline queue wired into submission/progress (2026-10-24); autosave
+      still sends immediately and is not queued yet.
 - [ ] Accessibility audit baseline (keyboard/focus/labels/contrast).
 - [ ] Search normalization/ranking for Bengali + English.
 - [ ] AI provider configuration and human escalation path.
@@ -121,6 +121,12 @@ Ordered by risk. Items marked `[!]` need external infrastructure.
 - [x] Shared RBAC and identity middleware accept the httpOnly access cookie;
       gateway emits `Access-Control-Allow-Credentials`.
 - [x] Full gates pass (107 tasks, 380 tests, 32 files).
+
+## Checkpoint 9 — Offline queue wiring — COMPLETE 2026-10-24
+
+- [x] Added `useOfflineSync` that flushes the local queue via the API on reconnect.
+- [x] Wired offline assignment submission and lesson completion into the queue.
+- [x] Full gates pass after wiring (107 tasks, 380 tests, 32 files).
 
 ## Definition of done for this run
 

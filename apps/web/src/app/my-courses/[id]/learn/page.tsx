@@ -1,6 +1,7 @@
 'use client';
 
 import { apiUrl } from '@/lib/api-url';
+import { enqueue } from '@edunet/offline';
 
 import { useEffect, useState } from 'react';
 import { useAuth } from '@edunet/auth';
@@ -99,6 +100,28 @@ export default function CourseLearningPage() {
     if (!user || !token || !currentLesson) return;
     setSavingProgress(true);
     setProgressError('');
+
+    if (!navigator.onLine) {
+      enqueue([], {
+        id: `offline-${crypto.randomUUID()}`,
+        type: 'lesson_progress',
+        entityId: currentLesson.id,
+        endpoint: '/api/content/lesson-progress',
+        method: 'POST',
+        body: {
+          lessonId: currentLesson.id,
+          studentId: user.id,
+          status: 'completed',
+          progress: '100',
+        },
+        createdAt: Date.now(),
+        version: 1,
+        idempotencyKey: `offline-${crypto.randomUUID()}`,
+      });
+      setSavingProgress(false);
+      return;
+    }
+
     try {
       const response = await fetch(apiUrl('/api/content/lesson-progress'), {
         method: 'POST',

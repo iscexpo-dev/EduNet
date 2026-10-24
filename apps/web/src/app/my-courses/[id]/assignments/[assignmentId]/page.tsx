@@ -1,6 +1,7 @@
 'use client';
 
 import { apiUrl } from '@/lib/api-url';
+import { enqueue } from '@edunet/offline';
 
 import { useEffect, useState } from 'react';
 import { useAuth } from '@edunet/auth';
@@ -76,6 +77,26 @@ export default function AssignmentSubmissionPage() {
 
     setSubmitting(true);
     setError('');
+
+    if (!navigator.onLine) {
+      enqueue([], {
+        id: `offline-${crypto.randomUUID()}`,
+        type: 'assignment_submit',
+        entityId: String(assignmentId),
+        endpoint: '/api/submissions',
+        method: 'POST',
+        body: {
+          assignmentId: String(assignmentId),
+          studentId: user.id,
+          content,
+        },
+        createdAt: Date.now(),
+        version: 1,
+        idempotencyKey: `offline-${crypto.randomUUID()}`,
+      });
+      setSubmitting(false);
+      return;
+    }
 
     try {
       const response = await fetch(apiUrl('/api/submissions'), {

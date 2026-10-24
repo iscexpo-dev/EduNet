@@ -3,10 +3,12 @@
 import { useEffect, useState } from 'react';
 import { createLocalStorageAdapter, STORAGE_KEY, type OfflineAction } from '@edunet/offline';
 import { useI18n } from '@/lib/i18n';
+import { useOfflineSync } from '@/hooks/useOfflineSync';
 
 /** Non-blocking connectivity banner with the number of queued changes. */
 export function OfflineBanner() {
   const { t } = useI18n();
+  useOfflineSync();
   const [online, setOnline] = useState(true);
   const [pending, setPending] = useState(0);
 

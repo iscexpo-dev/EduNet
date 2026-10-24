@@ -260,7 +260,7 @@ entry points because Next.js transpiles them.
 | Content & Media | PARTIAL | Lessons, resources, media, signed URLs, versions; no objectives/bookmarks/notes API, no S3 |
 | Assignments & Submissions | PARTIAL | Rubrics, autosave, revisions, grade history; no attachments/late policy |
 | Assessment | PARTIAL | Five objective types, partial credit, rechecks, banks, randomisation; UI basic |
-| Offline / PWA | PARTIAL | Queue, backoff, dedupe, conflicts, service worker; queue not wired into mutations |
+| Offline / PWA | PARTIAL | Queue, backoff, dedupe, conflicts, service worker; wired into assignment submit and lesson progress; remaining assessment/note/bookmark flows |
 | i18n | COMPLETE | Bengali/English catalogues and web toggle; native review pending |
 | Design System | PARTIAL | 16 primitives, tokens, dark mode; no icon system/RTL audit |
 | Student Platform | PARTIAL | Academic/attendance/achievements/certificates/streaks backend; no UI |
