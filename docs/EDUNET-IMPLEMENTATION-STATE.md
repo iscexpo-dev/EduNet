@@ -1,13 +1,94 @@
 # EduNet Implementation State
 
-Last updated: 2026-10-23
-Branch: `main` (`2dc560f`) plus uncommitted AI service and documentation work
+Last updated: 2026-10-24
+Branch: `main` (`8273870` at re-verification start; see the checkpoint below)
 Requirements: `docs/product/PRODUCT-FOUNDATION.md`
 Gap analysis: `docs/EDUNET-ROADMAP-GAP-MATRIX.md`
+Resumable state: `PROGRESS_STATE.json` · checklist: `todo/ACTIVE-PLAN.md`
 
 ## Status Legend
 
 `VERIFIED` · `COMPLETE` · `PARTIAL` · `MISSING` · `NEEDS HARDENING` · `BLOCKED` · `CI ONLY`
+
+---
+
+## 2026-10-24 Re-verification (live checkout)
+
+The live checkout is `/vercel/share/v0-project` on `main` at `8273870`, which
+descends from the prompt's reported `ef96741`. The prompt's filesystem path
+(`/Users/khulnasoft/Projects/edunet-agent-launch`) does not exist in this
+environment. No prior status claim was trusted; every gate below was executed
+against the live checkout.
+
+| Gate | Command | Result |
+|------|---------|--------|
+| Install | `pnpm install` | **PASS** after adding a `body-parser` override (see below) |
+| Typecheck | `pnpm turbo run typecheck --concurrency=2` | **PASS — 35/35 tasks** |
+| Lint | `pnpm turbo run lint --concurrency=2` | **PASS — 32/32 tasks, 0 errors, 259 warnings** |
+| Unit tests | `pnpm turbo run test --force --concurrency=2` | **PASS — 49/49 tasks, 380 tests, 32 files** |
+| Production build | `pnpm turbo run build --force --concurrency=2` | **PASS — 29/29 tasks, Next.js build included** |
+| Dependency audit | `pnpm audit --audit-level=high` | **PASS** after fix; 1 moderate dev-only advisory remains |
+| Migration static check | `pnpm db:check` | **PASS** — 4 migrations consistent, latest `0003_futuristic_sway`; live check skipped |
+| Operations self-test | `pnpm ops:test` | **PASS** — backup, encryption, verify, restore gates, tamper detection, media |
+| Format check | `pnpm format:check` | **PASS** |
+| PostgreSQL integration | `pnpm --filter @edunet/database test:integration` | **BLOCKED** — no PostgreSQL/psql in this environment |
+| Browser E2E | `pnpm --filter @edunet/web test:e2e` | **BLOCKED** — no Playwright browser installed |
+| Container build | CI `container` job | **BLOCKED locally** — no Docker runtime |
+| Restore drill | `scripts/restore-drill.sh` against real DB | **BLOCKED** — no disposable PostgreSQL |
+
+Environment: Node `v24.16.0`, pnpm `8.15.0`, Linux sandbox without PostgreSQL,
+Docker, `psql` or Playwright browsers. An earlier long typecheck was OOM-killed
+(exit 137) because stale `turbo run dev` watchers were still resident; the
+watchers were terminated and all gates above used limited concurrency.
+
+### Fixes in this checkpoint
+
+1. **High dependency advisory (GHSA-27r3-jxmh-p828).** `express@4.22.3` pulled
+   `body-parser@1.20.8` on 40 paths. Added a root pnpm override
+   `body-parser@<1.20.9: ^1.20.9`; the lockfile now resolves `1.20.9` and
+   `pnpm audit --audit-level=high` passes.
+2. **Question-bank listing was incorrect and unusable.** `listQuestionsByBank`
+   filtered `bankId` in application memory after applying SQL `limit`/`offset`,
+   used a no-op `metadata = metadata` predicate, and had no route. It now filters
+   in SQL with `metadata ->> 'bankId'`, returns a correctly paginated result, and
+   is exposed at `GET /api/assessments/question-banks/:id/questions`
+   (teacher/admin, tenant-scoped, 404 for a bank outside the organization).
+3. **Attaching questions destroyed existing metadata.** `attachQuestionsToBank`
+   replaced the whole `metadata` object; it now merges `bankId` into the existing
+   JSONB object.
+4. **Unvalidated pagination.** Added `parsePagination` with clamping
+   (limit 1–200, non-negative offset) and unit tests, used by both bank list
+   endpoints.
+5. **Hardcoded API origin in the web app.** 16 pages called
+   `http://localhost:3001` directly, so a production build could not reach the
+   configured gateway. All calls now use `apiUrl()` backed by
+   `NEXT_PUBLIC_API_URL` (`apps/web/src/lib/api-url.ts`).
+6. **Parent domain hardening and UI.** Added `/parent` (children, course
+   progress, grades, loading/empty/error/unauthorized states). Hardened the
+   parent service: lazy DB connection via `resolveConnectionString`, SQL
+   `inArray` lookups instead of loading every student/parent, same-organization
+   linking, `:childId` path-param support, whitelisted relationship updates,
+   clamped pagination, and grade-permission enforcement; added 8 unit tests.
+7. **Users and organizations privilege/tenant defects.** `PUT /api/users/:id`
+   spread a partial user schema into the update, letting an admin change
+   `role`, `organizationId`, `email` or verification state; updates now accept
+   only `firstName`, `lastName`, `phoneNumber` and `avatarUrl` and reject any
+   other key. `GET /api/users/:id` was readable by any authenticated user in the
+   organization; it now allows self, teacher/tutor/mentor or an administrator.
+   `GET /api/organizations` returned every tenant and `GET/PUT /:id` accepted any
+   id; all three are now scoped to the caller's organization, and organization
+   updates only accept `name`, `address` and `isActive`. Pagination is clamped
+   in both services, and 12 unit tests cover the new policies.
+
+Resumable state artifacts added: `PROGRESS_STATE.json`,
+`todo/ACTIVE-PLAN.md`, `docs/FINAL_REPORT_TEMPLATE.md`.
+
+### Still not proven
+
+Migrations against a real database, PostgreSQL integration and tenant-isolation
+suites, browser E2E, container build/scan, a timed restore, staging deployment,
+load testing, accessibility audit, and pilot execution remain **BLOCKED or NOT
+RUN** in this environment. They are not passes.
 
 ---
 
@@ -179,11 +260,11 @@ entry points because Next.js transpiles them.
 | Content & Media | PARTIAL | Lessons, resources, media, signed URLs, versions; no objectives/bookmarks/notes API, no S3 |
 | Assignments & Submissions | PARTIAL | Rubrics, autosave, revisions, grade history; no attachments/late policy |
 | Assessment | PARTIAL | Five objective types, partial credit, rechecks, banks, randomisation; UI basic |
-| Offline / PWA | PARTIAL | Queue, backoff, dedupe, conflicts, service worker; queue not wired into mutations |
+| Offline / PWA | PARTIAL | Queue, backoff, dedupe, conflicts, service worker; wired into assignment submit and lesson progress; remaining assessment/note/bookmark flows |
 | i18n | COMPLETE | Bengali/English catalogues and web toggle; native review pending |
 | Design System | PARTIAL | 16 primitives, tokens, dark mode; no icon system/RTL audit |
 | Student Platform | PARTIAL | Academic/attendance/achievements/certificates/streaks backend; no UI |
-| Parent Platform | PARTIAL | Child-scoped API; no UI |
+| Parent Platform | PARTIAL | `/parent` dashboard (children, courses, grades, loading/empty/error); API hardened for same-org linking, path-param access, whitelisted updates and grade permission |
 | Teacher Platform | PARTIAL | Core authoring/grading UI; no attendance/analytics UI |
 | Notifications | PARTIAL | In-app only; no delivery adapters |
 | Search | PARTIAL | `ILIKE` only |
@@ -194,17 +275,17 @@ entry points because Next.js transpiles them.
 | AI | PARTIAL | Consent, safety, quota, prompts, usage, audit, conversations; no UI/provider configured |
 | Support & Counseling | PARTIAL | Tickets/escalation/appointments backend; no UI |
 | Academics & Attendance | PARTIAL | Full admin backend; no UI |
-| Admin / Flags / Settings | PARTIAL | Backend; no console |
+| Admin / Flags / Settings | PARTIAL | Backend; minimal admin console added with users/organizations/audit views; deeper operations pending |
 | Privacy & Consent | PARTIAL | Consent + data requests; no export/erase execution or retention jobs |
 | Integrations / Webhooks | PARTIAL | Config only; delivery/signing unproven |
-| Security Hardening | NEEDS HARDENING | No rate limiting/CORS/CSP; tokens in localStorage; scan pending |
+| Security Hardening | PARTIAL | Gateway enforces CORS/headers/rate limits; httpOnly access/refresh token cookies implemented; CSP present; external scan pending |
 | Observability | COMPLETE | Logs, request IDs, metrics, health/ready; no dashboards/alerts |
 | CI/CD | PARTIAL | Gates configured; hosted run pending; no deploy job |
 | Infrastructure | MISSING | No containers/IaC/CDN; services now start from compiled `dist` |
 | API Gateway | PARTIAL | `@edunet/gateway` maps all prefixes and is unit-tested; not integration-tested or deployed |
 | Backup/DR | PARTIAL | Scripts + runbook; no drill or media snapshot |
 | Performance / Load | MISSING | No load test |
-| QA | PARTIAL | 315 unit tests; one E2E journey (CI); no contract/visual/a11y suites |
+| QA | PARTIAL | 380 unit tests; one E2E journey (CI); no contract/visual/a11y suites |
 | Documentation | PARTIAL | Product/ops/state/API refreshed; some historical docs remain stale |
 | Pilot / Rollout / Operations | MISSING | No pilot plan, cohort rollout or staffing rota |
 
@@ -232,8 +313,8 @@ entry points because Next.js transpiles them.
 
 1. Deploy and end-to-end test the gateway (TLS, timeouts, upstream health).
 2. Add container/build manifests and a deployment/rollback job to CI.
-3. Harden the edge: rate limiting, CORS, security headers, token storage,
-   dependency scan.
+3. Harden the edge: rate limiting, CORS, security headers, dependency scan;
+   token storage now uses httpOnly access/refresh cookies.
 4. Drill backup and restore, including the media volume, and record the RTO.
 5. Wire the offline queue into progress/autosave/submission flows.
 6. Add the AI, parent, admin, communication and support UI surfaces.

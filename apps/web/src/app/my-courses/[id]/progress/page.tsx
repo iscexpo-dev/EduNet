@@ -1,5 +1,7 @@
 'use client';
 
+import { apiUrl } from '@/lib/api-url';
+
 import { useEffect, useState } from 'react';
 import { useAuth } from '@edunet/auth';
 import { Button, Card, CardHeader, CardContent } from '@edunet/ui';
@@ -53,25 +55,25 @@ export default function CourseProgressPage() {
     const fetchData = async () => {
       try {
         const lessonsRes = await fetch(
-          `http://localhost:3001/api/content/lessons?courseId=${courseId}`,
+          apiUrl(`/api/content/lessons?courseId=${courseId}`),
           { headers: { Authorization: `Bearer ${token}` } }
         );
         if (lessonsRes.ok) setLessons(await lessonsRes.json());
 
         const progressRes = await fetch(
-          `http://localhost:3001/api/content/lesson-progress?studentId=${user.id}`,
+          apiUrl(`/api/content/lesson-progress?studentId=${user.id}`),
           { headers: { Authorization: `Bearer ${token}` } }
         );
         if (progressRes.ok) setProgress(await progressRes.json());
 
         const assignmentsRes = await fetch(
-          `http://localhost:3001/api/assignments?courseId=${courseId}`,
+          apiUrl(`/api/assignments?courseId=${courseId}`),
           { headers: { Authorization: `Bearer ${token}` } }
         );
         if (assignmentsRes.ok) setAssignments(await assignmentsRes.json());
 
         const submissionsRes = await fetch(
-          `http://localhost:3001/api/submissions?studentId=${user.id}`,
+          apiUrl(`/api/submissions?studentId=${user.id}`),
           { headers: { Authorization: `Bearer ${token}` } }
         );
         if (submissionsRes.ok) setSubmissions(await submissionsRes.json());

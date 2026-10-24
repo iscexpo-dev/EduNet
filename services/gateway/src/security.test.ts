@@ -48,6 +48,7 @@ describe('gateway security middleware', () => {
     expect(response.headers.get('access-control-allow-origin')).toBe('https://learn.example');
     expect(response.headers.get('access-control-allow-methods')).toContain('POST');
     expect(response.headers.get('access-control-allow-headers')).toContain('Authorization');
+    expect(response.headers.get('access-control-allow-credentials')).toBe('true');
     expect(response.headers.get('vary')).toBe('Origin');
     expect(response.headers.get('strict-transport-security')).toContain('max-age=31536000');
     expect(response.headers.get('x-content-type-options')).toBe('nosniff');

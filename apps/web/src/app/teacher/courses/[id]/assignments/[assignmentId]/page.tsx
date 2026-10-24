@@ -1,5 +1,7 @@
 'use client';
 
+import { apiUrl } from '@/lib/api-url';
+
 import { useEffect, useState, type FormEvent } from 'react';
 import { useAuth } from '@edunet/auth';
 import { Button } from '@edunet/ui';
@@ -26,8 +28,8 @@ export default function GradeAssignmentsPage() {
       try {
         const headers = { Authorization: `Bearer ${token}` };
         const [assignmentResponse, submissionResponse] = await Promise.all([
-          fetch(`http://localhost:3001/api/assignments/${assignmentId}`, { headers }),
-          fetch(`http://localhost:3001/api/submissions?assignmentId=${assignmentId}`, { headers }),
+          fetch(apiUrl(`/api/assignments/${assignmentId}`), { headers }),
+          fetch(apiUrl(`/api/submissions?assignmentId=${assignmentId}`), { headers }),
         ]);
         const assignmentData = await assignmentResponse.json();
         const submissionData = await submissionResponse.json();
@@ -52,7 +54,7 @@ export default function GradeAssignmentsPage() {
     setError('');
     try {
       const value = grades[submissionId];
-      const response = await fetch(`http://localhost:3001/api/submissions/${submissionId}/grade`, {
+      const response = await fetch(apiUrl(`/api/submissions/${submissionId}/grade`), {
         method: 'PUT', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ grade: Number(value.grade), feedback: value.feedback }),
       });

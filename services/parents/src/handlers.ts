@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import {
   findParentChildRelationshipById,
   findParentChildRelationship,
+  findUserById,
   listChildrenByParent,
   listParentsByChild,
   createParentChildRelationship,
@@ -10,6 +11,12 @@ import {
   getChildEnrollments,
   getChildSubmissions,
 } from './db';
+import {
+  canManageRelationship,
+  canReadChildGrades,
+  parsePagination,
+  sanitizeRelationshipUpdate,
+} from './policy';
 
 export interface AuthRequest extends Request {
   user?: {
@@ -19,34 +26,97 @@ export interface AuthRequest extends Request {
   };
 }
 
+function childIdFromRequest(req: AuthRequest): string | null {
+  const param = req.params.childId;
+  if (typeof param === 'string' && param.length > 0) return param;
+  const query = req.query.childId;
+  return typeof query === 'string' && query.length > 0 ? query : null;
+}
+
+async function authorizeChildAccess(
+  req: AuthRequest,
+  res: Response,
+  childId: string,
+): Promise<{ organizationId: string } | null> {
+  const user = req.user;
+  if (!user?.id) {
+    res.status(401).json({ error: 'Not authenticated' });
+    return null;
+  }
+
+  const child = await findUserById(childId);
+  if (!child || child.role !== 'student') {
+    res.status(404).json({ error: 'Child not found' });
+    return null;
+  }
+
+  if (user.role === 'parent') {
+    const relationship = await findParentChildRelationship(user.id, childId);
+    if (!relationship) {
+      res.status(403).json({ error: 'You are not authorized to view this child' });
+      return null;
+    }
+  } else if (user.role === 'admin') {
+    if (!user.organizationId || user.organizationId !== child.organizationId) {
+      res.status(403).json({ error: 'You are not authorized to view this child' });
+      return null;
+    }
+  } else {
+    res.status(403).json({ error: 'You are not authorized to view this child' });
+    return null;
+  }
+
+  return { organizationId: child.organizationId };
+}
+
 // Parent-Child Relationship handlers
 export async function createParentChildRelationshipHandler(req: AuthRequest, res: Response) {
   try {
-    const { parentId, childId, relationship } = req.body;
-    
-    if (!parentId || !childId || !relationship) {
+    const { parentId, childId, relationship } = req.body ?? {};
+
+    if (typeof parentId !== 'string' || typeof childId !== 'string' || typeof relationship !== 'string') {
       return res.status(400).json({ error: 'parentId, childId, and relationship are required' });
     }
 
-    if (req.user?.role === 'parent' && req.user.id !== parentId) {
+    const user = req.user;
+    if (!user?.id) {
+      return res.status(401).json({ error: 'Not authenticated' });
+    }
+
+    if (user.role === 'parent' && user.id !== parentId) {
       return res.status(403).json({ error: 'Parents can only create relationships for themselves' });
+    }
+
+    const parent = await findUserById(parentId);
+    const child = await findUserById(childId);
+    if (!parent || parent.role !== 'parent') {
+      return res.status(404).json({ error: 'Parent not found' });
+    }
+    if (!child || child.role !== 'student') {
+      return res.status(404).json({ error: 'Child not found' });
+    }
+    if (parent.organizationId !== child.organizationId) {
+      return res.status(403).json({ error: 'Parent and child must belong to the same organization' });
+    }
+    if (user.role === 'admin' && user.organizationId !== child.organizationId) {
+      return res.status(403).json({ error: 'You are not authorized to manage this organization' });
     }
 
     const existing = await findParentChildRelationship(parentId, childId);
     if (existing) {
-      return res.status(400).json({ error: 'Relationship already exists' });
+      return res.status(409).json({ error: 'Relationship already exists' });
     }
 
     const relationshipData = await createParentChildRelationship({
       parentId,
       childId,
-      relationship,
-      isPrimary: req.body.isPrimary || false,
-      canViewGrades: req.body.canViewGrades !== undefined ? req.body.canViewGrades : true,
-      canViewAttendance: req.body.canViewAttendance !== undefined ? req.body.canViewAttendance : true,
-      canViewAssignments: req.body.canViewAssignments !== undefined ? req.body.canViewAssignments : true,
+      relationship: relationship.trim(),
+      isPrimary: req.body.isPrimary === true,
+      canViewGrades: req.body.canViewGrades !== false,
+      canViewAttendance: req.body.canViewAttendance !== false,
+      canViewAssignments: req.body.canViewAssignments !== false,
     });
-    
+
     res.status(201).json(relationshipData);
   } catch (error: any) {
     res.status(400).json({ error: error.message });
@@ -57,25 +127,35 @@ export async function getParentChildRelationshipHandler(req: AuthRequest, res: R
   try {
     const { id } = req.params;
     const relationship = await findParentChildRelationshipById(id);
-    
+
     if (!relationship) {
       return res.status(404).json({ error: 'Relationship not found' });
     }
 
-    if (req.user?.role === 'parent' && relationship.parentId !== req.user.id) {
-      return res.status(403).json({ error: 'You can only view your own relationships' });
+    const child = await findUserById(relationship.childId);
+    if (
+      !child ||
+      !canManageRelationship(
+        req.user?.role ?? '',
+        req.user?.id ?? '',
+        req.user?.organizationId,
+        relationship.parentId,
+        child.organizationId,
+      )
+    ) {
+      return res.status(403).json({ error: 'You are not authorized to view this relationship' });
     }
-    
+
     res.json(relationship);
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
+  } catch {
+    res.status(500).json({ error: 'Unable to load relationship' });
   }
 }
 
 export async function listChildrenHandler(req: AuthRequest, res: Response) {
   try {
     const parentId = req.user?.id;
-    
+
     if (!parentId) {
       return res.status(401).json({ error: 'Not authenticated' });
     }
@@ -84,53 +164,63 @@ export async function listChildrenHandler(req: AuthRequest, res: Response) {
       return res.status(403).json({ error: 'Only parents can view their children' });
     }
 
-    const limit = parseInt(req.query.limit as string) || 50;
-    const offset = parseInt(req.query.offset as string) || 0;
-    
+    const { limit, offset } = parsePagination(req.query);
     const children = await listChildrenByParent(parentId, limit, offset);
     res.json(children);
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
+  } catch {
+    res.status(500).json({ error: 'Unable to list children' });
   }
 }
 
 export async function listParentsHandler(req: AuthRequest, res: Response) {
   try {
-    const { childId } = req.query;
-    
-    if (!childId || typeof childId !== 'string') {
+    const childId = typeof req.query.childId === 'string' ? req.query.childId : null;
+    if (!childId) {
       return res.status(400).json({ error: 'childId is required' });
     }
 
-    if (req.user?.role === 'parent' && req.user.id !== childId) {
-      return res.status(403).json({ error: 'You can only view parents for your own children' });
+    const child = await findUserById(childId);
+    if (!child) {
+      return res.status(404).json({ error: 'Child not found' });
+    }
+    if (!req.user?.organizationId || req.user.organizationId !== child.organizationId) {
+      return res.status(403).json({ error: 'You are not authorized to view this child' });
     }
 
-    const limit = parseInt(req.query.limit as string) || 50;
-    const offset = parseInt(req.query.offset as string) || 0;
-    
+    const { limit, offset } = parsePagination(req.query);
     const parents = await listParentsByChild(childId, limit, offset);
     res.json(parents);
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
+  } catch {
+    res.status(500).json({ error: 'Unable to list parents' });
   }
 }
 
 export async function updateParentChildRelationshipHandler(req: AuthRequest, res: Response) {
   try {
     const { id } = req.params;
-    const data = req.body;
-    
     const existing = await findParentChildRelationshipById(id);
     if (!existing) {
       return res.status(404).json({ error: 'Relationship not found' });
     }
 
-    if (req.user?.role === 'parent' && existing.parentId !== req.user.id) {
-      return res.status(403).json({ error: 'You can only update your own relationships' });
+    const child = await findUserById(existing.childId);
+    if (
+      !child ||
+      !canManageRelationship(
+        req.user?.role ?? '',
+        req.user?.id ?? '',
+        req.user?.organizationId,
+        existing.parentId,
+        child.organizationId,
+      )
+    ) {
+      return res.status(403).json({ error: 'You are not authorized to update this relationship' });
     }
 
-    const relationship = await updateParentChildRelationship(id, data);
+    const relationship = await updateParentChildRelationship(
+      id,
+      sanitizeRelationshipUpdate(req.body),
+    );
     res.json(relationship);
   } catch (error: any) {
     res.status(400).json({ error: error.message });
@@ -140,64 +230,70 @@ export async function updateParentChildRelationshipHandler(req: AuthRequest, res
 export async function deleteParentChildRelationshipHandler(req: AuthRequest, res: Response) {
   try {
     const { id } = req.params;
-    
     const existing = await findParentChildRelationshipById(id);
     if (!existing) {
       return res.status(404).json({ error: 'Relationship not found' });
     }
 
-    if (req.user?.role === 'parent' && existing.parentId !== req.user.id) {
-      return res.status(403).json({ error: 'You can only delete your own relationships' });
+    const child = await findUserById(existing.childId);
+    if (
+      !child ||
+      !canManageRelationship(
+        req.user?.role ?? '',
+        req.user?.id ?? '',
+        req.user?.organizationId,
+        existing.parentId,
+        child.organizationId,
+      )
+    ) {
+      return res.status(403).json({ error: 'You are not authorized to delete this relationship' });
     }
 
     const relationship = await deleteParentChildRelationship(id);
     res.json(relationship);
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
+  } catch {
+    res.status(500).json({ error: 'Unable to delete relationship' });
   }
 }
 
 // Child progress handlers for parents
 export async function getChildEnrollmentsHandler(req: AuthRequest, res: Response) {
   try {
-    const { childId } = req.query;
-    
-    if (!childId || typeof childId !== 'string') {
+    const childId = childIdFromRequest(req);
+    if (!childId) {
       return res.status(400).json({ error: 'childId is required' });
     }
 
-    if (req.user?.role === 'parent') {
-      const relationship = await findParentChildRelationship(req.user.id, childId);
-      if (!relationship) {
-        return res.status(403).json({ error: 'You are not authorized to view this child\'s data' });
-      }
-    }
-    
+    const authorized = await authorizeChildAccess(req, res, childId);
+    if (!authorized) return;
+
     const enrollments = await getChildEnrollments(childId);
     res.json(enrollments);
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
+  } catch {
+    res.status(500).json({ error: 'Unable to load enrollments' });
   }
 }
 
 export async function getChildSubmissionsHandler(req: AuthRequest, res: Response) {
   try {
-    const { childId } = req.query;
-    
-    if (!childId || typeof childId !== 'string') {
+    const childId = childIdFromRequest(req);
+    if (!childId) {
       return res.status(400).json({ error: 'childId is required' });
     }
 
+    const authorized = await authorizeChildAccess(req, res, childId);
+    if (!authorized) return;
+
     if (req.user?.role === 'parent') {
       const relationship = await findParentChildRelationship(req.user.id, childId);
-      if (!relationship || !relationship.canViewGrades) {
+      if (!canReadChildGrades(req.user.role, req.user.id, relationship)) {
         return res.status(403).json({ error: 'You are not authorized to view this child\'s grades' });
       }
     }
-    
+
     const submissions = await getChildSubmissions(childId);
     res.json(submissions);
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
+  } catch {
+    res.status(500).json({ error: 'Unable to load submissions' });
   }
 }

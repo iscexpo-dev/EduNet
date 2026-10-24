@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import jwt from 'jsonwebtoken';
-import { authenticate, resolveSecret } from './index';
+import { ACCESS_TOKEN_COOKIE, authenticate, resolveSecret } from './index';
 
 const SECRET = 'test-secret-key';
 
@@ -139,6 +139,20 @@ describe('authenticate', () => {
     authenticate(req, res, vi.fn());
 
     expect(res.body).toEqual({ error: 'Invalid token' });
+  });
+
+  it('accepts a valid access token from the httpOnly cookie', () => {
+    const token = signAccess({ userId: 'u1', role: 'teacher', organizationId: 'org-a' });
+    const req: { headers: Record<string, string>; user?: unknown } = {
+      headers: { cookie: `theme=dark; ${ACCESS_TOKEN_COOKIE}=${token}` },
+    };
+    const res = mockRes();
+    const next = vi.fn();
+
+    authenticate(req, res, next);
+
+    expect(next).toHaveBeenCalledTimes(1);
+    expect(req.user).toEqual({ id: 'u1', role: 'teacher', organizationId: 'org-a' });
   });
 
   it('populates req.user and continues for a valid access token', () => {

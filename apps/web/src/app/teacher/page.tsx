@@ -1,5 +1,7 @@
 'use client';
 
+import { apiUrl } from '@/lib/api-url';
+
 import { useEffect, useState } from 'react';
 import { useAuth } from '@edunet/auth';
 import { Button } from '@edunet/ui';
@@ -26,7 +28,7 @@ export default function TeacherDashboard() {
     const fetchCourses = async () => {
       try {
         const response = await fetch(
-          `http://localhost:3001/api/courses?teacherId=${user.id}`,
+          apiUrl(`/api/courses?teacherId=${user.id}`),
           {
             headers: {
               Authorization: `Bearer ${token}`,

@@ -1,5 +1,5 @@
 import { drizzle } from 'drizzle-orm/postgres-js';
-import { organizations } from '@edunet/database';
+import { organizations, resolveConnectionString } from '@edunet/database';
 import { eq } from 'drizzle-orm';
 import postgres from 'postgres';
 
@@ -8,13 +8,19 @@ let db: ReturnType<typeof drizzle> | null = null;
 
 export function getDb() {
   if (!db) {
-    const connectionString = process.env.DATABASE_URL || 
-      `postgres://${process.env.DB_USER}:${process.env.DB_PASSWORD}@${process.env.DB_HOST}:${process.env.DB_PORT}/${process.env.DB_NAME}`;
-    
-    client = postgres(connectionString);
+    client = postgres(resolveConnectionString());
     db = drizzle(client);
   }
   return db;
+}
+
+export async function closeDb(): Promise<void> {
+  if (client) {
+    const activeClient = client;
+    client = null;
+    db = null;
+    await activeClient.end();
+  }
 }
 
 export async function findOrganizationById(id: string) {
@@ -66,7 +72,15 @@ export async function updateOrganization(id: string, data: {
   return org;
 }
 
-export async function listOrganizations(limit = 50, offset = 0) {
+export async function listOrganizations(limit = 50, offset = 0, organizationId?: string) {
   const db = getDb();
+  if (organizationId) {
+    return db
+      .select()
+      .from(organizations)
+      .where(eq(organizations.id, organizationId))
+      .limit(limit)
+      .offset(offset);
+  }
   return db.select().from(organizations).limit(limit).offset(offset);
 }

@@ -1,15 +1,23 @@
 # EduNet Final Status
 
-Date: 2026-10-23
-Commit: `main` at `2dc560f` plus uncommitted AI and documentation changes
+Date: 2026-10-24 (re-verified)
+Commit: `main` at `d37530f` at final verification
 Verification environment: Linux sandbox without PostgreSQL, Docker or Playwright browsers
+
+> **2026-10-24 re-verification:** typecheck 35/35, lint 32/32 (0 errors,
+> 259 warnings), tests 49/49 tasks / 380 tests, forced build 29/29, dependency
+> audit PASS after a `body-parser` override, `db:check` PASS (4 migrations),
+> ops self-test PASS, format PASS. Question-bank listing was fixed and exposed
+> with validated pagination. Database integration, browser E2E, container build,
+> a real restore and staging deployment remain BLOCKED/NOT RUN. See
+> `PROGRESS_STATE.json` and `todo/ACTIVE-PLAN.md`.
 
 ## Overall Status
 
 **CORE PLATFORM BUILT — NOT READY FOR PUBLIC LAUNCH.**
 
 The LMS, identity, tenancy, content, assessment, offline primitives, AI backend,
-single-origin gateway and most domain APIs are implemented and covered by 334
+single-origin gateway and most domain APIs are implemented and covered by 380
 automated tests. The release is blocked by launch-surface work: gateway
 deployment and TLS, containers and deployment, security hardening, a proven
 restore, load and accessibility validation, and user interfaces for the newer
@@ -20,8 +28,8 @@ domains.
 | Gate | Result | Evidence |
 |------|--------|----------|
 | Typecheck | **PASS** | 35/35 tasks |
-| Lint | **PASS** | 32/32 tasks, 0 errors (252 warnings) |
-| Unit tests | **PASS** | 45/45 tasks, 334 tests, 16 packages |
+| Lint | **PASS** | 32/32 tasks, 0 errors (259 warnings) |
+| Unit tests | **PASS** | 49/49 tasks, 380 tests, 32 files |
 | Production build | **PASS** | 29/29 tasks, Next.js build included |
 | Production start smoke | **PASS** | all 19 services `node dist/index.js` + `/health` 200; built web `/` 200 |
 | Database migrations | **NOT VERIFIED** | CI-only; no PostgreSQL in sandbox |
@@ -46,10 +54,10 @@ domains.
 | 10 | Assessment | **PARTIAL** | Five types, partial credit, rechecks, banks, randomisation; UI basic |
 | 11 | Student platform | **PARTIAL** | Academic/attendance/achievement backend; no UI |
 | 12 | Teacher platform | **PARTIAL** | Core authoring/grading UI; attendance and analytics UI missing |
-| 13 | Parent platform | **PARTIAL** | Child-scoped API; no dashboard |
-| 14 | Offline and PWA | **PARTIAL** | Queue/service worker/banner; queue not wired into mutations |
+| 13 | Parent platform | **PARTIAL** | Parent dashboard at `/parent`; relationship API hardened; attendance UI and self-service linking missing |
+| 14 | Offline and PWA | **PARTIAL** | Queue/service worker/banner; queue wired into assignment submit and lesson progress; remaining assessment/note/bookmark flows |
 | 15 | Internationalisation | **PASS** | Bengali/English catalogues and toggle; native review pending |
-| 16 | Accessibility | **FAIL** | No WCAG audit or assistive-technology test |
+| 16 | Accessibility | **FAIL** | No WCAG 2.1 AA audit; baseline skip-link added in admin console |
 | 17 | Notifications | **PARTIAL** | In-app only; no email/SMS/push adapters |
 | 18 | Search | **PARTIAL** | `ILIKE` only; no ranking/facets |
 | 19 | Analytics | **PARTIAL** | APIs only; no dashboards or KPI pipeline |
@@ -61,18 +69,18 @@ domains.
 | 25 | AI platform | **PARTIAL** | Consent/safety/quota/prompts/audit backend; no UI or configured provider |
 | 26 | Support and counseling | **PARTIAL** | Tickets/escalation/appointments backend; no UI |
 | 27 | Academics and attendance | **PARTIAL** | Full admin backend; no UI |
-| 28 | Administration | **PARTIAL** | Flags/settings/audit/integrations backend; no console |
+| 28 | Administration | **PARTIAL** | Flags/settings/audit/integrations backend; minimal admin console added with users/organizations/audit views; deeper operations pending |
 | 29 | Privacy and consent | **PARTIAL** | Consent and data requests; no export/erase execution or retention jobs |
 | 30 | Integrations and webhooks | **PARTIAL** | Configuration only; delivery/retry/signing unproven |
 | 31 | Audit and compliance | **PARTIAL** | Append-only audit with verification; no retention/external store |
-| 32 | Security hardening | **FAIL** | Gateway has CORS/headers/rate limits; CSP, httpOnly tokens and a current scan are pending |
+| 32 | Security hardening | **PARTIAL** | Gateway has CORS/headers/rate limits; CSP and httpOnly access/refresh token cookies are implemented; current external scan pending |
 | 33 | Observability | **PASS** | Logs, request IDs, metrics, health/ready on every service |
 | 34 | CI/CD | **PARTIAL** | Full test/migration/E2E gates; hosted run pending; no deploy job |
 | 35 | Infrastructure | **FAIL** | No Dockerfile, compose, IaC, CDN or managed DB provisioning |
 | 36 | API gateway | **PARTIAL** | `@edunet/gateway` maps all prefixes, applies CORS/headers/rate limits and has 19 tests; not deployed, TLS-terminated or end-to-end tested |
 | 37 | Backup and DR | **PARTIAL** | Scripts/checksums/runbook; no drill, schedule or media backup |
 | 38 | Performance and load | **FAIL** | No load test or p95 baseline |
-| 39 | QA | **PARTIAL** | 334 unit tests, 1 E2E journey in CI; no contract/visual/a11y suites |
+| 39 | QA | **PARTIAL** | 380 unit tests, 1 E2E journey in CI; no contract/visual/a11y suites |
 | 40 | Documentation | **PARTIAL** | Product/ops/state/API updated; some historical docs remain stale |
 | 41 | Pilot readiness | **FAIL** | No pilot institution, training, rota or data migration plan |
 | 42 | Rollout | **FAIL** | No cohort plan or go/no-go review |
@@ -107,8 +115,9 @@ domains.
 1. **Gateway not deployed** — the gateway exists and is unit-tested, but has no
    TLS, readiness checks, end-to-end test or deployment manifest.
 2. **No deployable artifacts** — no containers or infrastructure definitions.
-3. **Security hardening incomplete** — rate limiting, CORS, security headers,
-   token storage and a current vulnerability scan.
+3. **Security hardening incomplete** — shared rate-limit store, current external
+   vulnerability scan, MFA/SSO follow-ups; token storage now uses httpOnly access/
+   refresh cookies and the gateway emits the required security controls.
 4. **Restore untested** — RTO/RPO are documented, not proven.
 5. **No load or accessibility evidence** — both are launch gates.
 6. **Domain UIs missing** — AI, parent, admin, communication and support have
@@ -120,7 +129,8 @@ domains.
 
 1. Deploy the gateway with TLS and add an end-to-end gateway test.
 2. Add Dockerfiles, compose/production manifests and a deploy/rollback job.
-3. Add CSP and move tokens out of localStorage (CORS/headers/rate limits now exist at the gateway).
+3. Move tokens out of localStorage (implemented via httpOnly access/refresh
+   cookies); final CSP and pilot validation remain.
 4. Run a timed restore including the media volume.
 5. Wire offline sync into progress, autosave and submission.
 6. Build AI, parent, admin, communication and support UI slices.

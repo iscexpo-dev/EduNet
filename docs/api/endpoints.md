@@ -6,7 +6,8 @@
 |--------|----------|------|-------------|
 | POST | `/register` | None | Register new user |
 | POST | `/login` | None | Login and get tokens |
-| POST | `/refresh` | None | Refresh access token |
+| POST | `/refresh` | None | Rotate access token via httpOnly refresh cookie |
+| POST | `/logout` | None | Clear auth cookies and revoke session |
 | GET | `/me` | Bearer | Get current user profile |
 
 ## Organizations (`/api/organizations`)
@@ -14,17 +15,17 @@
 | Method | Endpoint | Auth | Description |
 |--------|----------|------|-------------|
 | POST | `/` | Admin | Create organization |
-| GET | `/` | Any | List organizations |
-| GET | `/:id` | Any | Get organization |
-| PUT | `/:id` | Admin | Update organization |
+| GET | `/` | Bearer | List own organization only (tenant-scoped) |
+| GET | `/:id` | Bearer | Get own organization only (403 otherwise) |
+| PUT | `/:id` | Admin | Update own organization; only name/address/isActive |
 
 ## Users (`/api/users`)
 
 | Method | Endpoint | Auth | Description |
 |--------|----------|------|-------------|
 | GET | `/` | Admin/Teacher | List users |
-| GET | `/:id` | Any | Get user |
-| PUT | `/:id` | Admin | Update user |
+| GET | `/:id` | Bearer | Get user; self, teacher/tutor/mentor or admin in same org |
+| PUT | `/:id` | Admin | Update profile only (firstName/lastName/phoneNumber/avatarUrl) |
 | PUT | `/:id/password` | Any | Update password |
 | PUT | `/:id/verify` | Admin | Verify user |
 | DELETE | `/:id` | Admin | Delete user |
@@ -100,10 +101,14 @@
 
 | Method | Endpoint | Auth | Description |
 |--------|----------|------|-------------|
-| POST | `/relationships` | Parent/Admin | Create relationship |
-| GET | `/children` | Parent | List children |
-| GET | `/children/:childId/enrollments` | Parent/Admin | Child enrollments |
-| GET | `/children/:childId/submissions` | Parent/Admin | Child submissions |
+| POST | `/relationships` | Parent/Admin | Create relationship (same-org parent and student only) |
+| GET | `/relationships/:id` | Owner/Admin | Read relationship |
+| PUT | `/relationships/:id` | Owner/Admin | Update whitelisted relationship fields |
+| DELETE | `/relationships/:id` | Owner/Admin | Delete relationship |
+| GET | `/children` | Parent | List linked children (paginated) |
+| GET | `/parents` | Admin | List parents for a child in the admin's organization |
+| GET | `/children/:childId/enrollments` | Parent/Admin | Child enrollments (relationship-scoped) |
+| GET | `/children/:childId/submissions` | Parent/Admin | Child submissions (requires grade permission for parents) |
 
 ## Notifications (`/api/notifications`)
 
@@ -133,7 +138,9 @@
 
 ## Identity extensions (`/api/auth`)
 
-All routes except register/login/refresh/password-reset require a Bearer token.
+Access tokens are accepted as Bearer headers or as the httpOnly `edunet_access`
+cookie. Refresh tokens live in the httpOnly `edunet_refresh` cookie scoped to
+`/api/auth`.
 
 | Method | Endpoint | Auth | Description |
 |--------|----------|------|-------------|
@@ -184,6 +191,7 @@ All routes except register/login/refresh/password-reset require a Bearer token.
 |--------|----------|------|-------------|
 | POST | `/question-banks` | Teacher/Admin | Create question bank |
 | GET | `/question-banks` | Teacher/Admin | List question banks |
+| GET | `/question-banks/:id/questions` | Teacher/Admin | List questions in a bank (paginated) |
 | PUT | `/question-banks/:id` | Teacher/Admin | Update question bank |
 | POST | `/questions/attach-to-bank` | Teacher/Admin | Attach questions to a bank |
 | GET | `/quiz-attempts/:id/presentation` | Student | Randomised questions/options without answers |

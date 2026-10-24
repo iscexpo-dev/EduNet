@@ -5,6 +5,9 @@
 > an uninstalled `jest` binary) and no database migration existed. Authoritative,
 > evidence-based status lives in:
 >
+> - `PROGRESS_STATE.json` — machine-readable resumable state (update each checkpoint)
+> - `todo/ACTIVE-PLAN.md` — current execution checklist
+> - `docs/FINAL_REPORT_TEMPLATE.md` — required final report format
 > - `docs/EDUNET-IMPLEMENTATION-STATE.md` — verified gates, defects fixed
 > - `docs/EDUNET-ROADMAP-GAP-MATRIX.md` — per-workstream gap status
 > - `docs/PRODUCTION_VERIFICATION.md` — original findings, corrected status

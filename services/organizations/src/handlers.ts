@@ -1,17 +1,35 @@
 import { Request, Response } from 'express';
 import { organizationSchema } from '@edunet/validation';
-import { 
-  findOrganizationById, 
-  findOrganizationByCode, 
-  createOrganization, 
+import {
+  findOrganizationById,
+  findOrganizationByCode,
+  createOrganization,
   updateOrganization,
-  listOrganizations 
+  listOrganizations,
 } from './db';
+import { canAccessOrganization, parsePagination, sanitizeOrganizationUpdate } from './policy';
+
+interface AuthRequest extends Request {
+  user?: {
+    id: string;
+    role: string;
+    organizationId?: string;
+  };
+}
+
+function requireOrganizationId(req: AuthRequest, res: Response): string | null {
+  const organizationId = req.user?.organizationId;
+  if (!organizationId) {
+    res.status(403).json({ error: 'An organization-scoped account is required' });
+    return null;
+  }
+  return organizationId;
+}
 
 export async function createOrganizationHandler(req: Request, res: Response) {
   try {
     const data = organizationSchema.parse(req.body);
-    
+
     const existing = await findOrganizationByCode(data.code);
     if (existing) {
       return res.status(409).json({ error: 'Organization code already exists' });
@@ -24,46 +42,58 @@ export async function createOrganizationHandler(req: Request, res: Response) {
   }
 }
 
-export async function getOrganizationHandler(req: Request, res: Response) {
+export async function getOrganizationHandler(req: AuthRequest, res: Response) {
   try {
+    const organizationId = requireOrganizationId(req, res);
+    if (!organizationId) return;
+
     const { id } = req.params;
+    if (!canAccessOrganization(organizationId, id)) {
+      return res.status(403).json({ error: 'You are not authorized to view this organization' });
+    }
+
     const org = await findOrganizationById(id);
-    
     if (!org) {
       return res.status(404).json({ error: 'Organization not found' });
     }
-    
+
     res.json(org);
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
+  } catch {
+    res.status(500).json({ error: 'Unable to load organization' });
   }
 }
 
-export async function updateOrganizationHandler(req: Request, res: Response) {
+export async function updateOrganizationHandler(req: AuthRequest, res: Response) {
   try {
+    const organizationId = requireOrganizationId(req, res);
+    if (!organizationId) return;
+
     const { id } = req.params;
-    const data = req.body;
-    
+    if (!canAccessOrganization(organizationId, id)) {
+      return res.status(403).json({ error: 'You are not authorized to update this organization' });
+    }
+
     const existing = await findOrganizationById(id);
     if (!existing) {
       return res.status(404).json({ error: 'Organization not found' });
     }
 
-    const org = await updateOrganization(id, data);
+    const org = await updateOrganization(id, sanitizeOrganizationUpdate(req.body));
     res.json(org);
   } catch (error: any) {
     res.status(400).json({ error: error.message });
   }
 }
 
-export async function listOrganizationsHandler(req: Request, res: Response) {
+export async function listOrganizationsHandler(req: AuthRequest, res: Response) {
   try {
-    const limit = parseInt(req.query.limit as string) || 50;
-    const offset = parseInt(req.query.offset as string) || 0;
-    
-    const orgs = await listOrganizations(limit, offset);
+    const organizationId = requireOrganizationId(req, res);
+    if (!organizationId) return;
+
+    const { limit, offset } = parsePagination(req.query);
+    const orgs = await listOrganizations(limit, offset, organizationId);
     res.json(orgs);
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
+  } catch {
+    res.status(500).json({ error: 'Unable to list organizations' });
   }
 }

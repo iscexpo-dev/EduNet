@@ -1,5 +1,8 @@
 'use client';
 
+import { apiUrl } from '@/lib/api-url';
+import { enqueue } from '@edunet/offline';
+
 import { useEffect, useState } from 'react';
 import { useAuth } from '@edunet/auth';
 import { Button } from '@edunet/ui';
@@ -45,7 +48,7 @@ export default function CourseLearningPage() {
     const fetchData = async () => {
       try {
         const lessonsResponse = await fetch(
-          `http://localhost:3001/api/content/lessons?courseId=${courseId}`,
+          apiUrl(`/api/content/lessons?courseId=${courseId}`),
           {
             headers: {
               Authorization: `Bearer ${token}`,
@@ -63,7 +66,7 @@ export default function CourseLearningPage() {
         }
 
         const progressResponse = await fetch(
-          `http://localhost:3001/api/content/lesson-progress?studentId=${user.id}`,
+          apiUrl(`/api/content/lesson-progress?studentId=${user.id}`),
           {
             headers: {
               Authorization: `Bearer ${token}`,
@@ -97,8 +100,30 @@ export default function CourseLearningPage() {
     if (!user || !token || !currentLesson) return;
     setSavingProgress(true);
     setProgressError('');
+
+    if (!navigator.onLine) {
+      enqueue([], {
+        id: `offline-${crypto.randomUUID()}`,
+        type: 'lesson_progress',
+        entityId: currentLesson.id,
+        endpoint: '/api/content/lesson-progress',
+        method: 'POST',
+        body: {
+          lessonId: currentLesson.id,
+          studentId: user.id,
+          status: 'completed',
+          progress: '100',
+        },
+        createdAt: Date.now(),
+        version: 1,
+        idempotencyKey: `offline-${crypto.randomUUID()}`,
+      });
+      setSavingProgress(false);
+      return;
+    }
+
     try {
-      const response = await fetch('http://localhost:3001/api/content/lesson-progress', {
+      const response = await fetch(apiUrl('/api/content/lesson-progress'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

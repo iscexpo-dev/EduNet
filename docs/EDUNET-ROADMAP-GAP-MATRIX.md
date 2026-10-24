@@ -1,8 +1,9 @@
 # EduNet Roadmap Gap Matrix
 
-Last updated: 2026-10-23
-Baseline: `main` at `2dc560f` plus the AI service completion in the working tree
+Last updated: 2026-10-24
+Baseline: `main` at `8273870` (descends from the reported `ef96741`)
 Source of truth for requirements: `docs/product/PRODUCT-FOUNDATION.md`
+Resumable state: `PROGRESS_STATE.json` · checklist: `todo/ACTIVE-PLAN.md`
 
 ## Status Legend
 
@@ -24,15 +25,18 @@ coverage and an operational story.
 
 | Gate | Command | Result |
 |------|---------|--------|
-| Typecheck | `pnpm typecheck` | **35/35 tasks PASS** |
-| Lint | `pnpm lint` | **32/32 tasks PASS**, 0 errors, 252 warnings |
-| Unit tests | `pnpm test` | **45/45 tasks PASS**, 334 tests across 16 packages |
-| Build | `pnpm build` | **29/29 tasks PASS**, including the Next.js production build |
-| Production start | `node dist/index.js` | **PASS** — all 19 services `/health` 200; built web `/` 200 |
+| Typecheck | `pnpm turbo run typecheck --concurrency=2` | **35/35 tasks PASS** (2026-10-24) |
+| Lint | `pnpm turbo run lint --concurrency=2` | **32/32 tasks PASS**, 0 errors, 259 warnings |
+| Unit tests | `pnpm turbo run test --force --concurrency=2` | **49/49 tasks PASS**, 380 tests across 32 files |
+| Build | `pnpm turbo run build --force --concurrency=2` | **29/29 tasks PASS**, including the Next.js production build |
+| Dependency audit | `pnpm audit --audit-level=high` | **PASS** after the `body-parser` override; 1 moderate dev-only advisory |
+| Migration static check | `pnpm db:check` | **PASS** — 4 migrations consistent |
+| Operations self-test | `pnpm ops:test` | **PASS** |
+| Production start | `node dist/index.js` | **PASS (previous run)** — 19 services `/health` 200; not re-run this checkpoint |
 | Migrations | `pnpm --filter @edunet/database migrate` | `CI ONLY` in this sandbox (no PostgreSQL binary) |
 | Database integration | `pnpm --filter @edunet/database test:integration` | `CI ONLY` |
 | Browser E2E | `pnpm --filter @edunet/web test:e2e` | `CI ONLY` |
-| Backup/restore scripts | `bash -n scripts/*.sh` | Syntax PASS; no restore drill yet |
+| Backup/restore scripts | `pnpm ops:test` | PASS with stubs; real timed restore still not run |
 
 ## 1-10. Product, Architecture, Platform
 
@@ -45,7 +49,7 @@ coverage and an operational story.
 | 5 | RBAC and multi-tenancy | VERIFIED | Canonical `@edunet/rbac`; 40 tests; every service uses shared middleware; tenant isolation covered in integration suite (CI) |
 | 6 | Database and migrations | VERIFIED (CI ONLY locally) | Drizzle schema/migrations for LMS, platform, AI, support; constraints proven previously on PostgreSQL 16; no local DB in this sandbox |
 | 7 | Student platform | PARTIAL | Academic profiles, attendance, achievements, certificates, streaks and timeline exist in `platform`; no student UI beyond courses/assignments |
-| 8 | Parent platform | PARTIAL | Relationship-scoped child progress/grades/submissions API; no parent dashboard |
+| 8 | Parent platform | PARTIAL | Parent dashboard at `/parent` (children, courses, grades, empty/error states); relationship API hardened (same-org linking, path-param child access, whitelisted updates, grade permission); no attendance UI or child-linking self-service |
 | 9 | Teacher platform | PARTIAL | Course/lesson/assignment/quiz creation, roster and grading UI; no attendance, class analytics or workload UI |
 | 10 | LMS core | COMPLETE | Courses, modules, lessons, resources, enrolment, progress; student/teacher journeys covered by E2E (CI) |
 
@@ -56,10 +60,10 @@ coverage and an operational story.
 | 11 | Content, media and versioning | PARTIAL | Modules, lessons, resources, progress, version history, filesystem media with signed URLs, MIME allowlist and 25 MB cap; objectives/bookmarks/notes/reviews tables have no routes, no S3 provider |
 | 12 | Assignments and submissions | PARTIAL | Deadlines, rubrics, autosave, revisions, grade revisions, feedback, ownership checks; assignment attachments and late-submission policy missing |
 | 13 | Assessment engine | PARTIAL | Five objective types (MCQ, multiple select, true/false, short answer, fill-in-blank, matching), partial credit, manual grading, grade history, rechecks, seeded randomisation; basic student/teacher UI only |
-| 14 | Question banks and exam analytics | PARTIAL | Banks, attach/list/update, randomisation; exam item analytics and blueprint coverage missing |
+| 14 | Question banks and exam analytics | PARTIAL | Banks, attach/list/update, paginated bank-question listing (`GET /question-banks/:id/questions`, 2026-10-24), randomisation; exam item analytics and blueprint coverage missing |
 | 15 | Offline and PWA | PARTIAL | Offline queue, backoff, dedupe, conflict resolution, download planner, service worker, banner, offline page; queue is not wired into mutation flows and no background sync |
 | 16 | Internationalisation | COMPLETE | Bengali/English catalogues, `Intl` formatting, locale detection, interpolation, web language toggle; native Bengali review pending |
-| 17 | Accessibility | PARTIAL | Semantic primitives and focus styles; no WCAG 2.1 AA audit, keyboard test suite or screen-reader verification |
+| 17 | Accessibility | PARTIAL | Semantic primitives and focus styles; no WCAG 2.1 AA audit, keyboard test suite or screen-reader verification; skip link added in admin console |
 | 18 | Notifications | PARTIAL | In-app notification CRUD, read state, preferences, templates; no email/SMS push adapters or delivery worker |
 | 19 | Search | PARTIAL | Tenant-scoped service; `ILIKE` matching, no ranking, facets, typo tolerance or index strategy |
 | 20 | Analytics | PARTIAL | Course, student, assignment and engagement endpoints; no dashboards, warehouse/export or KPI instrumentation |
@@ -85,14 +89,14 @@ coverage and an operational story.
 |---|-----------|--------|----------------|
 | 31 | Integrations and webhooks | PARTIAL | Integration configs and webhook endpoint registration; delivery, retries and signing not proven |
 | 32 | Audit and compliance | PARTIAL | Identity audit, platform audit with verification, AI audit; no retention policy or immutable external store |
-| 33 | Security hardening | NEEDS HARDENING | Gateway now enforces CORS allowlist, security headers and per-instance rate limits; CSP, httpOnly token storage and a current external scan are still missing |
+| 33 | Security hardening | PARTIAL | Gateway now enforces CORS allowlist, security headers and per-instance rate limits; CSP and httpOnly token storage implemented; external scan pending |
 | 34 | Observability | COMPLETE | Request IDs, structured logs, bounded Prometheus metrics, `/health`, `/ready`, `/metrics` across services; dashboards/alert routing not provisioned |
 | 35 | CI/CD | PARTIAL | GitHub Actions installs, migrates, lints, typechecks, runs DB integration, tests and Playwright E2E; first hosted run on the current commit pending and no deployment job |
 | 36 | Infrastructure and containers | MISSING | Services now run from compiled `dist`; no Dockerfile, compose, IaC, managed-Postgres provisioning or CDN configuration |
 | 37 | API gateway / single origin | PARTIAL | `@edunet/gateway` maps all 18 prefixes, streams bodies CORS/security headers/rate limits and has 19 tests; no deployment manifest, TLS or end-to-end gateway test |
 | 38 | Backup and disaster recovery | PARTIAL | `scripts/backup-db.sh`, `scripts/restore-db.sh`, checksum and runbook; no scheduled job, media snapshot or timed restore drill |
 | 39 | Performance and load testing | MISSING | No k6/artillery scenario, p95 baseline or 10× pilot load test |
-| 40 | QA strategy | PARTIAL | 315 unit tests, 22 test files, one browser journey (CI); no contract, visual, accessibility or cross-browser suite |
+| 40 | QA strategy | PARTIAL | 380 unit tests, 32 test files, one browser journey (CI); no contract, visual, accessibility or cross-browser suite |
 
 ## 41-47. Operations and Launch
 
@@ -116,7 +120,8 @@ Ordered by launch risk, not feature appeal:
 2. **Containers and deployment manifests** — reproducible deploy, migrations
    and rollback (#36, #35).
 3. **Security hardening** — rate limiting, CORS, CSP, token storage, scanner
-   (#33) before exposing any endpoint publicly.
+   (#33; token storage and scanner tooling completed in repository) before exposing
+   any endpoint publicly.
 4. **Backup/restore drill** — prove RTO with media included (#38).
 5. **Wire offline sync** into submission/progress/autosave or clearly ship
    offline as read-only (#15).

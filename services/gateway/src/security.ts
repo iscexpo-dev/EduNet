@@ -56,6 +56,7 @@ export function cors(options: SecurityOptions = {}) {
       res.setHeader('Vary', 'Origin');
       res.setHeader('Access-Control-Allow-Methods', ALLOWED_METHODS);
       res.setHeader('Access-Control-Allow-Headers', ALLOWED_HEADERS);
+      res.setHeader('Access-Control-Allow-Credentials', 'true');
       res.setHeader('Access-Control-Max-Age', PREFLIGHT_MAX_AGE);
     }
 

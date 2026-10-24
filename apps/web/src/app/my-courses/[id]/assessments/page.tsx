@@ -1,5 +1,7 @@
 'use client';
 
+import { apiUrl } from '@/lib/api-url';
+
 import { useEffect, useState } from 'react';
 import { useAuth } from '@edunet/auth';
 import { Button, Card, CardHeader, CardContent } from '@edunet/ui';
@@ -39,7 +41,7 @@ export default function CourseAssessmentsPage() {
     const fetchData = async () => {
       try {
         const quizzesRes = await fetch(
-          `http://localhost:3001/api/assessments/quizzes?courseId=${courseId}`,
+          apiUrl(`/api/assessments/quizzes?courseId=${courseId}`),
           { headers: { Authorization: `Bearer ${token}` } }
         );
         if (quizzesRes.ok) {
@@ -47,7 +49,7 @@ export default function CourseAssessmentsPage() {
         }
 
         const attemptsRes = await fetch(
-          `http://localhost:3001/api/assessments/quiz-attempts?studentId=${user.id}`,
+          apiUrl(`/api/assessments/quiz-attempts?studentId=${user.id}`),
           { headers: { Authorization: `Bearer ${token}` } }
         );
         if (attemptsRes.ok) {

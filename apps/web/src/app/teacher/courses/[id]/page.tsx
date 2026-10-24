@@ -1,5 +1,7 @@
 'use client';
 
+import { apiUrl } from '@/lib/api-url';
+
 import { useEffect, useState } from 'react';
 import { useAuth } from '@edunet/auth';
 import { Button } from '@edunet/ui';
@@ -55,7 +57,7 @@ export default function TeacherCourseDetailPage() {
     const fetchCourseData = async () => {
       try {
         const courseResponse = await fetch(
-          `http://localhost:3001/api/courses/${courseId}`,
+          apiUrl(`/api/courses/${courseId}`),
           {
             headers: {
               Authorization: `Bearer ${token}`,
@@ -71,7 +73,7 @@ export default function TeacherCourseDetailPage() {
         setCourse(courseData);
 
         const enrollmentsResponse = await fetch(
-          `http://localhost:3001/api/enrollments?courseId=${courseId}`,
+          apiUrl(`/api/enrollments?courseId=${courseId}`),
           {
             headers: {
               Authorization: `Bearer ${token}`,
@@ -85,7 +87,7 @@ export default function TeacherCourseDetailPage() {
         }
 
         const assignmentsResponse = await fetch(
-          `http://localhost:3001/api/assignments?courseId=${courseId}`,
+          apiUrl(`/api/assignments?courseId=${courseId}`),
           {
             headers: {
               Authorization: `Bearer ${token}`,
@@ -96,7 +98,7 @@ export default function TeacherCourseDetailPage() {
         if (assignmentsResponse.ok) {
           const assignmentsData: Assignment[] = await assignmentsResponse.json();
           const withCounts = await Promise.all(assignmentsData.map(async assignment => {
-            const response = await fetch(`http://localhost:3001/api/assignments/${assignment.id}`, { headers: { Authorization: `Bearer ${token}` } });
+            const response = await fetch(apiUrl(`/api/assignments/${assignment.id}`), { headers: { Authorization: `Bearer ${token}` } });
             if (!response.ok) return assignment;
             const detail = await response.json();
             return { ...assignment, submissionCount: detail.submissionCount };

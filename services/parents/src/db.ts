@@ -1,88 +1,152 @@
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
-import { parentChildRelationships, users, enrollments, courses, submissions, assignments } from '@edunet/database';
-import { eq, and } from 'drizzle-orm';
+import {
+  parentChildRelationships,
+  users,
+  enrollments,
+  courses,
+  submissions,
+  assignments,
+  resolveConnectionString,
+} from '@edunet/database';
+import { and, eq, inArray, isNull } from 'drizzle-orm';
 
-const connectionString = process.env.DATABASE_URL || 'postgres://localhost:5432/edunet';
-const client = postgres(connectionString);
-export const db = drizzle(client);
+type ParentsDb = ReturnType<typeof drizzle>;
+
+let client: postgres.Sql | null = null;
+let database: ParentsDb | null = null;
+
+export function getDb(): ParentsDb {
+  if (!database) {
+    client = postgres(resolveConnectionString());
+    database = drizzle(client);
+  }
+  return database;
+}
+
+export async function closeDb(): Promise<void> {
+  if (client) {
+    const activeClient = client;
+    client = null;
+    database = null;
+    await activeClient.end();
+  }
+}
+
+export async function findUserById(id: string) {
+  const result = await getDb()
+    .select({
+      id: users.id,
+      role: users.role,
+      organizationId: users.organizationId,
+      deletedAt: users.deletedAt,
+    })
+    .from(users)
+    .where(and(eq(users.id, id), isNull(users.deletedAt)))
+    .limit(1);
+  return result[0] || null;
+}
 
 // Parent-Child Relationship operations
 export async function findParentChildRelationshipById(id: string) {
-  const result = await db.select().from(parentChildRelationships).where(eq(parentChildRelationships.id, id)).limit(1);
+  const result = await getDb()
+    .select()
+    .from(parentChildRelationships)
+    .where(and(eq(parentChildRelationships.id, id), isNull(parentChildRelationships.deletedAt)))
+    .limit(1);
   return result[0] || null;
 }
 
 export async function findParentChildRelationship(parentId: string, childId: string) {
-  const result = await db.select()
+  const result = await getDb()
+    .select()
     .from(parentChildRelationships)
-    .where(and(
-      eq(parentChildRelationships.parentId, parentId),
-      eq(parentChildRelationships.childId, childId)
-    ))
+    .where(
+      and(
+        eq(parentChildRelationships.parentId, parentId),
+        eq(parentChildRelationships.childId, childId),
+        isNull(parentChildRelationships.deletedAt),
+      ),
+    )
     .limit(1);
   return result[0] || null;
 }
 
 export async function listChildrenByParent(parentId: string, limit = 50, offset = 0) {
-  const relationships = await db.select()
+  const relationships = await getDb()
+    .select()
     .from(parentChildRelationships)
-    .where(eq(parentChildRelationships.parentId, parentId))
+    .where(
+      and(
+        eq(parentChildRelationships.parentId, parentId),
+        isNull(parentChildRelationships.deletedAt),
+      ),
+    )
     .limit(limit)
     .offset(offset);
 
-  const childIds = relationships.map(r => r.childId);
+  const childIds = relationships.map((relationship) => relationship.childId);
   if (childIds.length === 0) return [];
 
-  const children = await db.select({
-    id: users.id,
-    firstName: users.firstName,
-    lastName: users.lastName,
-    email: users.email,
-    role: users.role,
-    organizationId: users.organizationId,
-    isVerified: users.isVerified,
-    createdAt: users.createdAt,
-  })
+  return getDb()
+    .select({
+      id: users.id,
+      firstName: users.firstName,
+      lastName: users.lastName,
+      email: users.email,
+      role: users.role,
+      organizationId: users.organizationId,
+      isVerified: users.isVerified,
+      createdAt: users.createdAt,
+    })
     .from(users)
-    .where(eq(users.role, 'student'));
-
-  return children.filter(child => childIds.includes(child.id));
+    .where(and(inArray(users.id, childIds), eq(users.role, 'student'), isNull(users.deletedAt)));
 }
 
 export async function listParentsByChild(childId: string, limit = 50, offset = 0) {
-  const relationships = await db.select()
+  const relationships = await getDb()
+    .select()
     .from(parentChildRelationships)
-    .where(eq(parentChildRelationships.childId, childId))
+    .where(
+      and(
+        eq(parentChildRelationships.childId, childId),
+        isNull(parentChildRelationships.deletedAt),
+      ),
+    )
     .limit(limit)
     .offset(offset);
 
-  const parentIds = relationships.map(r => r.parentId);
+  const parentIds = relationships.map((relationship) => relationship.parentId);
   if (parentIds.length === 0) return [];
 
-  const parents = await db.select({
-    id: users.id,
-    firstName: users.firstName,
-    lastName: users.lastName,
-    email: users.email,
-    role: users.role,
-    organizationId: users.organizationId,
-    isVerified: users.isVerified,
-    createdAt: users.createdAt,
-  })
+  return getDb()
+    .select({
+      id: users.id,
+      firstName: users.firstName,
+      lastName: users.lastName,
+      email: users.email,
+      role: users.role,
+      organizationId: users.organizationId,
+      isVerified: users.isVerified,
+      createdAt: users.createdAt,
+    })
     .from(users)
-    .where(eq(users.role, 'parent'));
-
-  return parents.filter(parent => parentIds.includes(parent.id));
+    .where(and(inArray(users.id, parentIds), eq(users.role, 'parent'), isNull(users.deletedAt)));
 }
 
-export async function createParentChildRelationship(data: typeof parentChildRelationships.$inferInsert) {
-  const result = await db.insert(parentChildRelationships).values(data).returning();
+export async function createParentChildRelationship(
+  data: typeof parentChildRelationships.$inferInsert,
+) {
+  const result = await getDb().insert(parentChildRelationships).values(data).returning();
   return result[0];
 }
 
-export async function updateParentChildRelationship(id: string, data: Partial<typeof parentChildRelationships.$inferInsert>) {
-  const result = await db.update(parentChildRelationships)
+export async function updateParentChildRelationship(
+  id: string,
+  data: Partial<typeof parentChildRelationships.$inferInsert>,
+) {
+  const result = await getDb()
+    .update(parentChildRelationships)
     .set({ ...data, updatedAt: new Date() })
     .where(eq(parentChildRelationships.id, id))
     .returning();
@@ -90,39 +154,44 @@ export async function updateParentChildRelationship(id: string, data: Partial<ty
 }
 
 export async function deleteParentChildRelationship(id: string) {
-  const result = await db.delete(parentChildRelationships).where(eq(parentChildRelationships.id, id)).returning();
+  const result = await getDb()
+    .delete(parentChildRelationships)
+    .where(eq(parentChildRelationships.id, id))
+    .returning();
   return result[0];
 }
 
 // Child progress and grades for parents
 export async function getChildEnrollments(childId: string) {
-  return db.select({
-    enrollmentId: enrollments.id,
-    courseId: enrollments.courseId,
-    enrolledAt: enrollments.enrolledAt,
-    status: enrollments.status,
-    courseTitle: courses.title,
-    courseSubject: courses.subject,
-    courseGrade: courses.grade,
-  })
+  return getDb()
+    .select({
+      enrollmentId: enrollments.id,
+      courseId: enrollments.courseId,
+      enrolledAt: enrollments.enrolledAt,
+      status: enrollments.status,
+      courseTitle: courses.title,
+      courseSubject: courses.subject,
+      courseGrade: courses.grade,
+    })
     .from(enrollments)
     .innerJoin(courses, eq(enrollments.courseId, courses.id))
-    .where(eq(enrollments.studentId, childId));
+    .where(and(eq(enrollments.studentId, childId), isNull(enrollments.deletedAt)));
 }
 
 export async function getChildSubmissions(childId: string) {
-  return db.select({
-    submissionId: submissions.id,
-    assignmentId: submissions.assignmentId,
-    content: submissions.content,
-    submittedAt: submissions.submittedAt,
-    grade: submissions.grade,
-    gradedAt: submissions.gradedAt,
-    assignmentTitle: assignments.title,
-    assignmentMaxPoints: assignments.maxPoints,
-    assignmentDueDate: assignments.dueDate,
-  })
+  return getDb()
+    .select({
+      submissionId: submissions.id,
+      assignmentId: submissions.assignmentId,
+      content: submissions.content,
+      submittedAt: submissions.submittedAt,
+      grade: submissions.grade,
+      gradedAt: submissions.gradedAt,
+      assignmentTitle: assignments.title,
+      assignmentMaxPoints: assignments.maxPoints,
+      assignmentDueDate: assignments.dueDate,
+    })
     .from(submissions)
     .innerJoin(assignments, eq(submissions.assignmentId, assignments.id))
-    .where(eq(submissions.studentId, childId));
+    .where(and(eq(submissions.studentId, childId), isNull(submissions.deletedAt)));
 }

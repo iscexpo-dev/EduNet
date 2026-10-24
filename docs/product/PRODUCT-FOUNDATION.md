@@ -184,7 +184,7 @@ targets, not measured outcomes.
 |------|----------|-----------|-------------|
 | 2026-09 | Modular services in one pnpm monorepo | Independent domains with one deployable toolchain | Requires a gateway/composition story |
 | 2026-09 | PostgreSQL + Drizzle, single database with tenant columns | Simple operations, strong constraints | Scale-out by service later; cross-service joins avoided |
-| 2026-09 | JWT access + refresh with token-kind claim | Stateless auth with revocation via sessions | Web must move tokens out of localStorage eventually |
+| 2026-09 | JWT access + refresh with token-kind claim | Stateless auth with revocation via sessions | Web moved tokens out of localStorage to httpOnly cookies (2026-10-24) |
 | 2026-10 | AI features are consent-gated and quota-bounded | Child safety and cost control | AI is unavailable until consent is recorded |
 | 2026-10 | Offline queue is a pure package with injectable sender | Testable across browser/native | Wiring into every mutation is still required |
 | 2026-10 | Objective auto-grading only; subjective work is manual | Trust and auditability | Teacher workload remains for essays |

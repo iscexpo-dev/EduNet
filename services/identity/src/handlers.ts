@@ -34,6 +34,7 @@ import {
   normalizeEmail,
 } from './security';
 import type { AuthRequest } from './middleware';
+import { clearAuthCookies, readCookie, setAuthCookies, REFRESH_COOKIE } from './cookies';
 import type { TokenKind } from './security';
 import type { AuditEventType } from './db';
 import {
@@ -132,6 +133,7 @@ export async function registerHandler(req: Request, res: Response) {
       organizationId: user.organizationId,
     });
     const refreshToken = generateRefreshToken({ userId: user.id });
+    setAuthCookies(res, token, refreshToken);
 
     res.status(201).json({
       token,
@@ -219,6 +221,8 @@ export async function loginHandler(req: Request, res: Response) {
       userAgent: userAgent,
     });
 
+    setAuthCookies(res, token, refreshToken);
+
     res.json({
       token,
       refreshToken,
@@ -247,10 +251,14 @@ function extractSessionId(refreshToken: string): string {
 
 export async function refreshTokenHandler(req: Request, res: Response) {
   try {
-    const { refreshToken } = req.body;
+    const bodyToken = req.body?.refreshToken;
+    const refreshToken =
+      typeof bodyToken === 'string' && bodyToken.length > 0
+        ? bodyToken
+        : readCookie(req, REFRESH_COOKIE);
 
-    if (!refreshToken || typeof refreshToken !== 'string') {
-      return res.status(400).json({ error: 'refreshToken is required' });
+    if (!refreshToken) {
+      return res.status(401).json({ error: 'No refresh token provided' });
     }
 
     const payload = verifyRefreshToken(refreshToken);
@@ -265,10 +273,28 @@ export async function refreshTokenHandler(req: Request, res: Response) {
       role: user.role,
       organizationId: user.organizationId,
     });
+    setAuthCookies(res, newToken, refreshToken);
 
     res.json({ token: newToken });
   } catch {
+    clearAuthCookies(res);
     res.status(401).json({ error: 'Invalid refresh token' });
+  }
+}
+
+export async function logoutHandler(req: Request, res: Response) {
+  try {
+    const refreshToken = readCookie(req, REFRESH_COOKIE);
+    if (refreshToken) {
+      const payload = verifyRefreshToken(refreshToken);
+      await revokeSession(payload.userId, extractSessionId(refreshToken));
+      await recordAuditEvent({ userId: payload.userId, eventType: 'logout' });
+    }
+  } catch {
+    // An invalid or expired session is already unusable; always clear cookies.
+  } finally {
+    clearAuthCookies(res);
+    res.status(204).end();
   }
 }
 

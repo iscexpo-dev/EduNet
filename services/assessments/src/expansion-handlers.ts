@@ -18,6 +18,7 @@ import {
   listQuestionBanks,
   updateQuestionBank,
   attachQuestionsToBank,
+  listQuestionsByBank,
   recordGradeRevision,
   listGradeRevisions,
   createRecheckRequest,
@@ -31,6 +32,7 @@ import {
 } from './db';
 import { gradeAttempt, computePercentScore, didPass, type GradingQuestion } from './grading';
 import { buildPresentation } from './randomize';
+import { parsePagination } from './pagination';
 
 /**
  * Extra validation schemas for the expansion endpoints.
@@ -119,12 +121,27 @@ export async function listBankHandler(req: AuthRequest, res: Response) {
   try {
     const organizationId = requireOrganizationId(req, res);
     if (!organizationId) return;
-    const limit = typeof req.query.limit === 'string' ? Number(req.query.limit) : 50;
-    const offset = typeof req.query.offset === 'string' ? Number(req.query.offset) : 0;
+    const { limit, offset } = parsePagination(req);
     const banks = await listQuestionBanks(organizationId, limit, offset);
     res.json(banks);
   } catch (error: any) {
     res.status(500).json({ error: error.message });
+  }
+}
+
+export async function listBankQuestionsHandler(req: AuthRequest, res: Response) {
+  try {
+    const organizationId = requireOrganizationId(req, res);
+    if (!organizationId) return;
+    const bank = await findQuestionBankById(req.params.id, organizationId);
+    if (!bank) {
+      return res.status(404).json({ error: 'Question bank not found' });
+    }
+    const { limit, offset } = parsePagination(req);
+    const questions = await listQuestionsByBank(req.params.id, organizationId, limit, offset);
+    res.json(questions);
+  } catch {
+    res.status(500).json({ error: 'Unable to list question bank questions' });
   }
 }
 

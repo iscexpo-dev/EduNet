@@ -9,6 +9,7 @@ overrides:
   esbuild: ^0.25.0
   minimatch@>=9.0.0 <9.0.8: ^9.0.9
   postcss@<8.5.18: ^8.5.31
+  body-parser@<1.20.9: ^1.20.9
 
 importers:
 
@@ -944,6 +945,9 @@ importers:
       typescript:
         specifier: ^5.5.0
         version: 5.9.3
+      vitest:
+        specifier: ^4.1.12
+        version: 4.1.12(@types/node@22.20.4)(vite@6.4.5)
 
   services/parents:
     dependencies:
@@ -993,6 +997,9 @@ importers:
       typescript:
         specifier: ^5.1.6
         version: 5.9.3
+      vitest:
+        specifier: ^4.1.12
+        version: 4.1.12(@types/node@20.19.43)(vite@6.4.5)
 
   services/platform:
     dependencies:
@@ -1241,6 +1248,9 @@ importers:
       typescript:
         specifier: ^5.5.0
         version: 5.9.3
+      vitest:
+        specifier: ^4.1.12
+        version: 4.1.12(@types/node@22.20.4)(vite@6.4.5)
 
 packages:
 
@@ -3835,8 +3845,8 @@ packages:
     engines: {node: '>=8'}
     dev: true
 
-  /body-parser@1.20.8:
-    resolution: {integrity: sha512-JNcyFQ64OiijEkPzUBTCe+hyPXUD/3LEldGQ6iF5LR1w00mx9o7xtDWHXBY2iItjdCFGoilOLNQbH943ut7pHA==}
+  /body-parser@1.20.9:
+    resolution: {integrity: sha512-FISIQxV5u91Y9gvuFq3q/tA/qTqLJn3AhRcEvyozyhJTh5OBFFtv827AdHU7Rbyct4r+Ba1/99oFa1Y3yuFsdw==}
     engines: {node: '>= 0.8', npm: 1.2.8000 || >= 1.4.16}
     dependencies:
       bytes: 3.1.2
@@ -5016,7 +5026,7 @@ packages:
     dependencies:
       accepts: 1.3.8
       array-flatten: 1.1.1
-      body-parser: 1.20.8
+      body-parser: 1.20.9
       content-disposition: 0.5.4
       content-type: 1.0.5
       cookie: 0.7.2

@@ -9,13 +9,17 @@ support, academics and administration.
 ## Status
 
 **Core platform built — not ready for public launch.** The LMS, identity,
-tenancy, content, assessment, offline primitives and AI backend are implemented
-and covered by 334 automated tests. Launch is blocked by the missing API
-gateway, containers/deployment, security hardening, an untested restore, and
-UIs for the newer domains.
+tenancy, content, assessment, offline primitives, AI backend and single-origin
+gateway are implemented and covered by 361 automated tests. Launch is still
+blocked by the absence of a real staging deployment, unproven database
+integration/restore, token storage in `localStorage`, no container build in this
+environment, and UIs for the newer domains (parent, admin, communication,
+support, AI).
 
 See:
 
+- `PROGRESS_STATE.json` — machine-readable resumable state
+- `todo/ACTIVE-PLAN.md` — current execution checklist
 - `docs/EDUNET-FINAL-STATUS.md` — current PASS/PARTIAL status and blockers
 - `docs/EDUNET-ROADMAP-GAP-MATRIX.md` — per-workstream gap analysis
 - `docs/product/PRODUCT-FOUNDATION.md` — scope, requirements, KPIs, risks
@@ -54,7 +58,7 @@ ports 3001–3018. Gateway TLS and an end-to-end test are still launch tasks.
 ```bash
 pnpm typecheck    # 35/35
 pnpm lint         # 32/32, 0 errors
-pnpm test         # 45/45, 334 tests
+pnpm test         # 47/47 tasks, 361 tests
 pnpm build        # 29/29
 ```
 

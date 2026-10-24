@@ -1,5 +1,7 @@
 'use client';
 
+import { apiUrl } from '@/lib/api-url';
+
 import { useEffect, useState } from 'react';
 import { useAuth } from '@edunet/auth';
 import { Button } from '@edunet/ui';
@@ -49,7 +51,7 @@ export default function MyCourseDetailPage() {
     const fetchCourseData = async () => {
       try {
         const courseResponse = await fetch(
-          `http://localhost:3001/api/courses/${courseId}`,
+          apiUrl(`/api/courses/${courseId}`),
           {
             headers: {
               Authorization: `Bearer ${token}`,
@@ -65,7 +67,7 @@ export default function MyCourseDetailPage() {
         setCourse(courseData);
 
         const assignmentsResponse = await fetch(
-          `http://localhost:3001/api/assignments?courseId=${courseId}`,
+          apiUrl(`/api/assignments?courseId=${courseId}`),
           {
             headers: {
               Authorization: `Bearer ${token}`,
@@ -79,7 +81,7 @@ export default function MyCourseDetailPage() {
         }
 
         const submissionsResponse = await fetch(
-          `http://localhost:3001/api/submissions?studentId=${user.id}`,
+          apiUrl(`/api/submissions?studentId=${user.id}`),
           {
             headers: {
               Authorization: `Bearer ${token}`,
@@ -93,7 +95,7 @@ export default function MyCourseDetailPage() {
         }
 
         const enrollmentResponse = await fetch(
-          `http://localhost:3001/api/enrollments?courseId=${courseId}&studentId=${user.id}`,
+          apiUrl(`/api/enrollments?courseId=${courseId}&studentId=${user.id}`),
           {
             headers: {
               Authorization: `Bearer ${token}`,
