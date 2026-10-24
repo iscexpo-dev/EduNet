@@ -3,13 +3,19 @@ name: CI
 on:
   pull_request:
   push:
+  workflow_dispatch:
 
 permissions:
   contents: read
 
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   validate:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     services:
       postgres:
         image: postgres:16
@@ -35,6 +41,8 @@ jobs:
       BCRYPT_COST: 4
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -42,17 +50,86 @@ jobs:
         run: corepack enable
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+      - name: Format check (deployment surface)
+        run: pnpm format:check
+      - name: Secret scan
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Dependency vulnerability scan
+        run: pnpm audit --audit-level=high
+      - name: Migration static check
+        run: pnpm --filter @edunet/database migrate:check
       - name: Apply database migrations
         run: pnpm --filter @edunet/database migrate
+      - name: Verify applied migrations
+        run: pnpm --filter @edunet/database migrate:check
       - name: Lint
         run: pnpm lint
       - name: Typecheck
         run: pnpm typecheck
       - name: PostgreSQL integration tests
         run: pnpm --filter @edunet/database test:integration
-      - name: Unit tests and build
+      - name: Unit tests and production build
         run: pnpm test
+      - name: Explicit production build
+        run: pnpm build
+      - name: Operations script tests
+        run: pnpm ops:test
+      - name: Shell syntax checks
+        run: bash -n scripts/lib/ops.sh scripts/backup-db.sh scripts/restore-db.sh scripts/backup-media.sh scripts/verify-backup.sh scripts/restore-drill.sh scripts/test-operations.sh
       - name: Install Playwright Chromium
         run: pnpm --filter @edunet/web exec playwright install --with-deps chromium
       - name: Browser end-to-end tests
         run: pnpm --filter @edunet/web test:e2e
+
+  container:
+    needs: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: Build API image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile
+          target: runtime
+          push: false
+          load: true
+          tags: edunet-api:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - name: Build web image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apps/web/Dockerfile
+          target: runtime
+          push: false
+          load: true
+          tags: edunet-web:ci
+          build-args: |
+            NEXT_PUBLIC_API_URL=https://staging.invalid
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - name: Scan API image
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: edunet-api:ci
+          format: table
+          exit-code: '1'
+          ignore-unfixed: true
+          severity: CRITICAL,HIGH
+      - name: Scan web image
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: edunet-web:ci
+          format: table
+          exit-code: '1'
+          ignore-unfixed: true
+          severity: CRITICAL,HIGH

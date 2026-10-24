@@ -112,7 +112,7 @@ const messageSchema = z.object({
 
 const conversationSchema = z.object({
   title: z.string().min(1).max(200).optional(),
-  context: z.record(z.unknown()).optional(),
+  context: z.record(z.string(), z.unknown()).optional(),
 });
 
 const feedbackSchema = z.object({

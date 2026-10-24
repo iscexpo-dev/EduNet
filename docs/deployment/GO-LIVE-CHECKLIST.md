@@ -1,14 +1,66 @@
 # Go-Live Checklist
 
-- [ ] CI dependency, format, lint, typecheck, unit, integration, E2E, security, build, and container checks pass.
-- [ ] Production secrets are present in the secret manager; no placeholders remain.
-- [ ] PostgreSQL TLS, least privilege, migrations, backups, retention, and restore target are verified.
-- [ ] HTTPS, DNS, CORS, proxy trust, cookies, and security headers are verified.
-- [ ] `/health` and `/ready` checks are monitored; logs, metrics, error alerts, and audit events are routed.
-- [ ] Synthetic smoke tests pass for student, teacher, parent, and administrator flows.
-- [ ] Accessibility and low-bandwidth checks are complete.
-- [ ] Rollback owner and forward-fix/recovery plan are assigned.
-- [ ] Pilot approval, privacy review, support coverage, and stop conditions are recorded.
-- [ ] Release owner records GO or NO-GO with evidence.
+Status date: 2026-10-24. `[x]` means verified locally; `[ ]` means not yet
+verified. This workspace is **NO-GO / NOT DEPLOYED**.
 
-Current decision: **NO-GO / NOT DEPLOYED** until external prerequisites and verification evidence are available.
+## Build and test
+
+- [x] Frozen dependency install and lockfile committed.
+- [x] Format gate for the deployment surface.
+- [x] Lint and typecheck.
+- [x] Unit tests and package builds.
+- [x] Production build.
+- [x] High/critical dependency audit.
+- [x] Secret scan configured in CI.
+- [x] Migration static consistency check.
+- [ ] PostgreSQL migration application and integration tests on the release
+      commit (CI required).
+- [ ] Browser E2E on the release commit (CI required).
+- [ ] Container builds and Trivy scans on the release commit (CI required).
+- [ ] Operations script tests on the release commit (CI required).
+
+## Configuration and security
+
+- [x] Production env validation fails fast without secrets.
+- [x] Nonce-based CSP and HSTS opt-in implemented and locally verified.
+- [x] Database readiness wired into all services.
+- [ ] Production secrets in a secret manager; no placeholders.
+- [ ] TLS, DNS, CORS, proxy trust and cookie settings verified in staging.
+- [ ] Access/refresh tokens moved out of `localStorage` into `httpOnly`,
+      `Secure`, `SameSite` cookies.
+- [ ] Shared rate-limit store if more than one gateway replica.
+- [ ] DAST/ZAP and MFA assessment completed.
+- [ ] AI provider retention terms reviewed for minors.
+
+## Data protection
+
+- [ ] Managed PostgreSQL TLS and least-privilege credentials verified.
+- [ ] Encrypted backup job runs daily and copies off-site.
+- [ ] Restore drill into a disposable database passes.
+- [ ] Media volume backup or versioned object storage verified.
+- [ ] Retention and privacy-request procedures exercised.
+- [ ] Audit chain verification passes in staging.
+
+## Operations
+
+- [x] Health/readiness endpoints and metrics defined.
+- [x] Four-role smoke test implemented with a BLOCKED exit code.
+- [x] Backup/restore/media scripts and self-test implemented.
+- [x] Local performance baseline recorded.
+- [ ] `/health`, `/ready`, error rate, latency, database and AI quota alerts
+      routed to an on-call destination.
+- [ ] Staging smoke test passes.
+- [ ] Staging soak/load test passes at pilot concurrency.
+- [ ] Rollback owner and forward-fix plan assigned.
+- [ ] Support rota, incident contacts and counselor escalation verified.
+
+## Pilot
+
+- [ ] Pilot approval and privacy review recorded.
+- [ ] Synthetic accounts provisioned; no real student data.
+- [ ] Participant onboarding and support materials ready.
+- [ ] Success metrics, stop conditions and data-handling rules signed off.
+- [ ] Release owner records GO with evidence.
+
+**Decision: NO-GO.** Complete every unchecked item before production or pilot
+enrollment.

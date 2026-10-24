@@ -1,6 +1,6 @@
 # EduNet Operations Runbook
 
-Last updated: 2026-10-23
+Last updated: 2026-10-24
 Audience: platform operator, on-call engineer, release manager
 
 ## 1. Deployment Topology
@@ -9,28 +9,28 @@ EduNet is a pnpm/Turbo monorepo with one Next.js web app, eighteen Express
 services and shared packages. Every service is stateless except for PostgreSQL
 and the filesystem media volume.
 
-| Component | Default port | Notes |
-|-----------|--------------|-------|
-| web (Next.js) | 3000 | Browser client; calls the gateway origin |
-| identity | 3001 | Auth, sessions, verification, lockout, audit |
-| organizations | 3002 | Tenant records |
-| users | 3003 | User administration |
-| courses | 3004 | Course catalogue |
-| enrollments | 3005 | Enrolment records |
-| assignments | 3006 | Assignments and rubrics |
-| submissions | 3007 | Submissions, autosave, grading history |
-| content | 3008 | Modules, lessons, resources, media |
-| assessments | 3009 | Quizzes, attempts, grading, rechecks |
-| notifications | 3010 | In-app notifications and preferences |
-| parents | 3011 | Guardian relationships and child views |
-| search | 3012 | Tenant-scoped search |
-| analytics | 3013 | Course/student/assignment analytics |
-| engagement | 3014 | Calendar, tutoring, events, live records |
-| communication | 3015 | Messaging, blocks, reports, forums |
-| support | 3016 | Help centre, tickets, counseling |
-| platform | 3017 | Academics, attendance, flags, audit, privacy |
-| ai | 3018 | Consent-gated AI, quotas, prompts, feedback |
-| gateway | 8080 | Single origin; proxies `/api/*` to the service ports above |
+| Component     | Default port | Notes                                                      |
+| ------------- | ------------ | ---------------------------------------------------------- |
+| web (Next.js) | 3000         | Browser client; calls the gateway origin                   |
+| identity      | 3001         | Auth, sessions, verification, lockout, audit               |
+| organizations | 3002         | Tenant records                                             |
+| users         | 3003         | User administration                                        |
+| courses       | 3004         | Course catalogue                                           |
+| enrollments   | 3005         | Enrolment records                                          |
+| assignments   | 3006         | Assignments and rubrics                                    |
+| submissions   | 3007         | Submissions, autosave, grading history                     |
+| content       | 3008         | Modules, lessons, resources, media                         |
+| assessments   | 3009         | Quizzes, attempts, grading, rechecks                       |
+| notifications | 3010         | In-app notifications and preferences                       |
+| parents       | 3011         | Guardian relationships and child views                     |
+| search        | 3012         | Tenant-scoped search                                       |
+| analytics     | 3013         | Course/student/assignment analytics                        |
+| engagement    | 3014         | Calendar, tutoring, events, live records                   |
+| communication | 3015         | Messaging, blocks, reports, forums                         |
+| support       | 3016         | Help centre, tickets, counseling                           |
+| platform      | 3017         | Academics, attendance, flags, audit, privacy               |
+| ai            | 3018         | Consent-gated AI, quotas, prompts, feedback                |
+| gateway       | 8080         | Single origin; proxies `/api/*` to the service ports above |
 
 The web client expects a single origin on `NEXT_PUBLIC_API_URL`. Run
 `@edunet/gateway` (port 8080) in front of the services and set
@@ -40,8 +40,13 @@ from `<SERVICE>_URL` (defaults to `http://127.0.0.1:<port>`). Do not expose
 individual service ports publicly. Gateway TLS, upstream readiness and an
 end-to-end test are still launch tasks.
 
-Services expose `/health` (liveness), `/ready` (readiness) and `/metrics`
-(Prometheus text format). `SERVICE_NAME` is set by the bootstrap helper.
+Services expose `/health` (liveness), `/ready` (readiness, including a database
+ping) and `/metrics` (Prometheus text format). `SERVICE_NAME` is set by the
+bootstrap helper. Startup validates the production environment and fails fast on
+missing secrets or insecure transport settings; shutdown has a bounded timeout.
+
+The gateway returns JSON 404s for unknown API paths. Web exposes `/api/health`
+and sends a per-request nonce CSP plus optional HSTS.
 
 ## 2. Configuration
 
@@ -112,16 +117,23 @@ before removing the old value.
 
 ## 3. Release Procedure
 
-1. Confirm the release commit has green CI: install, migrations, lint,
-   typecheck, unit tests, database integration, build and browser E2E.
+1. Confirm the release commit has green CI: frozen install, format, secret
+   scan, dependency audit, static + applied migrations, lint, typecheck,
+   PostgreSQL integration, unit tests, build, operations tests, browser E2E,
+   container builds and Trivy scans. Run `pnpm db:check` and `pnpm ops:test`
+   locally as a quick pre-check.
 2. Back up the target database (§5) and record the checksum.
 3. Apply migrations with `pnpm --filter @edunet/database migrate`. Migrations
    must run once, before new service versions accept traffic.
 4. Deploy services and web. Wait for `/ready` on every service.
-5. Run the smoke journey: login, load courses, open a lesson, submit an
-   assignment, open a quiz, send an AI message with consent recorded.
-6. Watch error rate, p95 latency and AI quota metrics for 30 minutes.
-7. Announce the release with the commit SHA and migration range.
+5. Run `pnpm smoke:staging` with the four synthetic pilot accounts. It checks
+   health/ready, login, role isolation, course/enrollment/assignment/submission
+   reads, parent child views, admin audit verification and JSON 404s. Exit `2`
+   means configuration is missing (BLOCKED); exit `1` is a failed check.
+6. Run the manual journey: open a lesson, submit an assignment, open a quiz,
+   send an AI message with consent recorded.
+7. Watch error rate, p95 latency and AI quota metrics for 30 minutes.
+8. Announce the release with the commit SHA and migration range.
 
 ### Rollback
 
@@ -138,16 +150,17 @@ before removing the old value.
 
 Minimum dashboards:
 
-| Signal | Source | Alert |
-|--------|--------|-------|
-| Availability | `/ready` probes | 2 consecutive failures, 1 min |
-| Error rate | HTTP metrics | 5xx > 2% for 5 min |
-| Latency | HTTP metrics | p95 > 1 s for 10 min |
-| Database | PostgreSQL exporter | connections > 80%, disk > 80% |
-| AI spend | `ai_usage_daily` / metrics | tenant > 90% of daily quota |
-| AI safety | audit events | any blocked crisis/unsafe event spike |
-| Queue/backlog | offline sync telemetry (when wired) | failed syncs > 1% |
-| Backup | backup job | missing daily archive |
+| Signal        | Source                              | Alert                                 |
+| ------------- | ----------------------------------- | ------------------------------------- |
+| Availability  | `/ready` probes                     | 2 consecutive failures, 1 min         |
+| Error rate    | HTTP metrics                        | 5xx > 2% for 5 min                    |
+| Latency       | HTTP metrics                        | p95 > 1 s for 10 min                  |
+| Database      | PostgreSQL exporter                 | connections > 80%, disk > 80%         |
+| AI spend      | `ai_usage_daily` / metrics          | tenant > 90% of daily quota           |
+| AI safety     | audit events                        | any blocked crisis/unsafe event spike |
+| Queue/backlog | offline sync telemetry (when wired) | failed syncs > 1%                     |
+| Backup        | backup job                          | missing daily archive                 |
+| Performance   | `pnpm perf:baseline` / staging load | p95 regression > 50%                  |
 
 Every log line carries a request id; propagate `x-request-id` across services
 when debugging a single request. Metrics route labels are bounded by route
@@ -159,12 +172,21 @@ Scripts:
 
 ```bash
 DATABASE_URL=... BACKUP_DIR=/var/backups/edunet ./scripts/backup-db.sh
-CONFIRM_RESTORE=yes DATABASE_URL=... ./scripts/restore-db.sh /var/backups/edunet/edunet-....dump
+./scripts/verify-backup.sh /var/backups/edunet/edunet-....dump
+CONFIRM_RESTORE=yes RESTORE_TARGET_KIND=disposable \
+  DATABASE_URL=... ./scripts/restore-db.sh /var/backups/edunet/edunet-....dump
+MEDIA_STORAGE_PATH=/var/lib/edunet/media BACKUP_DIR=... ./scripts/backup-media.sh
 ```
 
-- Backups are PostgreSQL custom-format archives with a SHA-256 sidecar.
+- Backups are PostgreSQL custom-format archives with a SHA-256 sidecar and a
+  JSON manifest.
 - The backup script verifies the archive with `pg_restore --list`.
 - Default retention is 30 days; override with `KEEP_DAYS`.
+- Set `BACKUP_ENCRYPTION_KEY_FILE` to encrypt archives with openssl or gpg.
+- Production restores additionally require `RESTORE_TARGET_KIND=production`
+  and `ALLOW_PRODUCTION_RESTORE=yes`; the script takes a pre-restore backup.
+- `pnpm ops:test` exercises the scripts with stubbed PostgreSQL tools. A real
+  restore drill is still required (see `docs/deployment/BACKUP-RESTORE.md`).
 - Media files are **not** in the database backup. Snapshot the media volume
   (or migrate to object storage with versioning) in the same window.
 - **RPO ≤ 24 h** (daily backup), **RTO ≤ 4 h** (restore + migrate + smoke).
@@ -174,12 +196,12 @@ CONFIRM_RESTORE=yes DATABASE_URL=... ./scripts/restore-db.sh /var/backups/edunet
 
 ## 6. Incident Response
 
-| Severity | Example | First response |
-|----------|---------|----------------|
-| SEV-1 | Cross-tenant data exposure, auth bypass, harmful AI delivered to a minor | Page on-call, disable affected route/provider, preserve logs, notify DPO |
-| SEV-2 | Login outage, database down, payments (future) | Page on-call, fail over/restore, status update within 30 min |
-| SEV-3 | One domain degraded, elevated errors | Acknowledge, mitigate within 4 h |
-| SEV-4 | Cosmetic or single-user issue | Ticket and normal queue |
+| Severity | Example                                                                  | First response                                                           |
+| -------- | ------------------------------------------------------------------------ | ------------------------------------------------------------------------ |
+| SEV-1    | Cross-tenant data exposure, auth bypass, harmful AI delivered to a minor | Page on-call, disable affected route/provider, preserve logs, notify DPO |
+| SEV-2    | Login outage, database down, payments (future)                           | Page on-call, fail over/restore, status update within 30 min             |
+| SEV-3    | One domain degraded, elevated errors                                     | Acknowledge, mitigate within 4 h                                         |
+| SEV-4    | Cosmetic or single-user issue                                            | Ticket and normal queue                                                  |
 
 Crisis content must always route to a human counselor. If the support queue is
 unavailable, the AI service returns the crisis message and does not generate a
@@ -197,17 +219,19 @@ export or erase within the documented retention window, and record the action.
   first, then read replicas for analytics.
 - AI is the primary variable cost. Monitor tokens per tenant per day and set
   `AI_DAILY_TOKEN_LIMIT` conservatively; the default is 50,000 tokens.
+- The local gateway baseline (health only, no DB) is 6,577 req/s, p95 6.67 ms;
+  see `docs/deployment/PERFORMANCE-BASELINE.md`. This is not a capacity claim.
 - Media storage grows with video/audio uploads; enforce the 25 MB per-file cap
   and move to object storage before large-scale rollout.
 
 ## 8. Scheduled Maintenance
 
-| Task | Frequency | Owner |
-|------|-----------|-------|
-| Backup verification | Daily (automated) | Platform |
-| Restore drill | Quarterly | Operations |
-| Dependency audit | Weekly | Security |
-| Access review | Quarterly | Admin |
-| AI prompt/safety review | Monthly | AI/Support |
-| Certificate/secret rotation | Quarterly or on incident | Security |
-| Retention purge | Monthly | Privacy |
+| Task                        | Frequency                | Owner      |
+| --------------------------- | ------------------------ | ---------- |
+| Backup verification         | Daily (automated)        | Platform   |
+| Restore drill               | Quarterly                | Operations |
+| Dependency audit            | Weekly                   | Security   |
+| Access review               | Quarterly                | Admin      |
+| AI prompt/safety review     | Monthly                  | AI/Support |
+| Certificate/secret rotation | Quarterly or on incident | Security   |
+| Retention purge             | Monthly                  | Privacy    |

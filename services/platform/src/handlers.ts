@@ -444,7 +444,7 @@ export async function ingestAnalyticsHandler(req: AuthRequest, res: Response) {
               name: z.string().min(1).max(80),
               entityType: z.string().max(60).optional(),
               entityId: z.string().uuid().optional(),
-              properties: z.record(z.unknown()).optional(),
+              properties: z.record(z.string(), z.unknown()).optional(),
               occurredAt: z.coerce.date().optional(),
             }),
           )
@@ -594,7 +594,7 @@ export async function appendAuditHandler(req: AuthRequest, res: Response) {
         action: z.string().min(1).max(80),
         entityType: z.string().max(60).optional(),
         entityId: z.string().uuid().optional(),
-        after: z.record(z.unknown()).optional(),
+        after: z.record(z.string(), z.unknown()).optional(),
       })
       .parse(req.body);
     return res.status(201).json(
@@ -618,7 +618,7 @@ export async function recordConsentHandler(req: AuthRequest, res: Response) {
         type: z.enum(['terms', 'privacy', 'media', 'counselling', 'data_sharing', 'ai_processing']),
         version: z.string().min(1).max(30),
         granted: z.boolean(),
-        metadata: z.record(z.unknown()).optional(),
+        metadata: z.record(z.string(), z.unknown()).optional(),
       })
       .parse(req.body);
     return res.status(201).json(
@@ -716,7 +716,7 @@ export async function upsertIntegrationHandler(req: AuthRequest, res: Response) 
       .object({
         provider: z.string().min(1).max(60),
         type: z.enum(['video', 'sms', 'email', 'sis', 'sso', 'lti', 'scorm', 'payment', 'analytics']),
-        config: z.record(z.unknown()).optional(),
+        config: z.record(z.string(), z.unknown()).optional(),
         secretRef: z.string().max(120).optional(),
         isActive: z.boolean().optional(),
       })

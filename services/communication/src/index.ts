@@ -1,10 +1,12 @@
 import express from 'express';
 import { bootstrapService } from '@edunet/observability';
 import { registerRoutes } from './routes';
+import { databaseReadyCheck } from '@edunet/database';
 
 const app = bootstrapService({
   serviceName: 'communication',
   registerRoutes: (expressApp: express.Express) => registerRoutes(expressApp),
+  readyCheck: databaseReadyCheck,
   port: Number(process.env.PORT) || 3015,
 });
 
