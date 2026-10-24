@@ -275,7 +275,7 @@ entry points because Next.js transpiles them.
 | AI | PARTIAL | Consent, safety, quota, prompts, usage, audit, conversations; no UI/provider configured |
 | Support & Counseling | PARTIAL | Tickets/escalation/appointments backend; no UI |
 | Academics & Attendance | PARTIAL | Full admin backend; no UI |
-| Admin / Flags / Settings | PARTIAL | Backend; no console |
+| Admin / Flags / Settings | PARTIAL | Backend; minimal admin console added with users/organizations/audit views; deeper operations pending |
 | Privacy & Consent | PARTIAL | Consent + data requests; no export/erase execution or retention jobs |
 | Integrations / Webhooks | PARTIAL | Config only; delivery/signing unproven |
 | Security Hardening | PARTIAL | Gateway enforces CORS/headers/rate limits; httpOnly access/refresh token cookies implemented; CSP present; external scan pending |

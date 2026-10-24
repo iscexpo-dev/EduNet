@@ -71,7 +71,7 @@ Ordered by risk. Items marked `[!]` need external infrastructure.
       web keeps access token in memory).
 - [ ] Shared rate-limit store or single-replica constraint made explicit.
 - [x] Parent web surface (`/parent` dashboard, 2026-10-24).
-- [ ] Admin web console (still API-only).
+- [x] Admin web console added with users/organizations/audit views (`/admin`).
 - [x] Replace hardcoded `localhost:3001` API origins with `NEXT_PUBLIC_API_URL`.
 - [x] Offline queue wired into submission/progress (2026-10-24); autosave
       still sends immediately and is not queued yet.

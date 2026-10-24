@@ -69,7 +69,7 @@ domains.
 | 25 | AI platform | **PARTIAL** | Consent/safety/quota/prompts/audit backend; no UI or configured provider |
 | 26 | Support and counseling | **PARTIAL** | Tickets/escalation/appointments backend; no UI |
 | 27 | Academics and attendance | **PARTIAL** | Full admin backend; no UI |
-| 28 | Administration | **PARTIAL** | Flags/settings/audit/integrations backend; no console |
+| 28 | Administration | **PARTIAL** | Flags/settings/audit/integrations backend; minimal admin console added with users/organizations/audit views; deeper operations pending |
 | 29 | Privacy and consent | **PARTIAL** | Consent and data requests; no export/erase execution or retention jobs |
 | 30 | Integrations and webhooks | **PARTIAL** | Configuration only; delivery/retry/signing unproven |
 | 31 | Audit and compliance | **PARTIAL** | Append-only audit with verification; no retention/external store |

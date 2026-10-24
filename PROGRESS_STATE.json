@@ -206,7 +206,7 @@
     },
     "admin": {
       "status": "PARTIAL",
-      "gap": "Flags/settings/audit/integrations backend; no admin console"
+      "gap": "Minimal admin console added with users/organizations/audit views; deeper admin operations pending"
     },
     "institutionManagement": {
       "status": "PARTIAL",
