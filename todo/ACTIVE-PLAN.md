@@ -109,6 +109,7 @@ Ordered by risk. Items marked `[!]` need external infrastructure.
 - [x] Clamp pagination in both services; use `resolveConnectionString` and add
       `closeDb` for organizations.
 - [x] Add 12 policy tests; full gates pass (107 tasks, 373 tests, 31 files).
+- [x] Committed `72e5caa`; push deferred to the PR workflow.
 
 ## Definition of done for this run
 
