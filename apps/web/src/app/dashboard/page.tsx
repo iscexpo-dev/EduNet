@@ -3,10 +3,41 @@
 import { useAuth } from '@edunet/auth';
 import { Button, Card, CardHeader, CardContent } from '@edunet/ui';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+
+interface DashboardLink {
+  title: string;
+  description: string;
+  href: string;
+  action: string;
+}
+
+const LINKS_BY_ROLE: Record<string, DashboardLink[]> = {
+  student: [
+    { title: 'My Courses', description: 'Continue learning and track progress', href: '/my-courses', action: 'Open my courses' },
+    { title: 'Course Catalog', description: 'Browse and enroll in available courses', href: '/courses', action: 'Browse courses' },
+  ],
+  teacher: [
+    { title: 'Teacher Dashboard', description: 'Manage your courses and students', href: '/teacher', action: 'Open teaching' },
+    { title: 'Create Course', description: 'Start a new course for your students', href: '/teacher/courses/new', action: 'Create course' },
+  ],
+  parent: [
+    { title: 'Children', description: 'View linked children, courses and grades', href: '/parent', action: 'Open parent dashboard' },
+  ],
+  admin: [
+    { title: 'Course Catalog', description: 'Review courses in your organization', href: '/courses', action: 'Browse courses' },
+  ],
+};
 
 export default function DashboardPage() {
   const { user, logout, isLoading } = useAuth();
   const router = useRouter();
+  const links = user ? LINKS_BY_ROLE[user.role] ?? [] : [];
+
+  const handleLogout = () => {
+    logout();
+    router.push('/login');
+  };
 
   if (isLoading) {
     return (
@@ -34,7 +65,7 @@ export default function DashboardPage() {
               <span className="px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full">
                 {user.role}
               </span>
-              <Button variant="secondary" size="sm" onClick={logout}>
+              <Button variant="secondary" size="sm" onClick={handleLogout}>
                 Logout
               </Button>
             </div>
@@ -43,43 +74,33 @@ export default function DashboardPage() {
       </nav>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {links.length === 0 ? (
           <Card>
-            <CardHeader>
-              <h2 className="text-lg font-semibold">My Courses</h2>
-            </CardHeader>
             <CardContent>
-              <p className="text-gray-600 mb-4">View and manage your enrolled courses</p>
-              <Button variant="primary" className="w-full">
-                View Courses
-              </Button>
+              <p className="text-gray-600">
+                No dashboard actions are available for the {user.role} role yet.
+              </p>
             </CardContent>
           </Card>
-
-          <Card>
-            <CardHeader>
-              <h2 className="text-lg font-semibold">Assignments</h2>
-            </CardHeader>
-            <CardContent>
-              <p className="text-gray-600 mb-4">Check upcoming assignments and submissions</p>
-              <Button variant="primary" className="w-full">
-                View Assignments
-              </Button>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <h2 className="text-lg font-semibold">Profile</h2>
-            </CardHeader>
-            <CardContent>
-              <p className="text-gray-600 mb-4">Update your profile information</p>
-              <Button variant="primary" className="w-full">
-                Edit Profile
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {links.map((link) => (
+              <Card key={link.href}>
+                <CardHeader>
+                  <h2 className="text-lg font-semibold">{link.title}</h2>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-gray-600 mb-4">{link.description}</p>
+                  <Link href={link.href} className="block">
+                    <Button variant="primary" className="w-full">
+                      {link.action}
+                    </Button>
+                  </Link>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
 
         <Card className="mt-6">
           <CardHeader>

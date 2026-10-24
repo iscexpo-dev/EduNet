@@ -5,7 +5,7 @@ Commit: `main` at `8273870` at re-verification start
 Verification environment: Linux sandbox without PostgreSQL, Docker or Playwright browsers
 
 > **2026-10-24 re-verification:** typecheck 35/35, lint 32/32 (0 errors,
-> 259 warnings), tests 46/46 tasks / 353 tests, forced build 29/29, dependency
+> 259 warnings), tests 47/47 tasks / 361 tests, forced build 29/29, dependency
 > audit PASS after a `body-parser` override, `db:check` PASS (4 migrations),
 > ops self-test PASS, format PASS. Question-bank listing was fixed and exposed
 > with validated pagination. Database integration, browser E2E, container build,
@@ -17,7 +17,7 @@ Verification environment: Linux sandbox without PostgreSQL, Docker or Playwright
 **CORE PLATFORM BUILT — NOT READY FOR PUBLIC LAUNCH.**
 
 The LMS, identity, tenancy, content, assessment, offline primitives, AI backend,
-single-origin gateway and most domain APIs are implemented and covered by 353
+single-origin gateway and most domain APIs are implemented and covered by 361
 automated tests. The release is blocked by launch-surface work: gateway
 deployment and TLS, containers and deployment, security hardening, a proven
 restore, load and accessibility validation, and user interfaces for the newer
@@ -29,7 +29,7 @@ domains.
 |------|--------|----------|
 | Typecheck | **PASS** | 35/35 tasks |
 | Lint | **PASS** | 32/32 tasks, 0 errors (252 warnings) |
-| Unit tests | **PASS** | 46/46 tasks, 353 tests, 28 files |
+| Unit tests | **PASS** | 47/47 tasks, 361 tests, 29 files |
 | Production build | **PASS** | 29/29 tasks, Next.js build included |
 | Production start smoke | **PASS** | all 19 services `node dist/index.js` + `/health` 200; built web `/` 200 |
 | Database migrations | **NOT VERIFIED** | CI-only; no PostgreSQL in sandbox |
@@ -54,7 +54,7 @@ domains.
 | 10 | Assessment | **PARTIAL** | Five types, partial credit, rechecks, banks, randomisation; UI basic |
 | 11 | Student platform | **PARTIAL** | Academic/attendance/achievement backend; no UI |
 | 12 | Teacher platform | **PARTIAL** | Core authoring/grading UI; attendance and analytics UI missing |
-| 13 | Parent platform | **PARTIAL** | Child-scoped API; no dashboard |
+| 13 | Parent platform | **PARTIAL** | Parent dashboard at `/parent`; relationship API hardened; attendance UI and self-service linking missing |
 | 14 | Offline and PWA | **PARTIAL** | Queue/service worker/banner; queue not wired into mutations |
 | 15 | Internationalisation | **PASS** | Bengali/English catalogues and toggle; native review pending |
 | 16 | Accessibility | **FAIL** | No WCAG audit or assistive-technology test |
@@ -80,7 +80,7 @@ domains.
 | 36 | API gateway | **PARTIAL** | `@edunet/gateway` maps all prefixes, applies CORS/headers/rate limits and has 19 tests; not deployed, TLS-terminated or end-to-end tested |
 | 37 | Backup and DR | **PARTIAL** | Scripts/checksums/runbook; no drill, schedule or media backup |
 | 38 | Performance and load | **FAIL** | No load test or p95 baseline |
-| 39 | QA | **PARTIAL** | 353 unit tests, 1 E2E journey in CI; no contract/visual/a11y suites |
+| 39 | QA | **PARTIAL** | 361 unit tests, 1 E2E journey in CI; no contract/visual/a11y suites |
 | 40 | Documentation | **PARTIAL** | Product/ops/state/API updated; some historical docs remain stale |
 | 41 | Pilot readiness | **FAIL** | No pilot institution, training, rota or data migration plan |
 | 42 | Rollout | **FAIL** | No cohort plan or go/no-go review |

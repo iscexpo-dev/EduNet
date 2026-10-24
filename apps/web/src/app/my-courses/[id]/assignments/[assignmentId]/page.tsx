@@ -1,5 +1,7 @@
 'use client';
 
+import { apiUrl } from '@/lib/api-url';
+
 import { useEffect, useState } from 'react';
 import { useAuth } from '@edunet/auth';
 import { Button, Card, CardHeader, CardContent } from '@edunet/ui';
@@ -40,7 +42,7 @@ export default function AssignmentSubmissionPage() {
     const fetchData = async () => {
       try {
         const assignmentRes = await fetch(
-          `http://localhost:3001/api/assignments/${assignmentId}`,
+          apiUrl(`/api/assignments/${assignmentId}`),
           { headers: { Authorization: `Bearer ${token}` } }
         );
         if (assignmentRes.ok) {
@@ -48,7 +50,7 @@ export default function AssignmentSubmissionPage() {
         }
 
         const submissionRes = await fetch(
-          `http://localhost:3001/api/submissions?assignmentId=${assignmentId}&studentId=${user.id}`,
+          apiUrl(`/api/submissions?assignmentId=${assignmentId}&studentId=${user.id}`),
           { headers: { Authorization: `Bearer ${token}` } }
         );
         if (submissionRes.ok) {
@@ -76,7 +78,7 @@ export default function AssignmentSubmissionPage() {
     setError('');
 
     try {
-      const response = await fetch('http://localhost:3001/api/submissions', {
+      const response = await fetch(apiUrl('/api/submissions'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -27,7 +27,7 @@ coverage and an operational story.
 |------|---------|--------|
 | Typecheck | `pnpm turbo run typecheck --concurrency=2` | **35/35 tasks PASS** (2026-10-24) |
 | Lint | `pnpm turbo run lint --concurrency=2` | **32/32 tasks PASS**, 0 errors, 259 warnings |
-| Unit tests | `pnpm turbo run test --force --concurrency=2` | **46/46 tasks PASS**, 353 tests across 28 files |
+| Unit tests | `pnpm turbo run test --force --concurrency=2` | **47/47 tasks PASS**, 361 tests across 29 files |
 | Build | `pnpm turbo run build --force --concurrency=2` | **29/29 tasks PASS**, including the Next.js production build |
 | Dependency audit | `pnpm audit --audit-level=high` | **PASS** after the `body-parser` override; 1 moderate dev-only advisory |
 | Migration static check | `pnpm db:check` | **PASS** — 4 migrations consistent |
@@ -49,7 +49,7 @@ coverage and an operational story.
 | 5 | RBAC and multi-tenancy | VERIFIED | Canonical `@edunet/rbac`; 40 tests; every service uses shared middleware; tenant isolation covered in integration suite (CI) |
 | 6 | Database and migrations | VERIFIED (CI ONLY locally) | Drizzle schema/migrations for LMS, platform, AI, support; constraints proven previously on PostgreSQL 16; no local DB in this sandbox |
 | 7 | Student platform | PARTIAL | Academic profiles, attendance, achievements, certificates, streaks and timeline exist in `platform`; no student UI beyond courses/assignments |
-| 8 | Parent platform | PARTIAL | Relationship-scoped child progress/grades/submissions API; no parent dashboard |
+| 8 | Parent platform | PARTIAL | Parent dashboard at `/parent` (children, courses, grades, empty/error states); relationship API hardened (same-org linking, path-param child access, whitelisted updates, grade permission); no attendance UI or child-linking self-service |
 | 9 | Teacher platform | PARTIAL | Course/lesson/assignment/quiz creation, roster and grading UI; no attendance, class analytics or workload UI |
 | 10 | LMS core | COMPLETE | Courses, modules, lessons, resources, enrolment, progress; student/teacher journeys covered by E2E (CI) |
 

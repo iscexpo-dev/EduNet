@@ -1,5 +1,7 @@
 'use client';
 
+import { apiUrl } from '@/lib/api-url';
+
 import { useEffect, useState } from 'react';
 import { useAuth } from '@edunet/auth';
 import { Button, Card, CardHeader, CardContent } from '@edunet/ui';
@@ -41,7 +43,7 @@ export default function QuizTakingPage() {
     const fetchQuiz = async () => {
       try {
         const quizRes = await fetch(
-          `http://localhost:3001/api/assessments/quizzes/${quizId}`,
+          apiUrl(`/api/assessments/quizzes/${quizId}`),
           { headers: { Authorization: `Bearer ${token}` } }
         );
         if (quizRes.ok) {
@@ -49,14 +51,14 @@ export default function QuizTakingPage() {
           setQuiz(quizData);
 
           const questionsRes = await fetch(
-            `http://localhost:3001/api/assessments/questions?quizId=${quizId}`,
+            apiUrl(`/api/assessments/questions?quizId=${quizId}`),
             { headers: { Authorization: `Bearer ${token}` } }
           );
           if (questionsRes.ok) {
             setQuestions(await questionsRes.json());
           }
 
-          const attemptRes = await fetch('http://localhost:3001/api/assessments/quiz-attempts', {
+          const attemptRes = await fetch(apiUrl('/api/assessments/quiz-attempts'), {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -87,7 +89,7 @@ export default function QuizTakingPage() {
 
     try {
       const response = await fetch(
-        `http://localhost:3001/api/assessments/quiz-attempts/${attemptId}/submit`,
+        apiUrl(`/api/assessments/quiz-attempts/${attemptId}/submit`),
         {
           method: 'PUT',
           headers: {

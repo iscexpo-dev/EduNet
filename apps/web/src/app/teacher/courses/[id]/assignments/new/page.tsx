@@ -1,5 +1,7 @@
 'use client';
 
+import { apiUrl } from '@/lib/api-url';
+
 import { useState, type FormEvent } from 'react';
 import { useAuth } from '@edunet/auth';
 import { Button } from '@edunet/ui';
@@ -22,7 +24,7 @@ export default function NewAssignmentPage() {
     setSaving(true);
     setError('');
     try {
-      const response = await fetch('http://localhost:3001/api/assignments', {
+      const response = await fetch(apiUrl('/api/assignments'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ courseId, title, description, dueDate: new Date(dueDate).toISOString(), maxPoints: Number(maxPoints) }),

@@ -9,7 +9,7 @@
 items below are completed.
 
 > **2026-10-24 re-verification:** typecheck 35/35, lint 32/32 (0 errors),
-> tests 46/46 tasks / 353 tests, forced build 29/29, `db:check` PASS (4
+> tests 47/47 tasks / 361 tests, forced build 29/29, `db:check` PASS (4
 > migrations), `ops:test` PASS and `format:check` PASS. A new high advisory
 > (GHSA-27r3-jxmh-p828, `body-parser@1.20.8` on 40 paths) was fixed with a root
 > pnpm override to `^1.20.9`; `pnpm audit --audit-level=high` passes with one

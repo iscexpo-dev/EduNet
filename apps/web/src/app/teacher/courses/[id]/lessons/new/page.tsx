@@ -1,5 +1,7 @@
 'use client';
 
+import { apiUrl } from '@/lib/api-url';
+
 import { useState } from 'react';
 import { useAuth } from '@edunet/auth';
 import { Button } from '@edunet/ui';
@@ -32,7 +34,7 @@ export default function NewLessonPage() {
     setError('');
 
     try {
-      const response = await fetch('http://localhost:3001/api/content/lessons', {
+      const response = await fetch(apiUrl('/api/content/lessons'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -1,5 +1,7 @@
 'use client';
 
+import { apiUrl } from '@/lib/api-url';
+
 import { useEffect, useState } from 'react';
 import { useAuth } from '@edunet/auth';
 import { Button } from '@edunet/ui';
@@ -42,7 +44,7 @@ export default function CourseDetailPage() {
     const fetchCourseAndEnrollment = async () => {
       try {
         const courseResponse = await fetch(
-          `http://localhost:3001/api/courses/${courseId}`,
+          apiUrl(`/api/courses/${courseId}`),
           {
             headers: {
               Authorization: `Bearer ${token}`,
@@ -58,7 +60,7 @@ export default function CourseDetailPage() {
         setCourse(courseData);
 
         const enrollmentResponse = await fetch(
-          `http://localhost:3001/api/enrollments?studentId=${user.id}&courseId=${courseId}`,
+          apiUrl(`/api/enrollments?studentId=${user.id}&courseId=${courseId}`),
           {
             headers: {
               Authorization: `Bearer ${token}`,
@@ -87,7 +89,7 @@ export default function CourseDetailPage() {
 
     setEnrolling(true);
     try {
-      const response = await fetch('http://localhost:3001/api/enrollments', {
+      const response = await fetch(apiUrl('/api/enrollments'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

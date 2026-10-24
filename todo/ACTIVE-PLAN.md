@@ -69,7 +69,9 @@ Ordered by risk. Items marked `[!]` need external infrastructure.
 - [ ] Token storage: move access/refresh tokens out of `localStorage` to
       `httpOnly` cookies (or document a hard deferral with risk acceptance).
 - [ ] Shared rate-limit store or single-replica constraint made explicit.
-- [ ] Parent and admin web surfaces (currently API-only).
+- [x] Parent web surface (`/parent` dashboard, 2026-10-24).
+- [ ] Admin web console (still API-only).
+- [x] Replace hardcoded `localhost:3001` API origins with `NEXT_PUBLIC_API_URL`.
 - [ ] Offline queue wired into submission/progress/autosave, or ship
       read-only offline explicitly.
 - [ ] Accessibility audit baseline (keyboard/focus/labels/contrast).
@@ -82,7 +84,7 @@ Ordered by risk. Items marked `[!]` need external infrastructure.
 
 - [x] Root `README.md` status matches executed evidence.
 - [x] Gap matrix and implementation state cite this run.
-- [~] Final report generated from `docs/FINAL_REPORT_TEMPLATE.md` (see run report in chat; persist if required).
+- [x] Final report generated from `docs/FINAL_REPORT_TEMPLATE.md` (see run report in chat).
 - [x] State files committed (84f0d58; push deferred to PR workflow).
 
 ## Definition of done for this run

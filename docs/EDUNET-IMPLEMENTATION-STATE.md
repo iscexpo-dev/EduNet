@@ -25,7 +25,7 @@ against the live checkout.
 | Install | `pnpm install` | **PASS** after adding a `body-parser` override (see below) |
 | Typecheck | `pnpm turbo run typecheck --concurrency=2` | **PASS — 35/35 tasks** |
 | Lint | `pnpm turbo run lint --concurrency=2` | **PASS — 32/32 tasks, 0 errors, 259 warnings** |
-| Unit tests | `pnpm turbo run test --force --concurrency=2` | **PASS — 46/46 tasks, 353 tests, 28 files** |
+| Unit tests | `pnpm turbo run test --force --concurrency=2` | **PASS — 47/47 tasks, 361 tests, 29 files** |
 | Production build | `pnpm turbo run build --force --concurrency=2` | **PASS — 29/29 tasks, Next.js build included** |
 | Dependency audit | `pnpm audit --audit-level=high` | **PASS** after fix; 1 moderate dev-only advisory remains |
 | Migration static check | `pnpm db:check` | **PASS** — 4 migrations consistent, latest `0003_futuristic_sway`; live check skipped |
@@ -59,6 +59,16 @@ watchers were terminated and all gates above used limited concurrency.
 4. **Unvalidated pagination.** Added `parsePagination` with clamping
    (limit 1–200, non-negative offset) and unit tests, used by both bank list
    endpoints.
+5. **Hardcoded API origin in the web app.** 16 pages called
+   `http://localhost:3001` directly, so a production build could not reach the
+   configured gateway. All calls now use `apiUrl()` backed by
+   `NEXT_PUBLIC_API_URL` (`apps/web/src/lib/api-url.ts`).
+6. **Parent domain hardening and UI.** Added `/parent` (children, course
+   progress, grades, loading/empty/error/unauthorized states). Hardened the
+   parent service: lazy DB connection via `resolveConnectionString`, SQL
+   `inArray` lookups instead of loading every student/parent, same-organization
+   linking, `:childId` path-param support, whitelisted relationship updates,
+   clamped pagination, and grade-permission enforcement; added 8 unit tests.
 
 Resumable state artifacts added: `PROGRESS_STATE.json`,
 `todo/ACTIVE-PLAN.md`, `docs/FINAL_REPORT_TEMPLATE.md`.
@@ -244,7 +254,7 @@ entry points because Next.js transpiles them.
 | i18n | COMPLETE | Bengali/English catalogues and web toggle; native review pending |
 | Design System | PARTIAL | 16 primitives, tokens, dark mode; no icon system/RTL audit |
 | Student Platform | PARTIAL | Academic/attendance/achievements/certificates/streaks backend; no UI |
-| Parent Platform | PARTIAL | Child-scoped API; no UI |
+| Parent Platform | PARTIAL | `/parent` dashboard (children, courses, grades, loading/empty/error); API hardened for same-org linking, path-param access, whitelisted updates and grade permission |
 | Teacher Platform | PARTIAL | Core authoring/grading UI; no attendance/analytics UI |
 | Notifications | PARTIAL | In-app only; no delivery adapters |
 | Search | PARTIAL | `ILIKE` only |

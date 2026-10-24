@@ -100,10 +100,14 @@
 
 | Method | Endpoint | Auth | Description |
 |--------|----------|------|-------------|
-| POST | `/relationships` | Parent/Admin | Create relationship |
-| GET | `/children` | Parent | List children |
-| GET | `/children/:childId/enrollments` | Parent/Admin | Child enrollments |
-| GET | `/children/:childId/submissions` | Parent/Admin | Child submissions |
+| POST | `/relationships` | Parent/Admin | Create relationship (same-org parent and student only) |
+| GET | `/relationships/:id` | Owner/Admin | Read relationship |
+| PUT | `/relationships/:id` | Owner/Admin | Update whitelisted relationship fields |
+| DELETE | `/relationships/:id` | Owner/Admin | Delete relationship |
+| GET | `/children` | Parent | List linked children (paginated) |
+| GET | `/parents` | Admin | List parents for a child in the admin's organization |
+| GET | `/children/:childId/enrollments` | Parent/Admin | Child enrollments (relationship-scoped) |
+| GET | `/children/:childId/submissions` | Parent/Admin | Child submissions (requires grade permission for parents) |
 
 ## Notifications (`/api/notifications`)
 
