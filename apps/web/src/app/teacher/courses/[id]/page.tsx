@@ -44,7 +44,7 @@ export default function TeacherCourseDetailPage() {
   const { user, token } = useAuth();
   const params = useParams();
   const courseId = params.id as string;
-  
+
   const [course, setCourse] = useState<Course | null>(null);
   const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
   const [assignments, setAssignments] = useState<Assignment[]>([]);
@@ -56,14 +56,11 @@ export default function TeacherCourseDetailPage() {
 
     const fetchCourseData = async () => {
       try {
-        const courseResponse = await fetch(
-          apiUrl(`/api/courses/${courseId}`),
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
+        const courseResponse = await fetch(apiUrl(`/api/courses/${courseId}`), {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
 
         if (!courseResponse.ok) {
           throw new Error('Failed to fetch course');
@@ -72,37 +69,35 @@ export default function TeacherCourseDetailPage() {
         const courseData = await courseResponse.json();
         setCourse(courseData);
 
-        const enrollmentsResponse = await fetch(
-          apiUrl(`/api/enrollments?courseId=${courseId}`),
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
+        const enrollmentsResponse = await fetch(apiUrl(`/api/enrollments?courseId=${courseId}`), {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
 
         if (enrollmentsResponse.ok) {
           const enrollmentsData = await enrollmentsResponse.json();
           setEnrollments(enrollmentsData);
         }
 
-        const assignmentsResponse = await fetch(
-          apiUrl(`/api/assignments?courseId=${courseId}`),
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
+        const assignmentsResponse = await fetch(apiUrl(`/api/assignments?courseId=${courseId}`), {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
 
         if (assignmentsResponse.ok) {
           const assignmentsData: Assignment[] = await assignmentsResponse.json();
-          const withCounts = await Promise.all(assignmentsData.map(async assignment => {
-            const response = await fetch(apiUrl(`/api/assignments/${assignment.id}`), { headers: { Authorization: `Bearer ${token}` } });
-            if (!response.ok) return assignment;
-            const detail = await response.json();
-            return { ...assignment, submissionCount: detail.submissionCount };
-          }));
+          const withCounts = await Promise.all(
+            assignmentsData.map(async (assignment) => {
+              const response = await fetch(apiUrl(`/api/assignments/${assignment.id}`), {
+                headers: { Authorization: `Bearer ${token}` },
+              });
+              if (!response.ok) return assignment;
+              const detail = await response.json();
+              return { ...assignment, submissionCount: detail.submissionCount };
+            })
+          );
           setAssignments(withCounts);
         }
       } catch (err: any) {
@@ -181,13 +176,16 @@ export default function TeacherCourseDetailPage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           <div className="border rounded-lg p-6">
             <h2 className="text-xl font-bold mb-4">Enrolled Students ({enrollments.length})</h2>
-            
+
             {enrollments.length === 0 ? (
               <p className="text-gray-600">No students enrolled yet</p>
             ) : (
               <div className="space-y-3">
                 {enrollments.map((enrollment) => (
-                  <div key={enrollment.id} className="flex justify-between items-center p-3 bg-gray-50 rounded">
+                  <div
+                    key={enrollment.id}
+                    className="flex justify-between items-center p-3 bg-gray-50 rounded"
+                  >
                     <div>
                       <p className="font-medium">
                         {enrollment.student.firstName} {enrollment.student.lastName}
@@ -205,13 +203,16 @@ export default function TeacherCourseDetailPage() {
 
           <div className="border rounded-lg p-6">
             <h2 className="text-xl font-bold mb-4">Assignments ({assignments.length})</h2>
-            
+
             {assignments.length === 0 ? (
               <p className="text-gray-600">No assignments created yet</p>
             ) : (
               <div className="space-y-3">
                 {assignments.map((assignment) => (
-                    <div key={assignment.id} className="flex justify-between items-center p-3 bg-gray-50 rounded">
+                  <div
+                    key={assignment.id}
+                    className="flex justify-between items-center p-3 bg-gray-50 rounded"
+                  >
                     <div>
                       <p className="font-medium">{assignment.title}</p>
                       <p className="text-sm text-gray-500">
@@ -219,15 +220,15 @@ export default function TeacherCourseDetailPage() {
                       </p>
                     </div>
                     <div className="flex items-center gap-4">
-                    <div className="text-right">
-                      <p className="text-sm text-gray-500">{assignment.maxPoints} pts</p>
-                      <p className="text-sm text-gray-500">
-                        {assignment.submissionCount || 0} submissions
-                      </p>
-                    </div>
-                    <Link href={`/teacher/courses/${courseId}/assignments/${assignment.id}`}>
-                      <Button variant="secondary">Review submissions</Button>
-                    </Link>
+                      <div className="text-right">
+                        <p className="text-sm text-gray-500">{assignment.maxPoints} pts</p>
+                        <p className="text-sm text-gray-500">
+                          {assignment.submissionCount || 0} submissions
+                        </p>
+                      </div>
+                      <Link href={`/teacher/courses/${courseId}/assignments/${assignment.id}`}>
+                        <Button variant="secondary">Review submissions</Button>
+                      </Link>
                     </div>
                   </div>
                 ))}

@@ -67,12 +67,15 @@ export default function AdminDashboardPage() {
 
     async function loadUsers() {
       try {
-        const response = await fetch(apiUrl('/api/users'), { headers: { Authorization: `Bearer ${token}` } });
+        const response = await fetch(apiUrl('/api/users'), {
+          headers: { Authorization: `Bearer ${token}` },
+        });
         if (!response.ok) throw new Error('Unable to load users.');
         const data = (await response.json()) as AdminUser[];
         if (!cancelled) setUsers(data);
       } catch (error) {
-        if (!cancelled) setUsersError(error instanceof Error ? error.message : 'Unable to load users.');
+        if (!cancelled)
+          setUsersError(error instanceof Error ? error.message : 'Unable to load users.');
       } finally {
         if (!cancelled) setLoadingUsers(false);
       }
@@ -80,12 +83,17 @@ export default function AdminDashboardPage() {
 
     async function loadOrganizations() {
       try {
-        const response = await fetch(apiUrl('/api/organizations'), { headers: { Authorization: `Bearer ${token}` } });
+        const response = await fetch(apiUrl('/api/organizations'), {
+          headers: { Authorization: `Bearer ${token}` },
+        });
         if (!response.ok) throw new Error('Unable to load organizations.');
         const data = (await response.json()) as AdminOrganization[];
         if (!cancelled) setOrganizations(data);
       } catch (error) {
-        if (!cancelled) setOrganizationsError(error instanceof Error ? error.message : 'Unable to load organizations.');
+        if (!cancelled)
+          setOrganizationsError(
+            error instanceof Error ? error.message : 'Unable to load organizations.'
+          );
       } finally {
         if (!cancelled) setLoadingOrganizations(false);
       }
@@ -100,7 +108,10 @@ export default function AdminDashboardPage() {
         const data = (await response.json()) as AdminAuditEvent[];
         if (!cancelled) setAuditEvents(data);
       } catch (error) {
-        if (!cancelled) setAuditEventsError(error instanceof Error ? error.message : 'Unable to load audit events.');
+        if (!cancelled)
+          setAuditEventsError(
+            error instanceof Error ? error.message : 'Unable to load audit events.'
+          );
       } finally {
         if (!cancelled) setLoadingAuditEvents(false);
       }
@@ -195,33 +206,58 @@ export default function AdminDashboardPage() {
 
       <main id="admin-main" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
         {actionMessage ? <p className="text-sm text-green-700">{actionMessage}</p> : null}
-        {actionError ? <div role="alert" className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-700">{actionError}</div> : null}
+        {actionError ? (
+          <div role="alert" className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-700">
+            {actionError}
+          </div>
+        ) : null}
 
         <Card>
           <CardHeader>
             <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Users</h2>
           </CardHeader>
           <CardContent className="space-y-3">
-            {loadingUsers ? <p className="text-gray-600">Loading users…</p> : usersError ? (
-              <div role="alert" className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-700">{usersError}</div>
+            {loadingUsers ? (
+              <p className="text-gray-600">Loading users…</p>
+            ) : usersError ? (
+              <div
+                role="alert"
+                className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-700"
+              >
+                {usersError}
+              </div>
             ) : users.length === 0 ? (
-              <EmptyState title="No users found" description="No user records are available for this organization." />
+              <EmptyState
+                title="No users found"
+                description="No user records are available for this organization."
+              />
             ) : (
               <ul className="space-y-2">
                 {users.map((user) => (
                   <li key={user.id} className="rounded-lg border border-neutral-200 p-3">
                     <p className="font-medium text-gray-900">
-                      {user.firstName} {user.lastName} <span className="text-gray-500">({user.role})</span>
+                      {user.firstName} {user.lastName}{' '}
+                      <span className="text-gray-500">({user.role})</span>
                     </p>
                     <p className="text-sm text-gray-600">{user.email}</p>
-                    <p className="text-xs text-gray-500">Verified: {user.isVerified ? 'yes' : 'no'}</p>
+                    <p className="text-xs text-gray-500">
+                      Verified: {user.isVerified ? 'yes' : 'no'}
+                    </p>
                     <div className="mt-2 flex flex-wrap gap-2">
                       {!user.isVerified ? (
-                        <Button variant="outline" size="sm" onClick={() => void performVerify(user.id)}>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => void performVerify(user.id)}
+                        >
                           Verify
                         </Button>
                       ) : null}
-                      <Button variant="secondary" size="sm" onClick={() => void performDelete(user.id)}>
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => void performDelete(user.id)}
+                      >
                         Delete
                       </Button>
                     </div>
@@ -234,13 +270,25 @@ export default function AdminDashboardPage() {
 
         <Card>
           <CardHeader>
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Organizations</h2>
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+              Organizations
+            </h2>
           </CardHeader>
           <CardContent className="space-y-3">
-            {loadingOrganizations ? <p className="text-gray-600">Loading organizations…</p> : organizationsError ? (
-              <div role="alert" className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-700">{organizationsError}</div>
+            {loadingOrganizations ? (
+              <p className="text-gray-600">Loading organizations…</p>
+            ) : organizationsError ? (
+              <div
+                role="alert"
+                className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-700"
+              >
+                {organizationsError}
+              </div>
             ) : organizations.length === 0 ? (
-              <EmptyState title="No organizations found" description="No organization records are available." />
+              <EmptyState
+                title="No organizations found"
+                description="No organization records are available."
+              />
             ) : (
               <ul className="space-y-2">
                 {organizations.map((organization) => (
@@ -248,7 +296,9 @@ export default function AdminDashboardPage() {
                     <p className="font-medium text-gray-900">{organization.name}</p>
                     <p className="text-sm text-gray-600">Code: {organization.code}</p>
                     <p className="text-sm text-gray-600">Type: {organization.type}</p>
-                    <p className="text-sm text-gray-600">Active: {organization.isActive ? 'yes' : 'no'}</p>
+                    <p className="text-sm text-gray-600">
+                      Active: {organization.isActive ? 'yes' : 'no'}
+                    </p>
                   </li>
                 ))}
               </ul>
@@ -261,18 +311,33 @@ export default function AdminDashboardPage() {
             <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Audit Events</h2>
           </CardHeader>
           <CardContent className="space-y-3">
-            {loadingAuditEvents ? <p className="text-gray-600">Loading audit events…</p> : auditEventsError ? (
-              <div role="alert" className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-700">{auditEventsError}</div>
+            {loadingAuditEvents ? (
+              <p className="text-gray-600">Loading audit events…</p>
+            ) : auditEventsError ? (
+              <div
+                role="alert"
+                className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-700"
+              >
+                {auditEventsError}
+              </div>
             ) : auditEvents.length === 0 ? (
-              <EmptyState title="No audit events found" description="No identity audit events are available." />
+              <EmptyState
+                title="No audit events found"
+                description="No identity audit events are available."
+              />
             ) : (
               <ul className="space-y-2">
                 {auditEvents.map((event, index) => (
-                  <li key={event.id ?? `${event.eventType}-${index}`} className="rounded-lg border border-neutral-200 p-3">
+                  <li
+                    key={event.id ?? `${event.eventType}-${index}`}
+                    className="rounded-lg border border-neutral-200 p-3"
+                  >
                     <p className="font-medium text-gray-900">{event.eventType}</p>
                     <p className="text-sm text-gray-600">Outcome: {event.outcome}</p>
                     <p className="text-sm text-gray-600">User: {event.userId ?? '—'}</p>
-                    <p className="text-sm text-gray-600">Organization: {event.organizationId ?? '—'}</p>
+                    <p className="text-sm text-gray-600">
+                      Organization: {event.organizationId ?? '—'}
+                    </p>
                     <p className="text-sm text-gray-600">At: {formatDate(event.createdAt)}</p>
                   </li>
                 ))}

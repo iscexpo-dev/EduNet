@@ -1,7 +1,13 @@
 'use client';
 
 import { useCallback, useEffect } from 'react';
-import { createLocalStorageAdapter, flushQueue, type ActionSender, type OfflineAction, type SyncResult } from '@edunet/offline';
+import {
+  createLocalStorageAdapter,
+  flushQueue,
+  type ActionSender,
+  type OfflineAction,
+  type SyncResult,
+} from '@edunet/offline';
 import { useAuth } from '@edunet/auth';
 import { apiUrl } from '@/lib/api-url';
 
@@ -23,7 +29,7 @@ export function useOfflineSync(): { flush: () => Promise<SyncResult> } {
         throw new Error(`Offline sync failed for ${action.id}`);
       }
     },
-    [token],
+    [token]
   );
 
   const flush = useCallback(async (): Promise<SyncResult> => {

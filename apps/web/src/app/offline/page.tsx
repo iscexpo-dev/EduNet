@@ -7,8 +7,8 @@ export default function OfflinePage() {
     <main className="flex min-h-screen flex-col items-center justify-center gap-4 p-8 text-center">
       <h1 className="text-3xl font-bold">You are offline</h1>
       <p className="max-w-md text-gray-600 dark:text-gray-300">
-        EduNet works without a connection. Saved lessons remain available and your changes will
-        sync automatically when you reconnect.
+        EduNet works without a connection. Saved lessons remain available and your changes will sync
+        automatically when you reconnect.
       </p>
       <Link
         href="/my-courses"

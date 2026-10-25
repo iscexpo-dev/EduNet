@@ -79,7 +79,9 @@ export default function RegisterPage() {
               placeholder="••••••••"
             />
             <div className="space-y-2">
-              <label htmlFor="role" className="block text-sm font-medium text-gray-700">Role</label>
+              <label htmlFor="role" className="block text-sm font-medium text-gray-700">
+                Role
+              </label>
               <select
                 id="role"
                 name="role"
@@ -101,10 +103,14 @@ export default function RegisterPage() {
               required
               placeholder="Enter your organization code"
             />
-            {error && (
-              <div className="text-red-600 text-sm">{error}</div>
-            )}
-            <Button type="submit" variant="primary" size="lg" className="w-full" isLoading={isLoading}>
+            {error && <div className="text-red-600 text-sm">{error}</div>}
+            <Button
+              type="submit"
+              variant="primary"
+              size="lg"
+              className="w-full"
+              isLoading={isLoading}
+            >
               Register
             </Button>
           </form>

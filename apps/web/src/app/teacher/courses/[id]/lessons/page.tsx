@@ -22,7 +22,7 @@ export default function CourseLessonsPage() {
   const { user, token } = useAuth();
   const params = useParams();
   const courseId = params.id as string;
-  
+
   const [lessons, setLessons] = useState<Lesson[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -32,14 +32,11 @@ export default function CourseLessonsPage() {
 
     const fetchLessons = async () => {
       try {
-        const response = await fetch(
-          apiUrl(`/api/content/lessons?courseId=${courseId}`),
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
+        const response = await fetch(apiUrl(`/api/content/lessons?courseId=${courseId}`), {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
 
         if (!response.ok) {
           throw new Error('Failed to fetch lessons');
@@ -105,7 +102,10 @@ export default function CourseLessonsPage() {
         ) : (
           <div className="space-y-4">
             {lessons.map((lesson, index) => (
-              <div key={lesson.id} className="border rounded-lg p-6 flex justify-between items-center">
+              <div
+                key={lesson.id}
+                className="border rounded-lg p-6 flex justify-between items-center"
+              >
                 <div className="flex items-center gap-4">
                   <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-semibold">
                     {index + 1}
@@ -118,15 +118,19 @@ export default function CourseLessonsPage() {
                   </div>
                 </div>
                 <div className="flex items-center gap-4">
-                  <span className={`text-sm px-2 py-1 rounded ${
-                    lesson.isPublished === 'true' 
-                      ? 'bg-green-100 text-green-700' 
-                      : 'bg-yellow-100 text-yellow-700'
-                  }`}>
+                  <span
+                    className={`text-sm px-2 py-1 rounded ${
+                      lesson.isPublished === 'true'
+                        ? 'bg-green-100 text-green-700'
+                        : 'bg-yellow-100 text-yellow-700'
+                    }`}
+                  >
                     {lesson.isPublished === 'true' ? 'Published' : 'Draft'}
                   </span>
                   <Link href={`/teacher/courses/${courseId}/lessons/${lesson.id}`}>
-                    <Button variant="secondary" size="sm">Edit</Button>
+                    <Button variant="secondary" size="sm">
+                      Edit
+                    </Button>
                   </Link>
                 </div>
               </div>

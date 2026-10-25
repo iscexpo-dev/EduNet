@@ -13,7 +13,7 @@ export default function NewLessonPage() {
   const router = useRouter();
   const params = useParams();
   const courseId = params.id as string;
-  
+
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -188,7 +188,9 @@ export default function NewLessonPage() {
                 type="checkbox"
                 id="isPublished"
                 checked={formData.isPublished === 'true'}
-                onChange={(e) => setFormData({ ...formData, isPublished: e.target.checked ? 'true' : 'false' })}
+                onChange={(e) =>
+                  setFormData({ ...formData, isPublished: e.target.checked ? 'true' : 'false' })
+                }
                 className="w-4 h-4 text-blue-600"
               />
               <label htmlFor="isPublished" className="text-sm font-medium">

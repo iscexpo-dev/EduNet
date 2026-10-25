@@ -11,7 +11,7 @@ import { useRouter } from 'next/navigation';
 export default function NewCoursePage() {
   const { user, token } = useAuth();
   const router = useRouter();
-  
+
   const [formData, setFormData] = useState({
     title: '',
     description: '',

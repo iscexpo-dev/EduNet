@@ -71,7 +71,7 @@ export default function ParentDashboardPage() {
           throw new Error(
             response.status === 403
               ? 'You do not have permission to view these children.'
-              : 'Unable to load your children.',
+              : 'Unable to load your children.'
           );
         }
         const data = (await response.json()) as Child[];
@@ -116,14 +116,14 @@ export default function ParentDashboardPage() {
           throw new Error(
             enrollmentsResponse.status === 403
               ? 'You are not authorized to view this child.'
-              : 'Unable to load course progress.',
+              : 'Unable to load course progress.'
           );
         }
         if (!submissionsResponse.ok) {
           throw new Error(
             submissionsResponse.status === 403
-              ? 'You are not authorized to view this child\'s grades.'
-              : 'Unable to load grades.',
+              ? "You are not authorized to view this child's grades."
+              : 'Unable to load grades.'
           );
         }
 
@@ -186,15 +186,15 @@ export default function ParentDashboardPage() {
 
   const selectedChild = children.find((child) => child.id === selectedChildId);
   const graded = submissions.filter(
-    (submission) => submission.grade !== null && (submission.assignmentMaxPoints ?? 0) > 0,
+    (submission) => submission.grade !== null && (submission.assignmentMaxPoints ?? 0) > 0
   );
   const averagePercent = graded.length
     ? Math.round(
         graded.reduce(
           (total, submission) =>
             total + (submission.grade! / (submission.assignmentMaxPoints ?? 1)) * 100,
-          0,
-        ) / graded.length,
+          0
+        ) / graded.length
       )
     : null;
 
@@ -271,7 +271,10 @@ export default function ParentDashboardPage() {
             )}
 
             {progressError && (
-              <div role="alert" className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-700">
+              <div
+                role="alert"
+                className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-700"
+              >
                 {progressError}
               </div>
             )}
@@ -286,7 +289,10 @@ export default function ParentDashboardPage() {
                   </CardHeader>
                   <CardContent>
                     {enrollments.length === 0 ? (
-                      <EmptyState title="No enrolments yet" description="This child has not enrolled in a course." />
+                      <EmptyState
+                        title="No enrolments yet"
+                        description="This child has not enrolled in a course."
+                      />
                     ) : (
                       <ul className="divide-y dark:divide-gray-800">
                         {enrollments.map((enrollment) => (

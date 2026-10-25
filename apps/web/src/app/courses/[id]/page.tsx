@@ -31,7 +31,7 @@ export default function CourseDetailPage() {
   const { user, token } = useAuth();
   const params = useParams();
   const courseId = params.id as string;
-  
+
   const [course, setCourse] = useState<Course | null>(null);
   const [enrollment, setEnrollment] = useState<Enrollment | null>(null);
   const [loading, setLoading] = useState(true);
@@ -43,14 +43,11 @@ export default function CourseDetailPage() {
 
     const fetchCourseAndEnrollment = async () => {
       try {
-        const courseResponse = await fetch(
-          apiUrl(`/api/courses/${courseId}`),
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
+        const courseResponse = await fetch(apiUrl(`/api/courses/${courseId}`), {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
 
         if (!courseResponse.ok) {
           throw new Error('Failed to fetch course');
@@ -160,7 +157,7 @@ export default function CourseDetailPage() {
 
         <div className="border rounded-lg p-8">
           <h1 className="text-3xl font-bold mb-4">{course.title}</h1>
-          
+
           <div className="flex gap-4 mb-6 text-sm text-gray-500">
             <span>{course.subject}</span>
             {course.grade && <span>Grade {course.grade}</span>}
