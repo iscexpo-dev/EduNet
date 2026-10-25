@@ -36,7 +36,7 @@ export function buildContentSecurityPolicy(options: CspOptions): string {
     "base-uri 'self'",
     "form-action 'self'",
     "frame-ancestors 'none'",
-    ...(development ? [] : ["upgrade-insecure-requests"]),
+    ...(development ? [] : ['upgrade-insecure-requests']),
   ].join('; ');
 }
 

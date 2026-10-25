@@ -2,7 +2,13 @@ import { expect, test, type Page } from '@playwright/test';
 import express from 'express';
 import { randomUUID } from 'node:crypto';
 import { eq } from 'drizzle-orm';
-import { closeDb as closeSharedDb, getDb, organizations, users, courses } from '../../../packages/database/src';
+import {
+  closeDb as closeSharedDb,
+  getDb,
+  organizations,
+  users,
+  courses,
+} from '../../../packages/database/src';
 import { registerRoutes as registerIdentityRoutes } from '../../../services/identity/src/routes';
 import { closeDb as closeIdentityDb } from '../../../services/identity/src/db';
 import { registerRoutes as registerCourseRoutes } from '../../../services/courses/src/routes';
@@ -37,11 +43,14 @@ async function register(page: Page, firstName: string, role: 'teacher' | 'studen
 
 test.describe('teacher and student course journey against PostgreSQL', () => {
   test.beforeAll(async () => {
-    const [organization] = await getDb().insert(organizations).values({
-      name: 'E2E Integration School',
-      type: 'school',
-      code: organizationCode,
-    }).returning();
+    const [organization] = await getDb()
+      .insert(organizations)
+      .values({
+        name: 'E2E Integration School',
+        type: 'school',
+        code: organizationCode,
+      })
+      .returning();
     organizationId = organization.id;
 
     const app = express();
@@ -65,7 +74,10 @@ test.describe('teacher and student course journey against PostgreSQL', () => {
   });
 
   test.afterAll(async () => {
-    if (apiServer) await new Promise<void>((resolve, reject) => apiServer!.close(error => error ? reject(error) : resolve()));
+    if (apiServer)
+      await new Promise<void>((resolve, reject) =>
+        apiServer!.close((error) => (error ? reject(error) : resolve()))
+      );
     if (organizationId) {
       await getDb().delete(courses).where(eq(courses.organizationId, organizationId));
       await getDb().delete(users).where(eq(users.organizationId, organizationId));
@@ -82,9 +94,11 @@ test.describe('teacher and student course journey against PostgreSQL', () => {
     ]);
   });
 
-  test('teacher creates course and lesson, student enrolls and opens the lesson', async ({ browser }) => {
+  test('teacher creates course and lesson, student enrolls and opens the lesson', async ({
+    browser,
+  }) => {
     const teacher = await browser.newPage();
-    teacher.on('pageerror', error => console.error('Teacher browser error:', error));
+    teacher.on('pageerror', (error) => console.error('Teacher browser error:', error));
     await register(teacher, 'Taylor', 'teacher');
     await teacher.goto('/teacher/courses/new');
     await teacher.getByLabel('Course Title *').fill('E2E Algebra');
@@ -105,7 +119,9 @@ test.describe('teacher and student course journey against PostgreSQL', () => {
     await teacher.getByLabel('Title').fill('Solve for x');
     await teacher.getByLabel('Instructions').fill('Show your work for 2x + 3 = 7.');
     const dueDate = new Date(Date.now() + 24 * 60 * 60 * 1000);
-    const localDueDate = new Date(dueDate.getTime() - dueDate.getTimezoneOffset() * 60_000).toISOString().slice(0, 16);
+    const localDueDate = new Date(dueDate.getTime() - dueDate.getTimezoneOffset() * 60_000)
+      .toISOString()
+      .slice(0, 16);
     await teacher.getByLabel('Due date').fill(localDueDate);
     await teacher.getByLabel('Maximum points').fill('25');
     await teacher.getByRole('button', { name: 'Create assignment' }).click();
@@ -113,7 +129,7 @@ test.describe('teacher and student course journey against PostgreSQL', () => {
     await expect(teacher.getByText('Solve for x')).toBeVisible();
 
     const student = await browser.newPage();
-    student.on('pageerror', error => console.error('Student browser error:', error));
+    student.on('pageerror', (error) => console.error('Student browser error:', error));
     await register(student, 'Sam', 'student');
     await student.goto('/courses');
     await student.getByText('E2E Algebra').waitFor();
@@ -144,7 +160,9 @@ test.describe('teacher and student course journey against PostgreSQL', () => {
     await teacher.getByRole('button', { name: 'Save grade' }).click();
     await expect(teacher.getByText('2x + 3 = 7, so x = 2.')).toBeVisible();
 
-    await student.goto(`/my-courses/${courseId}/assignments/${(await teacher.url()).split('/').at(-1)}`);
+    await student.goto(
+      `/my-courses/${courseId}/assignments/${(await teacher.url()).split('/').at(-1)}`
+    );
     await expect(student.getByText('Grade: 23 / 25')).toBeVisible();
     await expect(student.getByText('Feedback: Clear work and correct answer.')).toBeVisible();
   });

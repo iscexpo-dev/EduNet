@@ -40,10 +40,9 @@ export default function CourseAssessmentsPage() {
 
     const fetchData = async () => {
       try {
-        const quizzesRes = await fetch(
-          apiUrl(`/api/assessments/quizzes?courseId=${courseId}`),
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
+        const quizzesRes = await fetch(apiUrl(`/api/assessments/quizzes?courseId=${courseId}`), {
+          headers: { Authorization: `Bearer ${token}` },
+        });
         if (quizzesRes.ok) {
           setQuizzes(await quizzesRes.json());
         }
@@ -70,18 +69,28 @@ export default function CourseAssessmentsPage() {
   };
 
   if (!user) {
-    return <div className="min-h-screen flex items-center justify-center"><p>Please log in</p></div>;
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p>Please log in</p>
+      </div>
+    );
   }
 
   if (loading) {
-    return <div className="min-h-screen flex items-center justify-center"><p>Loading...</p></div>;
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p>Loading...</p>
+      </div>
+    );
   }
 
   return (
     <div className="min-h-screen p-8">
       <div className="max-w-4xl mx-auto">
         <Link href={`/my-courses/${courseId}`}>
-          <Button variant="secondary" className="mb-6">&larr; Back to Course</Button>
+          <Button variant="secondary" className="mb-6">
+            &larr; Back to Course
+          </Button>
         </Link>
 
         <h1 className="text-3xl font-bold mb-6">Assessments</h1>
@@ -113,7 +122,9 @@ export default function CourseAssessmentsPage() {
                       </div>
                       {canAttempt ? (
                         <Link href={`/my-courses/${courseId}/assessments/${quiz.id}`}>
-                          <Button variant="primary" size="sm">Start Quiz</Button>
+                          <Button variant="primary" size="sm">
+                            Start Quiz
+                          </Button>
                         </Link>
                       ) : (
                         <span className="text-sm text-gray-500">Max attempts reached</span>
@@ -124,15 +135,25 @@ export default function CourseAssessmentsPage() {
                     <div className="flex gap-4 text-sm text-gray-500">
                       {quiz.timeLimit && <span>Time Limit: {quiz.timeLimit}</span>}
                       {quiz.passingScore && <span>Passing Score: {quiz.passingScore}%</span>}
-                      <span>Attempts: {quizAttempts.length}{maxAttempts ? ` / ${maxAttempts}` : ''}</span>
+                      <span>
+                        Attempts: {quizAttempts.length}
+                        {maxAttempts ? ` / ${maxAttempts}` : ''}
+                      </span>
                     </div>
                     {quizAttempts.length > 0 && (
                       <div className="mt-4 space-y-2">
                         <h3 className="font-semibold text-sm">Previous Attempts</h3>
                         {quizAttempts.map((attempt) => (
-                          <div key={attempt.id} className="flex justify-between items-center text-sm bg-gray-50 p-2 rounded">
+                          <div
+                            key={attempt.id}
+                            className="flex justify-between items-center text-sm bg-gray-50 p-2 rounded"
+                          >
                             <span>Score: {attempt.score}</span>
-                            <span className={attempt.passed === 'true' ? 'text-green-600' : 'text-red-600'}>
+                            <span
+                              className={
+                                attempt.passed === 'true' ? 'text-green-600' : 'text-red-600'
+                              }
+                            >
                               {attempt.passed === 'true' ? 'Passed' : 'Failed'}
                             </span>
                           </div>

@@ -33,14 +33,11 @@ export default function MyCoursesPage() {
 
     const fetchEnrollments = async () => {
       try {
-        const response = await fetch(
-          apiUrl(`/api/enrollments?studentId=${user.id}`),
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
+        const response = await fetch(apiUrl(`/api/enrollments?studentId=${user.id}`), {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
 
         if (!response.ok) {
           throw new Error('Failed to fetch enrollments');
@@ -107,7 +104,10 @@ export default function MyCoursesPage() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {enrollments.map((enrollment) => (
-              <div key={enrollment.id} className="border rounded-lg p-6 hover:shadow-lg transition-shadow">
+              <div
+                key={enrollment.id}
+                className="border rounded-lg p-6 hover:shadow-lg transition-shadow"
+              >
                 <h2 className="text-xl font-semibold mb-2">{enrollment.course.title}</h2>
                 <p className="text-gray-600 mb-4 line-clamp-3">{enrollment.course.description}</p>
                 <div className="flex justify-between items-center text-sm text-gray-500 mb-4">

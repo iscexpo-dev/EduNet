@@ -69,7 +69,9 @@ Ordered by risk. Items marked `[!]` need external infrastructure.
 - [x] Token storage: move access/refresh tokens out of `localStorage` to
       `httpOnly` cookies (implemented via `edunet_access`/`edunet_refresh` cookies;
       web keeps access token in memory).
-- [ ] Shared rate-limit store or single-replica constraint made explicit.
+- [x] Shared rate-limit store or single-replica constraint made explicit
+      (`GATEWAY_RATE_LIMIT_STORE=postgres`, `GATEWAY_REPLICA_COUNT` validation,
+      migration `0004`, tests — 2026-10-25).
 - [x] Parent web surface (`/parent` dashboard, 2026-10-24).
 - [x] Admin web console added with users/organizations/audit views (`/admin`).
 - [x] Replace hardcoded `localhost:3001` API origins with `NEXT_PUBLIC_API_URL`.
@@ -127,6 +129,26 @@ Ordered by risk. Items marked `[!]` need external infrastructure.
 - [x] Added `useOfflineSync` that flushes the local queue via the API on reconnect.
 - [x] Wired offline assignment submission and lesson completion into the queue.
 - [x] Full gates pass after wiring (107 tasks, 380 tests, 32 files).
+
+## Checkpoint 13 — Rate-limit topology — COMPLETE 2026-10-25
+
+- [x] Added `GATEWAY_RATE_LIMIT_STORE=memory|postgres`; memory is the default
+      and valid for exactly one replica.
+- [x] Added `GATEWAY_REPLICA_COUNT` validation: production startup rejects
+      `> 1` with the in-process store and warns when the count is undeclared.
+- [x] Added atomic Postgres shared limiter (`INSERT ... ON CONFLICT DO UPDATE`),
+      window reset, bounded pruning and fail-closed store errors.
+- [x] Added migration `0004_sad_madelyne_pryor` for `rate_limit_windows` and
+      closed the missing `audit_logs.hash`/`previous_hash` schema drift.
+- [x] Gateway/config unit tests cover shared counters, window reset, error
+      propagation, store selection and replica validation; database integration
+      test covers concurrent increments (CI-only here).
+- [x] Evidence: full gates PASS — typecheck 35/35, lint 32/32 (0 errors),
+      tests 49/49 tasks / 389 tests / 32 files, build 29/29, audit PASS
+      (1 moderate dev-only), `pnpm db:check` 5 migrations, `ops:test` and
+      `format:check` PASS. Logs recorded in `PROGRESS_STATE.json`.
+- [x] Compose (`local` single replica, `staging` shared store) and deployment
+      docs updated.
 
 ## Definition of done for this run
 

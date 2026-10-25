@@ -28,14 +28,11 @@ export default function CoursesPage() {
 
     const fetchCourses = async () => {
       try {
-        const response = await fetch(
-          apiUrl(`/api/courses?organizationId=${user.organizationId}`),
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
+        const response = await fetch(apiUrl(`/api/courses?organizationId=${user.organizationId}`), {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
 
         if (!response.ok) {
           throw new Error('Failed to fetch courses');
@@ -94,7 +91,10 @@ export default function CoursesPage() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {courses.map((course) => (
-              <div key={course.id} className="border rounded-lg p-6 hover:shadow-lg transition-shadow">
+              <div
+                key={course.id}
+                className="border rounded-lg p-6 hover:shadow-lg transition-shadow"
+              >
                 <h2 className="text-xl font-semibold mb-2">{course.title}</h2>
                 <p className="text-gray-600 mb-4 line-clamp-3">{course.description}</p>
                 <div className="flex justify-between items-center text-sm text-gray-500 mb-4">

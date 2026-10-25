@@ -1,6 +1,6 @@
 # EduNet Roadmap Gap Matrix
 
-Last updated: 2026-10-24
+Last updated: 2026-10-25
 Baseline: `main` at `8273870` (descends from the reported `ef96741`)
 Source of truth for requirements: `docs/product/PRODUCT-FOUNDATION.md`
 Resumable state: `PROGRESS_STATE.json` · checklist: `todo/ACTIVE-PLAN.md`
@@ -25,12 +25,12 @@ coverage and an operational story.
 
 | Gate | Command | Result |
 |------|---------|--------|
-| Typecheck | `pnpm turbo run typecheck --concurrency=2` | **35/35 tasks PASS** (2026-10-24) |
+| Typecheck | `pnpm turbo run typecheck --concurrency=2` | **35/35 tasks PASS** (2026-10-25) |
 | Lint | `pnpm turbo run lint --concurrency=2` | **32/32 tasks PASS**, 0 errors, 259 warnings |
-| Unit tests | `pnpm turbo run test --force --concurrency=2` | **49/49 tasks PASS**, 380 tests across 32 files |
+| Unit tests | `pnpm turbo run test --force --concurrency=2` | **49/49 tasks PASS**, 389 tests across 32 files |
 | Build | `pnpm turbo run build --force --concurrency=2` | **29/29 tasks PASS**, including the Next.js production build |
 | Dependency audit | `pnpm audit --audit-level=high` | **PASS** after the `body-parser` override; 1 moderate dev-only advisory |
-| Migration static check | `pnpm db:check` | **PASS** — 4 migrations consistent |
+| Migration static check | `pnpm db:check` | **PASS** — 5 migrations consistent (latest `0004_sad_madelyne_pryor`) |
 | Operations self-test | `pnpm ops:test` | **PASS** |
 | Production start | `node dist/index.js` | **PASS (previous run)** — 19 services `/health` 200; not re-run this checkpoint |
 | Migrations | `pnpm --filter @edunet/database migrate` | `CI ONLY` in this sandbox (no PostgreSQL binary) |
@@ -89,14 +89,14 @@ coverage and an operational story.
 |---|-----------|--------|----------------|
 | 31 | Integrations and webhooks | PARTIAL | Integration configs and webhook endpoint registration; delivery, retries and signing not proven |
 | 32 | Audit and compliance | PARTIAL | Identity audit, platform audit with verification, AI audit; no retention policy or immutable external store |
-| 33 | Security hardening | PARTIAL | Gateway now enforces CORS allowlist, security headers and per-instance rate limits; CSP and httpOnly token storage implemented; external scan pending |
+| 33 | Security hardening | PARTIAL | Gateway enforces a CORS allowlist, security headers and per-client rate limits; the default in-process store is guarded to one replica and an atomic Postgres store is available for horizontal scaling; CSP and httpOnly token storage implemented; external scan, MFA and a live shared-store run pending |
 | 34 | Observability | COMPLETE | Request IDs, structured logs, bounded Prometheus metrics, `/health`, `/ready`, `/metrics` across services; dashboards/alert routing not provisioned |
 | 35 | CI/CD | PARTIAL | GitHub Actions installs, migrates, lints, typechecks, runs DB integration, tests and Playwright E2E; first hosted run on the current commit pending and no deployment job |
 | 36 | Infrastructure and containers | MISSING | Services now run from compiled `dist`; no Dockerfile, compose, IaC, managed-Postgres provisioning or CDN configuration |
-| 37 | API gateway / single origin | PARTIAL | `@edunet/gateway` maps all 18 prefixes, streams bodies CORS/security headers/rate limits and has 19 tests; no deployment manifest, TLS or end-to-end gateway test |
+| 37 | API gateway / single origin | PARTIAL | `@edunet/gateway` maps all 18 prefixes, streams bodies CORS/security headers/rate limits, has 24 tests and a configurable shared limiter; no deployment manifest, TLS or end-to-end gateway test |
 | 38 | Backup and disaster recovery | PARTIAL | `scripts/backup-db.sh`, `scripts/restore-db.sh`, checksum and runbook; no scheduled job, media snapshot or timed restore drill |
 | 39 | Performance and load testing | MISSING | No k6/artillery scenario, p95 baseline or 10× pilot load test |
-| 40 | QA strategy | PARTIAL | 380 unit tests, 32 test files, one browser journey (CI); no contract, visual, accessibility or cross-browser suite |
+| 40 | QA strategy | PARTIAL | 389 unit tests, 32 test files, one browser journey (CI); no contract, visual, accessibility or cross-browser suite |
 
 ## 41-47. Operations and Launch
 

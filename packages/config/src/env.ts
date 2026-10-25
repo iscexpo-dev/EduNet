@@ -31,6 +31,7 @@ export interface ValidateOptions {
 
 const VALID_NODE_ENVS = new Set(['development', 'test', 'production']);
 const VALID_LOG_LEVELS = new Set(['debug', 'info', 'warn', 'error']);
+const VALID_RATE_LIMIT_STORES = new Set(['memory', 'postgres']);
 
 const PLACEHOLDER_PATTERNS = [
   /^replace-with-/i,
@@ -172,6 +173,12 @@ export function validateEnvironment(options: ValidateOptions = {}): EnvironmentV
   integerInRange(env, 'GATEWAY_RATE_LIMIT_PER_MINUTE', 0, 1_000_000, error);
   integerInRange(env, 'GATEWAY_AUTH_RATE_LIMIT_PER_MINUTE', 0, 1_000_000, error);
   integerInRange(env, 'GATEWAY_AI_RATE_LIMIT_PER_MINUTE', 0, 1_000_000, error);
+  integerInRange(env, 'GATEWAY_REPLICA_COUNT', 1, 1000, error);
+
+  const rateLimitStore = env.GATEWAY_RATE_LIMIT_STORE?.trim().toLowerCase();
+  if (rateLimitStore && !VALID_RATE_LIMIT_STORES.has(rateLimitStore)) {
+    error('GATEWAY_RATE_LIMIT_STORE', 'must be one of memory or postgres');
+  }
 
   validateOriginList(env.CORS_ORIGINS, 'CORS_ORIGINS', production, error);
 
@@ -221,6 +228,44 @@ export function validateEnvironment(options: ValidateOptions = {}): EnvironmentV
       }
       if (production && env.TRUST_PROXY === undefined) {
         warn('TRUST_PROXY', 'is not set; rate limiting will not see the real client address behind a proxy');
+      }
+
+      const store = rateLimitStore === 'postgres' ? 'postgres' : 'memory';
+      const replicaValue = Number(env.GATEWAY_REPLICA_COUNT ?? 1);
+      const replicas = Number.isInteger(replicaValue) ? replicaValue : 1;
+
+      if (replicas > 1 && store === 'memory') {
+        error(
+          'GATEWAY_REPLICA_COUNT',
+          'requires a shared rate-limit store; set GATEWAY_RATE_LIMIT_STORE=postgres before running multiple gateway replicas',
+        );
+      }
+      if (production && store === 'memory' && env.GATEWAY_REPLICA_COUNT === undefined) {
+        warn(
+          'GATEWAY_REPLICA_COUNT',
+          'is not set; the in-process limiter assumes exactly one gateway replica. Set it explicitly or use the postgres store',
+        );
+      }
+
+      if (store === 'postgres') {
+        if (!hasDatabaseConfig(env)) {
+          error(
+            'GATEWAY_RATE_LIMIT_STORE',
+            'postgres requires DATABASE_URL or the complete DB_HOST/DB_PORT/DB_NAME/DB_USER set',
+          );
+        } else if (production) {
+          const target = parseDatabaseTarget(env);
+          if (!target) {
+            error('DATABASE_URL', 'is not a valid PostgreSQL connection target');
+          } else {
+            if (target.local && env.DATABASE_ALLOW_INSECURE !== 'true') {
+              error('DATABASE_URL', 'must not target a loopback host in production');
+            }
+            if (!target.tls && env.DATABASE_SSL !== 'true' && env.DATABASE_ALLOW_INSECURE !== 'true') {
+              error('DATABASE_URL', 'must enable TLS (sslmode=require/verify-* or DATABASE_SSL=true)');
+            }
+          }
+        }
       }
     }
 

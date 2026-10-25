@@ -50,10 +50,14 @@ export default function LoginPage() {
               required
               placeholder="••••••••"
             />
-            {error && (
-              <div className="text-red-600 text-sm">{error}</div>
-            )}
-            <Button type="submit" variant="primary" size="lg" className="w-full" isLoading={isLoading}>
+            {error && <div className="text-red-600 text-sm">{error}</div>}
+            <Button
+              type="submit"
+              variant="primary"
+              size="lg"
+              className="w-full"
+              isLoading={isLoading}
+            >
               Login
             </Button>
           </form>

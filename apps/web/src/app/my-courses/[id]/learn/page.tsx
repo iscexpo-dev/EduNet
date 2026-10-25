@@ -33,7 +33,7 @@ export default function CourseLearningPage() {
   const { user, token } = useAuth();
   const params = useParams();
   const courseId = params.id as string;
-  
+
   const [lessons, setLessons] = useState<Lesson[]>([]);
   const [progress, setProgress] = useState<LessonProgress[]>([]);
   const [currentLesson, setCurrentLesson] = useState<Lesson | null>(null);
@@ -47,19 +47,16 @@ export default function CourseLearningPage() {
 
     const fetchData = async () => {
       try {
-        const lessonsResponse = await fetch(
-          apiUrl(`/api/content/lessons?courseId=${courseId}`),
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
+        const lessonsResponse = await fetch(apiUrl(`/api/content/lessons?courseId=${courseId}`), {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
 
         if (lessonsResponse.ok) {
           const lessonsData = await lessonsResponse.json();
           setLessons(lessonsData);
-          
+
           if (lessonsData.length > 0) {
             setCurrentLesson(lessonsData[0]);
           }
@@ -89,7 +86,7 @@ export default function CourseLearningPage() {
   }, [user, token, courseId]);
 
   const getProgressForLesson = (lessonId: string) => {
-    return progress.find(p => p.lessonId === lessonId);
+    return progress.find((p) => p.lessonId === lessonId);
   };
 
   const handleLessonClick = (lesson: Lesson) => {
@@ -173,8 +170,9 @@ export default function CourseLearningPage() {
     );
   }
 
-  const completedCount = progress.filter(p => p.status === 'completed').length;
-  const progressPercentage = lessons.length > 0 ? Math.round((completedCount / lessons.length) * 100) : 0;
+  const completedCount = progress.filter((p) => p.status === 'completed').length;
+  const progressPercentage =
+    lessons.length > 0 ? Math.round((completedCount / lessons.length) * 100) : 0;
 
   return (
     <div className="min-h-screen p-8">
@@ -195,8 +193,8 @@ export default function CourseLearningPage() {
                   <span>{progressPercentage}%</span>
                 </div>
                 <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div 
-                    className="bg-blue-600 h-2 rounded-full transition-all" 
+                  <div
+                    className="bg-blue-600 h-2 rounded-full transition-all"
                     style={{ width: `${progressPercentage}%` }}
                   />
                 </div>
@@ -220,13 +218,15 @@ export default function CourseLearningPage() {
                       }`}
                     >
                       <div className="flex items-center gap-3">
-                        <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs ${
-                          isCompleted 
-                            ? 'bg-green-100 text-green-700' 
-                            : isInProgress
-                            ? 'bg-blue-100 text-blue-700'
-                            : 'bg-gray-100 text-gray-500'
-                        }`}>
+                        <div
+                          className={`w-6 h-6 rounded-full flex items-center justify-center text-xs ${
+                            isCompleted
+                              ? 'bg-green-100 text-green-700'
+                              : isInProgress
+                                ? 'bg-blue-100 text-blue-700'
+                                : 'bg-gray-100 text-gray-500'
+                          }`}
+                        >
                           {isCompleted ? '✓' : index + 1}
                         </div>
                         <div className="flex-1">
@@ -287,8 +287,8 @@ export default function CourseLearningPage() {
                 </div>
 
                 <div className="flex justify-between items-center mt-8 pt-6 border-t">
-                  <Button 
-                    variant="secondary" 
+                  <Button
+                    variant="secondary"
                     disabled={lessons.indexOf(currentLesson) === 0}
                     onClick={() => {
                       const currentIndex = lessons.indexOf(currentLesson);
@@ -299,7 +299,7 @@ export default function CourseLearningPage() {
                   >
                     Previous
                   </Button>
-                  <Button 
+                  <Button
                     variant="primary"
                     disabled={lessons.indexOf(currentLesson) === lessons.length - 1}
                     onClick={() => {
@@ -313,15 +313,25 @@ export default function CourseLearningPage() {
                   </Button>
                 </div>
                 <div className="mt-6 border-t pt-6">
-                  {progressError && <p role="alert" className="mb-3 text-sm text-red-600">{progressError}</p>}
+                  {progressError && (
+                    <p role="alert" className="mb-3 text-sm text-red-600">
+                      {progressError}
+                    </p>
+                  )}
                   {user.role === 'student' && (
                     <Button
-                      variant={getProgressForLesson(currentLesson.id)?.status === 'completed' ? 'secondary' : 'primary'}
+                      variant={
+                        getProgressForLesson(currentLesson.id)?.status === 'completed'
+                          ? 'secondary'
+                          : 'primary'
+                      }
                       isLoading={savingProgress}
                       disabled={getProgressForLesson(currentLesson.id)?.status === 'completed'}
                       onClick={handleCompleteLesson}
                     >
-                      {getProgressForLesson(currentLesson.id)?.status === 'completed' ? 'Lesson completed' : 'Mark lesson complete'}
+                      {getProgressForLesson(currentLesson.id)?.status === 'completed'
+                        ? 'Lesson completed'
+                        : 'Mark lesson complete'}
                     </Button>
                   )}
                 </div>

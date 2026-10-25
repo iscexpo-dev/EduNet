@@ -42,10 +42,9 @@ export default function AssignmentSubmissionPage() {
 
     const fetchData = async () => {
       try {
-        const assignmentRes = await fetch(
-          apiUrl(`/api/assignments/${assignmentId}`),
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
+        const assignmentRes = await fetch(apiUrl(`/api/assignments/${assignmentId}`), {
+          headers: { Authorization: `Bearer ${token}` },
+        });
         if (assignmentRes.ok) {
           setAssignment(await assignmentRes.json());
         }
@@ -127,22 +126,36 @@ export default function AssignmentSubmissionPage() {
   };
 
   if (!user) {
-    return <div className="min-h-screen flex items-center justify-center"><p>Please log in</p></div>;
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p>Please log in</p>
+      </div>
+    );
   }
 
   if (loading) {
-    return <div className="min-h-screen flex items-center justify-center"><p>Loading...</p></div>;
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p>Loading...</p>
+      </div>
+    );
   }
 
   if (!assignment) {
-    return <div className="min-h-screen flex items-center justify-center"><p>Assignment not found</p></div>;
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p>Assignment not found</p>
+      </div>
+    );
   }
 
   return (
     <div className="min-h-screen p-8">
       <div className="max-w-3xl mx-auto">
         <Link href={`/my-courses/${courseId}`}>
-          <Button variant="secondary" className="mb-6">&larr; Back to Course</Button>
+          <Button variant="secondary" className="mb-6">
+            &larr; Back to Course
+          </Button>
         </Link>
 
         <Card>
@@ -159,12 +172,18 @@ export default function AssignmentSubmissionPage() {
               <div className="space-y-4">
                 <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded">
                   <p className="font-semibold">Submitted</p>
-                  <p className="text-sm">Submitted on: {new Date(submission.submittedAt).toLocaleDateString()}</p>
+                  <p className="text-sm">
+                    Submitted on: {new Date(submission.submittedAt).toLocaleDateString()}
+                  </p>
                 </div>
                 {submission.grade != null && (
                   <div className="bg-blue-50 border border-blue-200 text-blue-700 px-4 py-3 rounded">
-                    <p className="font-semibold">Grade: {submission.grade} / {assignment.maxPoints}</p>
-                    {submission.feedback && <p className="text-sm mt-2">Feedback: {submission.feedback}</p>}
+                    <p className="font-semibold">
+                      Grade: {submission.grade} / {assignment.maxPoints}
+                    </p>
+                    {submission.feedback && (
+                      <p className="text-sm mt-2">Feedback: {submission.feedback}</p>
+                    )}
                   </div>
                 )}
                 <div>
@@ -182,7 +201,9 @@ export default function AssignmentSubmissionPage() {
                   </div>
                 )}
                 <div>
-                  <label htmlFor="submission-answer" className="block text-sm font-medium mb-2">Your Answer</label>
+                  <label htmlFor="submission-answer" className="block text-sm font-medium mb-2">
+                    Your Answer
+                  </label>
                   <textarea
                     id="submission-answer"
                     value={content}

@@ -14,25 +14,55 @@ interface DashboardLink {
 
 const LINKS_BY_ROLE: Record<string, DashboardLink[]> = {
   student: [
-    { title: 'My Courses', description: 'Continue learning and track progress', href: '/my-courses', action: 'Open my courses' },
-    { title: 'Course Catalog', description: 'Browse and enroll in available courses', href: '/courses', action: 'Browse courses' },
+    {
+      title: 'My Courses',
+      description: 'Continue learning and track progress',
+      href: '/my-courses',
+      action: 'Open my courses',
+    },
+    {
+      title: 'Course Catalog',
+      description: 'Browse and enroll in available courses',
+      href: '/courses',
+      action: 'Browse courses',
+    },
   ],
   teacher: [
-    { title: 'Teacher Dashboard', description: 'Manage your courses and students', href: '/teacher', action: 'Open teaching' },
-    { title: 'Create Course', description: 'Start a new course for your students', href: '/teacher/courses/new', action: 'Create course' },
+    {
+      title: 'Teacher Dashboard',
+      description: 'Manage your courses and students',
+      href: '/teacher',
+      action: 'Open teaching',
+    },
+    {
+      title: 'Create Course',
+      description: 'Start a new course for your students',
+      href: '/teacher/courses/new',
+      action: 'Create course',
+    },
   ],
   parent: [
-    { title: 'Children', description: 'View linked children, courses and grades', href: '/parent', action: 'Open parent dashboard' },
+    {
+      title: 'Children',
+      description: 'View linked children, courses and grades',
+      href: '/parent',
+      action: 'Open parent dashboard',
+    },
   ],
   admin: [
-    { title: 'Course Catalog', description: 'Review courses in your organization', href: '/courses', action: 'Browse courses' },
+    {
+      title: 'Course Catalog',
+      description: 'Review courses in your organization',
+      href: '/courses',
+      action: 'Browse courses',
+    },
   ],
 };
 
 export default function DashboardPage() {
   const { user, logout, isLoading } = useAuth();
   const router = useRouter();
-  const links = user ? LINKS_BY_ROLE[user.role] ?? [] : [];
+  const links = user ? (LINKS_BY_ROLE[user.role] ?? []) : [];
 
   const handleLogout = () => {
     logout();

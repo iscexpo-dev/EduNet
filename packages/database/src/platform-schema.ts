@@ -17,6 +17,7 @@ import {
   index,
   unique,
   real,
+  bigint,
 } from 'drizzle-orm/pg-core';
 import { organizations, users, courses } from './schema';
 
@@ -893,4 +894,23 @@ export const notificationDeliveries = pgTable('notification_deliveries', {
 }, (table) => ({
   notificationIdx: index('notification_deliveries_notification_idx').on(table.notificationId),
   statusNextIdx: index('notification_deliveries_status_next_idx').on(table.status, table.nextAttemptAt),
+}));
+
+// ---------------------------------------------------------------------------
+// Gateway rate limiting (shared store for multi-replica deployments)
+// ---------------------------------------------------------------------------
+
+/**
+ * One row per client+scope. The gateway always increments the current window
+ * atomically; a new window reuses the row instead of inserting another one.
+ * `expires_at` bounds the table so abandoned keys can be pruned.
+ */
+export const rateLimitWindows = pgTable('rate_limit_windows', {
+  key: varchar('key', { length: 200 }).primaryKey(),
+  windowStart: bigint('window_start', { mode: 'number' }).notNull(),
+  count: integer('count').default(0).notNull(),
+  expiresAt: timestamp('expires_at').notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => ({
+  expiresIdx: index('rate_limit_windows_expires_idx').on(table.expiresAt),
 }));

@@ -1,6 +1,14 @@
 import type { Express } from 'express';
+import { createLogger } from '@edunet/observability';
 import { createProxy } from './proxy';
-import { FixedWindowLimiter, limitForPrefix, rateLimit, rateLimitConfigFromEnv } from './ratelimit';
+import { createLimiter } from './ratelimit-factory';
+import {
+  limitForPrefix,
+  rateLimit,
+  rateLimitConfigFromEnv,
+  rateLimitStoreFromEnv,
+  replicaCountFromEnv,
+} from './ratelimit';
 import { cors, securityHeaders, securityOptionsFromEnv } from './security';
 import { ROUTE_TO_SERVICE, resolveUpstream, type RoutePrefix } from './upstreams';
 
@@ -14,7 +22,18 @@ import { ROUTE_TO_SERVICE, resolveUpstream, type RoutePrefix } from './upstreams
 export function registerRoutes(app: Express): void {
   const security = securityOptionsFromEnv();
   const limits = rateLimitConfigFromEnv();
-  const limiter = new FixedWindowLimiter();
+  const store = rateLimitStoreFromEnv();
+  const replicas = replicaCountFromEnv();
+  const limiter = createLimiter(store);
+
+  // Make the topology explicit at startup: operators must not assume that two
+  // replicas share a counter when the in-process store is active.
+  createLogger().info('rate_limit_store', {
+    store,
+    replicas,
+    perProcess: store === 'memory',
+  });
+
   app.use(securityHeaders(security));
   app.use(cors(security));
 

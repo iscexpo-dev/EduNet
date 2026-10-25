@@ -13,6 +13,7 @@
     "clean": "rm -rf dist node_modules"
   },
   "dependencies": {
+    "@edunet/database": "workspace:*",
     "@edunet/observability": "workspace:*",
     "express": "^4.19.0"
   },

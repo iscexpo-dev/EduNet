@@ -42,18 +42,16 @@ export default function QuizTakingPage() {
 
     const fetchQuiz = async () => {
       try {
-        const quizRes = await fetch(
-          apiUrl(`/api/assessments/quizzes/${quizId}`),
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
+        const quizRes = await fetch(apiUrl(`/api/assessments/quizzes/${quizId}`), {
+          headers: { Authorization: `Bearer ${token}` },
+        });
         if (quizRes.ok) {
           const quizData = await quizRes.json();
           setQuiz(quizData);
 
-          const questionsRes = await fetch(
-            apiUrl(`/api/assessments/questions?quizId=${quizId}`),
-            { headers: { Authorization: `Bearer ${token}` } }
-          );
+          const questionsRes = await fetch(apiUrl(`/api/assessments/questions?quizId=${quizId}`), {
+            headers: { Authorization: `Bearer ${token}` },
+          });
           if (questionsRes.ok) {
             setQuestions(await questionsRes.json());
           }
@@ -88,17 +86,14 @@ export default function QuizTakingPage() {
     setError('');
 
     try {
-      const response = await fetch(
-        apiUrl(`/api/assessments/quiz-attempts/${attemptId}/submit`),
-        {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({ answers }),
-        }
-      );
+      const response = await fetch(apiUrl(`/api/assessments/quiz-attempts/${attemptId}/submit`), {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ answers }),
+      });
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -115,11 +110,19 @@ export default function QuizTakingPage() {
   };
 
   if (!user) {
-    return <div className="min-h-screen flex items-center justify-center"><p>Please log in</p></div>;
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p>Please log in</p>
+      </div>
+    );
   }
 
   if (loading) {
-    return <div className="min-h-screen flex items-center justify-center"><p>Loading...</p></div>;
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p>Loading...</p>
+      </div>
+    );
   }
 
   if (result) {
@@ -133,12 +136,16 @@ export default function QuizTakingPage() {
             <CardContent>
               <div className="text-center py-8">
                 <p className="text-4xl font-bold mb-2">{result.score}</p>
-                <p className={`text-xl ${result.passed === 'true' ? 'text-green-600' : 'text-red-600'}`}>
+                <p
+                  className={`text-xl ${result.passed === 'true' ? 'text-green-600' : 'text-red-600'}`}
+                >
                   {result.passed === 'true' ? 'Passed' : 'Failed'}
                 </p>
               </div>
               <Link href={`/my-courses/${courseId}/assessments`}>
-                <Button variant="primary" className="w-full">Back to Assessments</Button>
+                <Button variant="primary" className="w-full">
+                  Back to Assessments
+                </Button>
               </Link>
             </CardContent>
           </Card>
@@ -151,7 +158,9 @@ export default function QuizTakingPage() {
     <div className="min-h-screen p-8">
       <div className="max-w-3xl mx-auto">
         <Link href={`/my-courses/${courseId}/assessments`}>
-          <Button variant="secondary" className="mb-6">&larr; Back to Assessments</Button>
+          <Button variant="secondary" className="mb-6">
+            &larr; Back to Assessments
+          </Button>
         </Link>
 
         <Card>
@@ -177,7 +186,8 @@ export default function QuizTakingPage() {
                     <span className="text-sm text-gray-500 ml-2">({question.points} pts)</span>
                   </p>
 
-                  {(question.type === 'multiple_choice' || question.type === 'true_false') && question.options ? (
+                  {(question.type === 'multiple_choice' || question.type === 'true_false') &&
+                  question.options ? (
                     <div className="space-y-2">
                       {question.options.map((option: any, i: number) => (
                         <label key={i} className="flex items-center gap-2">
@@ -186,7 +196,9 @@ export default function QuizTakingPage() {
                             name={question.id}
                             value={option.text || option}
                             checked={answers[question.id] === (option.text || option)}
-                            onChange={(e) => setAnswers({ ...answers, [question.id]: e.target.value })}
+                            onChange={(e) =>
+                              setAnswers({ ...answers, [question.id]: e.target.value })
+                            }
                             className="w-4 h-4 text-blue-600"
                           />
                           <span>{option.text || option}</span>

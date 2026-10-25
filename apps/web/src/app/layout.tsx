@@ -24,11 +24,7 @@ export const viewport: Viewport = {
 // Applies the theme class before paint to avoid a flash of the wrong theme.
 const themeInitScript = `(function(){try{var t=localStorage.getItem('edunet-theme');var d=t?t==='dark':window.matchMedia('(prefers-color-scheme: dark)').matches;if(d)document.documentElement.classList.add('dark');var l=localStorage.getItem('edunet-lang');if(l&&(l==='en'||l==='bn'))document.documentElement.lang=l;}catch(e){}})();`;
 
-export default async function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const nonce = (await headers()).get('x-nonce') ?? undefined;
   return (
     <html lang="en">

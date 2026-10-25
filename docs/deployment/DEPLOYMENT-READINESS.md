@@ -66,7 +66,10 @@ These are **BLOCKED / NOT RUN**, not passes:
 - Staging deployment, DNS/TLS validation, load testing against a deployed
   environment, alert delivery, and backup restore into a real database.
 - Pilot enrollment or any real-user testing.
-- DAST/ZAP, MFA testing, and a shared (multi-replica) rate-limit store.
+- DAST/ZAP, MFA testing, and an executed multi-replica rate-limit run. The
+  Postgres-backed shared store is implemented and covered by unit tests plus a
+  CI-only database integration test, but it has not been exercised against a
+  live database in this sandbox.
 
 CI is configured to run the database, container and browser checks on a
 GitHub-hosted runner; the first green CI run is still required evidence.
@@ -78,8 +81,11 @@ GitHub-hosted runner; the first green CI run is still required evidence.
    cookies; the web client keeps the access token in memory and refreshes through
    the httpOnly cookie. Production cookie attributes and final pilot sign-off
    remain outstanding.
-2. **Rate limiting:** the gateway limiter is in-process. Use one gateway
-   replica or move to a shared store before horizontal scaling.
+2. **Rate limiting:** the default limiter is in-process and valid for exactly
+   one gateway replica. Startup validation rejects a declared replica count
+   above one unless `GATEWAY_RATE_LIMIT_STORE=postgres`; that store has not been
+   run against a live database here. Provision PostgreSQL connectivity and
+   exercise the shared store before horizontal scaling.
 3. **Parent/admin web UI:** the parent and administrator journeys exist as
    APIs and are covered by smoke tests, but there are no dedicated web screens
    for those roles.

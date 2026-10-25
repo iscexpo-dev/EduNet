@@ -54,10 +54,9 @@ export default function CourseProgressPage() {
 
     const fetchData = async () => {
       try {
-        const lessonsRes = await fetch(
-          apiUrl(`/api/content/lessons?courseId=${courseId}`),
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
+        const lessonsRes = await fetch(apiUrl(`/api/content/lessons?courseId=${courseId}`), {
+          headers: { Authorization: `Bearer ${token}` },
+        });
         if (lessonsRes.ok) setLessons(await lessonsRes.json());
 
         const progressRes = await fetch(
@@ -66,16 +65,14 @@ export default function CourseProgressPage() {
         );
         if (progressRes.ok) setProgress(await progressRes.json());
 
-        const assignmentsRes = await fetch(
-          apiUrl(`/api/assignments?courseId=${courseId}`),
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
+        const assignmentsRes = await fetch(apiUrl(`/api/assignments?courseId=${courseId}`), {
+          headers: { Authorization: `Bearer ${token}` },
+        });
         if (assignmentsRes.ok) setAssignments(await assignmentsRes.json());
 
-        const submissionsRes = await fetch(
-          apiUrl(`/api/submissions?studentId=${user.id}`),
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
+        const submissionsRes = await fetch(apiUrl(`/api/submissions?studentId=${user.id}`), {
+          headers: { Authorization: `Bearer ${token}` },
+        });
         if (submissionsRes.ok) setSubmissions(await submissionsRes.json());
       } catch (err: any) {
         setError(err.message);
@@ -98,21 +95,32 @@ export default function CourseProgressPage() {
   const completedLessons = progress.filter((p) => p.status === 'completed').length;
   const totalPoints = submissions.reduce((sum, s) => sum + (s.grade || 0), 0);
   const maxPoints = assignments.reduce((sum, a) => sum + a.maxPoints, 0);
-  const progressPercentage = lessons.length > 0 ? Math.round((completedLessons / lessons.length) * 100) : 0;
+  const progressPercentage =
+    lessons.length > 0 ? Math.round((completedLessons / lessons.length) * 100) : 0;
 
   if (!user) {
-    return <div className="min-h-screen flex items-center justify-center"><p>Please log in</p></div>;
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p>Please log in</p>
+      </div>
+    );
   }
 
   if (loading) {
-    return <div className="min-h-screen flex items-center justify-center"><p>Loading...</p></div>;
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p>Loading...</p>
+      </div>
+    );
   }
 
   return (
     <div className="min-h-screen p-8">
       <div className="max-w-4xl mx-auto">
         <Link href={`/my-courses/${courseId}`}>
-          <Button variant="secondary" className="mb-6">&larr; Back to Course</Button>
+          <Button variant="secondary" className="mb-6">
+            &larr; Back to Course
+          </Button>
         </Link>
 
         <h1 className="text-3xl font-bold mb-6">Course Progress</h1>
@@ -121,22 +129,31 @@ export default function CourseProgressPage() {
           <Card>
             <CardContent className="pt-6">
               <p className="text-sm text-gray-500">Lessons Completed</p>
-              <p className="text-2xl font-bold">{completedLessons} / {lessons.length}</p>
+              <p className="text-2xl font-bold">
+                {completedLessons} / {lessons.length}
+              </p>
               <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
-                <div className="bg-blue-600 h-2 rounded-full" style={{ width: `${progressPercentage}%` }} />
+                <div
+                  className="bg-blue-600 h-2 rounded-full"
+                  style={{ width: `${progressPercentage}%` }}
+                />
               </div>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="pt-6">
               <p className="text-sm text-gray-500">Total Points</p>
-              <p className="text-2xl font-bold">{totalPoints} / {maxPoints}</p>
+              <p className="text-2xl font-bold">
+                {totalPoints} / {maxPoints}
+              </p>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="pt-6">
               <p className="text-sm text-gray-500">Assignments Submitted</p>
-              <p className="text-2xl font-bold">{submissions.length} / {assignments.length}</p>
+              <p className="text-2xl font-bold">
+                {submissions.length} / {assignments.length}
+              </p>
             </CardContent>
           </Card>
         </div>
@@ -151,18 +168,23 @@ export default function CourseProgressPage() {
                 {lessons.map((lesson) => {
                   const lessonProgress = getProgressForLesson(lesson.id);
                   return (
-                    <div key={lesson.id} className="flex justify-between items-center p-3 bg-gray-50 rounded">
+                    <div
+                      key={lesson.id}
+                      className="flex justify-between items-center p-3 bg-gray-50 rounded"
+                    >
                       <div>
                         <p className="font-medium">{lesson.title}</p>
                         <p className="text-sm text-gray-500">{lesson.type}</p>
                       </div>
-                      <span className={`text-sm px-2 py-1 rounded ${
-                        lessonProgress?.status === 'completed'
-                          ? 'bg-green-100 text-green-700'
-                          : lessonProgress?.status === 'in_progress'
-                          ? 'bg-blue-100 text-blue-700'
-                          : 'bg-gray-100 text-gray-500'
-                      }`}>
+                      <span
+                        className={`text-sm px-2 py-1 rounded ${
+                          lessonProgress?.status === 'completed'
+                            ? 'bg-green-100 text-green-700'
+                            : lessonProgress?.status === 'in_progress'
+                              ? 'bg-blue-100 text-blue-700'
+                              : 'bg-gray-100 text-gray-500'
+                        }`}
+                      >
                         {lessonProgress?.status || 'not_started'}
                       </span>
                     </div>
@@ -181,15 +203,22 @@ export default function CourseProgressPage() {
                 {assignments.map((assignment) => {
                   const submission = getSubmissionForAssignment(assignment.id);
                   return (
-                    <div key={assignment.id} className="flex justify-between items-center p-3 bg-gray-50 rounded">
+                    <div
+                      key={assignment.id}
+                      className="flex justify-between items-center p-3 bg-gray-50 rounded"
+                    >
                       <div>
                         <p className="font-medium">{assignment.title}</p>
-                        <p className="text-sm text-gray-500">Due: {new Date(assignment.dueDate).toLocaleDateString()}</p>
+                        <p className="text-sm text-gray-500">
+                          Due: {new Date(assignment.dueDate).toLocaleDateString()}
+                        </p>
                       </div>
                       <div className="text-right">
                         {submission ? (
                           <>
-                            <p className="text-sm font-medium">{submission.grade || 'Pending'} / {assignment.maxPoints}</p>
+                            <p className="text-sm font-medium">
+                              {submission.grade || 'Pending'} / {assignment.maxPoints}
+                            </p>
                             <p className="text-xs text-gray-500">Submitted</p>
                           </>
                         ) : (

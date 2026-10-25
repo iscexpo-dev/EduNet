@@ -72,9 +72,82 @@ describe('environment validation', () => {
         CORS_ORIGINS: 'https://app.example.org',
         ENABLE_HSTS: 'true',
         TRUST_PROXY: '1',
+        GATEWAY_REPLICA_COUNT: '1',
       },
     });
     expect(result.errors).toEqual([]);
+    expect(result.warnings.map((issue) => issue.variable)).not.toContain('GATEWAY_REPLICA_COUNT');
+  });
+
+  it('refuses a multi-replica gateway with the in-process limiter', () => {
+    const result = validateEnvironment({
+      role: 'gateway',
+      env: {
+        NODE_ENV: 'production',
+        JWT_SECRET: 'g'.repeat(48),
+        CORS_ORIGINS: 'https://app.example.org',
+        ENABLE_HSTS: 'true',
+        TRUST_PROXY: '1',
+        GATEWAY_REPLICA_COUNT: '2',
+        GATEWAY_RATE_LIMIT_STORE: 'memory',
+      },
+    });
+    expect(result.errors.some((issue) => issue.variable === 'GATEWAY_REPLICA_COUNT')).toBe(true);
+  });
+
+  it('accepts the postgres rate-limit store only when a database is configured', () => {
+    const base = {
+      NODE_ENV: 'production',
+      JWT_SECRET: 'g'.repeat(48),
+      CORS_ORIGINS: 'https://app.example.org',
+      ENABLE_HSTS: 'true',
+      TRUST_PROXY: '1',
+      GATEWAY_REPLICA_COUNT: '2',
+      GATEWAY_RATE_LIMIT_STORE: 'postgres',
+    };
+
+    const missing = validateEnvironment({ role: 'gateway', env: base });
+    expect(missing.errors.some((issue) => issue.variable === 'GATEWAY_RATE_LIMIT_STORE')).toBe(true);
+
+    const configured = validateEnvironment({
+      role: 'gateway',
+      env: {
+        ...base,
+        DATABASE_URL: 'postgres://edunet:strong-password@db.internal.example:5432/edunet?sslmode=require',
+      },
+    });
+    expect(configured.errors).toEqual([]);
+  });
+
+  it('rejects an unknown rate-limit store and an invalid replica count', () => {
+    const result = validateEnvironment({
+      role: 'gateway',
+      env: {
+        NODE_ENV: 'production',
+        JWT_SECRET: 'g'.repeat(48),
+        CORS_ORIGINS: 'https://app.example.org',
+        GATEWAY_RATE_LIMIT_STORE: 'redis',
+        GATEWAY_REPLICA_COUNT: '0',
+      },
+    });
+    expect(result.errors.map((issue) => issue.variable)).toEqual(
+      expect.arrayContaining(['GATEWAY_RATE_LIMIT_STORE', 'GATEWAY_REPLICA_COUNT']),
+    );
+  });
+
+  it('warns when a production gateway does not declare its replica count', () => {
+    const result = validateEnvironment({
+      role: 'gateway',
+      env: {
+        NODE_ENV: 'production',
+        JWT_SECRET: 'g'.repeat(48),
+        CORS_ORIGINS: 'https://app.example.org',
+        ENABLE_HSTS: 'true',
+        TRUST_PROXY: '1',
+      },
+    });
+    expect(result.errors).toEqual([]);
+    expect(result.warnings.map((issue) => issue.variable)).toContain('GATEWAY_REPLICA_COUNT');
   });
 
   it('rejects AI without consent in production', () => {

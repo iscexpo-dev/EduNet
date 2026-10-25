@@ -3,7 +3,7 @@
   "schemaVersion": "1.0.0",
   "project": "EduNet",
   "purpose": "Canonical resumable execution state for autonomous agents. Update after every meaningful checkpoint.",
-  "lastUpdated": "2026-10-24T17:40:00Z",
+  "lastUpdated": "2026-10-25T07:10:00Z",
   "repository": {
     "path": "/vercel/share/v0-project",
     "remote": "https://github.com/iscexpo-dev/EduNet.git",
@@ -13,7 +13,7 @@
     "reportedHistoricalCommitExists": true,
     "reportedHistoricalCommitIsAncestor": true,
     "note": "The prompt names /Users/khulnasoft/Projects/edunet-agent-launch and commit ef96741. The live checkout is /vercel/share/v0-project at 8273870, which descends from ef96741. All verification is against the live checkout.",
-    "verifiedCommit": "154bbb8",
+    "verifiedCommit": "ce3d24e",
     "pushStatus": "NOT PUSHED \u2014 repository history is PR-based (merge commits); direct push to main not performed"
   },
   "environment": {
@@ -35,14 +35,15 @@
     "apps": 1,
     "services": 19,
     "packages": 12,
-    "testFiles": 31,
+    "testFiles": 32,
     "webPages": 21,
     "database": "PostgreSQL via Drizzle ORM",
     "migrations": [
       "0000_happy_switch.sql",
       "0001_silly_excalibur.sql",
       "0002_assignment_grading.sql",
-      "0003_futuristic_sway.sql"
+      "0003_futuristic_sway.sql",
+      "0004_sad_madelyne_pryor.sql"
     ]
   },
   "validation": {
@@ -59,7 +60,7 @@
     "unitTests": {
       "status": "PASS",
       "command": "pnpm turbo run test --force --concurrency=2",
-      "evidence": "49/49 tasks, 380 tests, 32 files"
+      "evidence": "49/49 tasks, 389 tests, 32 files"
     },
     "build": {
       "status": "PASS",
@@ -74,7 +75,7 @@
     "migrationStaticCheck": {
       "status": "PASS",
       "command": "pnpm db:check",
-      "evidence": "4 migrations consistent, latest 0003_futuristic_sway; live check skipped"
+      "evidence": "5 migrations consistent, latest 0004_sad_madelyne_pryor; live check skipped"
     },
     "opsScripts": {
       "status": "PASS",
@@ -222,7 +223,7 @@
     },
     "security": {
       "status": "PARTIAL",
-      "gap": "Gateway CORS/headers/rate limits and CSP exist; body-parser high advisory fixed; users/organizations mass-assignment, IDOR and cross-tenant listing fixed; access+refresh tokens moved to httpOnly cookies with in-memory access token (2026-10-24); shared rate-limit store, DAST and MFA remain pending"
+      "gap": "Gateway CORS/headers/rate limits and CSP exist; body-parser high advisory fixed; users/organizations mass-assignment, IDOR and cross-tenant listing fixed; access+refresh tokens moved to httpOnly cookies with in-memory access token (2026-10-24); gateway now supports an atomic Postgres shared rate-limit store and rejects multi-replica startup with the in-process store (2026-10-25); shared store not yet exercised against a live DB, DAST and MFA remain pending"
     },
     "privacy": {
       "status": "PARTIAL",
@@ -286,9 +287,9 @@
     }
   },
   "activeCheckpoint": {
-    "id": "checkpoint-12-admin-accessibility",
-    "description": "Admin console accessibility baseline (skip link) added; resume at remaining launch-surface gaps.",
-    "startedAt": "2026-10-24T17:40:00Z",
+    "id": "checkpoint-13-rate-limit-topology",
+    "description": "Gateway rate limiting now supports a shared Postgres store and rejects multi-replica startup with the in-process store; migration 0004 adds the store table and closes audit-log schema drift.",
+    "startedAt": "2026-10-25T07:10:00Z",
     "status": "COMPLETE"
   },
   "checkpoints": [
@@ -462,6 +463,46 @@
       "artifacts": [
         "apps/web/src/app/admin/page.tsx"
       ]
+    },
+    {
+      "id": "checkpoint-13-rate-limit-topology",
+      "at": "2026-10-25T07:10:00Z",
+      "summary": "Implemented gateway rate-limit topology: the in-process store is explicitly single-replica and startup validation rejects GATEWAY_REPLICA_COUNT>1 with memory; added an atomic Postgres shared store, migration 0004 for rate_limit_windows, and closed audit_logs.hash/previous_hash schema drift. Full gates pass: typecheck 35/35, lint 32/32 (0 errors), tests 49/49 tasks / 389 tests / 32 files, build 29/29, audit PASS (1 moderate dev-only), db:check 5 migrations, ops:test and format PASS.",
+      "evidence": [
+        "/tmp/typecheck-ratelimit.log",
+        "/tmp/lint-ratelimit.log",
+        "/tmp/test-ratelimit.log",
+        "/tmp/build-ratelimit.log",
+        "/tmp/dbcheck.log",
+        "/tmp/audit-ratelimit.log",
+        "/tmp/ops-ratelimit.log",
+        "/tmp/format-ratelimit.log"
+      ],
+      "artifacts": [
+        "packages/database/src/client.ts",
+        "packages/database/src/rate-limit.ts",
+        "packages/database/src/platform-schema.ts",
+        "packages/database/drizzle/0004_sad_madelyne_pryor.sql",
+        "packages/database/integration/database.integration.test.ts",
+        "packages/config/src/env.ts",
+        "packages/config/src/env.test.ts",
+        "services/gateway/src/ratelimit.ts",
+        "services/gateway/src/ratelimit-factory.ts",
+        "services/gateway/src/ratelimit.test.ts",
+        "services/gateway/src/routes.ts",
+        "services/gateway/package.json",
+        ".env.example",
+        "deploy/compose/docker-compose.local.yml",
+        "deploy/compose/docker-compose.staging.yml"
+      ]
+    },
+    {
+      "id": "checkpoint-14-commit",
+      "at": "2026-10-25T07:15:00Z",
+      "summary": "Committed the rate-limit topology work as ce3d24e. Push not performed because the repository uses pull-request merges into main.",
+      "artifacts": [
+        "ce3d24e"
+      ]
     }
   ],
   "blockers": [
@@ -491,8 +532,11 @@
     }
   ],
   "nextActions": [
-    "Continue remaining offline flows or deeper admin operations.",
-    "Close remaining security hardening: shared rate-limit store, DAST, MFA/SSO."
+    "Implement Bengali + English search normalization and relevance ranking (first unchecked unblocked launch item).",
+    "Configure the AI provider and staff the human escalation path.",
+    "Wire the KPI collection pipeline from persisted data.",
+    "Continue remaining offline flows and deeper admin operations.",
+    "Close remaining security hardening: DAST and MFA/SSO."
   ],
   "filesOfRecord": {
     "state": "PROGRESS_STATE.json",
