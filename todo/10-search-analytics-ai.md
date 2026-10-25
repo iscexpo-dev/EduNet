@@ -1,11 +1,11 @@
 # TODO — 10 Search Analytics Ai
 
-- [ ] global search
-- [ ] Bengali search
+- [x] global search
+- [x] Bengali search
 - [ ] fuzzy search
 - [ ] filters
-- [ ] ranking
-- [ ] event tracking
+- [x] ranking
+- [x] event tracking
 - [ ] learning analytics
 - [ ] attendance analytics
 - [ ] retention
