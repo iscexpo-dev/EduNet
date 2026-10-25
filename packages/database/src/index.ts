@@ -1,63 +1,11 @@
-import { drizzle } from 'drizzle-orm/postgres-js';
-import postgres from 'postgres';
 import { eq } from 'drizzle-orm';
+import { getDb } from './client';
 import * as schema from './schema';
 
 export * from './schema';
 export * from './platform-schema';
-
-type Database = ReturnType<typeof drizzle<typeof schema>>;
-
-/**
- * Resolves the connection string, failing loudly instead of silently building
- * `postgres://undefined:undefined@undefined:undefined/undefined`.
- */
-export function resolveConnectionString(): string {
-  if (process.env.DATABASE_URL) {
-    return process.env.DATABASE_URL;
-  }
-
-  const { DB_USER, DB_PASSWORD, DB_HOST, DB_PORT, DB_NAME } = process.env;
-  const missing = Object.entries({ DB_USER, DB_PASSWORD, DB_HOST, DB_PORT, DB_NAME })
-    .filter(([, value]) => value === undefined || value === '')
-    .map(([key]) => key);
-
-  if (missing.length > 0) {
-    throw new Error(
-      `Database is not configured: set DATABASE_URL or all of ${missing.join(', ')}`,
-    );
-  }
-
-  return `postgres://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}`;
-}
-
-let client: postgres.Sql | null = null;
-let database: Database | null = null;
-
-/**
- * Lazily creates the shared client.
- *
- * Connection setup must not happen at import time: schema modules are imported
- * by drizzle-kit and by tooling without a database, and eagerly opening a
- * client made `import '@edunet/database'` crash whenever the env was absent.
- */
-export function getDb(): Database {
-  if (!database) {
-    client = postgres(resolveConnectionString());
-    database = drizzle(client, { schema });
-  }
-  return database;
-}
-
-/** Close the shared connection, primarily for integration-test teardown. */
-export async function closeDb(): Promise<void> {
-  if (client) {
-    const activeClient = client;
-    client = null;
-    database = null;
-    await activeClient.end();
-  }
-}
+export * from './client';
+export * from './rate-limit';
 
 export async function findCourseById(id: string) {
   const result = await getDb()

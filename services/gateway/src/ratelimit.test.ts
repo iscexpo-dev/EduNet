@@ -3,9 +3,12 @@ import type { AddressInfo } from 'node:net';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import {
   FixedWindowLimiter,
+  PostgresRateLimitLimiter,
   limitForPrefix,
   rateLimit,
   rateLimitConfigFromEnv,
+  rateLimitStoreFromEnv,
+  replicaCountFromEnv,
 } from './ratelimit';
 
 let server: ReturnType<ReturnType<typeof express>['listen']>;
@@ -46,6 +49,97 @@ describe('fixed-window limiter', () => {
     const limiter = new FixedWindowLimiter();
     for (let i = 0; i < 5; i += 1) {
       expect(limiter.check('a|/api/auth', 0, 60_000, 0).allowed).toBe(true);
+    }
+  });
+});
+
+describe('shared postgres limiter', () => {
+  function sharedStore() {
+    const counts = new Map<string, number>();
+    const calls: Array<{ key: string; windowStart: number; windowMs: number }> = [];
+    return {
+      counts,
+      calls,
+      increment: async (key: string, windowStart: number, windowMs: number) => {
+        calls.push({ key, windowStart, windowMs });
+        const bucket = `${key}|${windowStart}`;
+        const next = (counts.get(bucket) ?? 0) + 1;
+        counts.set(bucket, next);
+        return next;
+      },
+    };
+  }
+
+  it('enforces one limit across replicas sharing the store', async () => {
+    const store = sharedStore();
+    const replicaA = new PostgresRateLimitLimiter(store.increment);
+    const replicaB = new PostgresRateLimitLimiter(store.increment);
+    const now = 2_000_000;
+
+    expect(await replicaA.check('client|/api/auth', 2, 60_000, now)).toMatchObject({
+      allowed: true,
+      remaining: 1,
+    });
+    expect(await replicaB.check('client|/api/auth', 2, 60_000, now + 1)).toMatchObject({
+      allowed: true,
+      remaining: 0,
+    });
+    expect(await replicaA.check('client|/api/auth', 2, 60_000, now + 2)).toMatchObject({
+      allowed: false,
+      remaining: 0,
+    });
+    expect(await replicaB.check('client|/api/auth', 2, 60_000, now + 3)).toMatchObject({
+      allowed: false,
+      remaining: 0,
+    });
+  });
+
+  it('resets the count in a new window and passes the window to the store', async () => {
+    const store = sharedStore();
+    const limiter = new PostgresRateLimitLimiter(store.increment);
+
+    await limiter.check('client|/api/ai', 1, 60_000, 0);
+    expect((await limiter.check('client|/api/ai', 1, 60_000, 59_999)).allowed).toBe(false);
+    expect((await limiter.check('client|/api/ai', 1, 60_000, 60_000)).allowed).toBe(true);
+
+    expect(store.calls).toEqual([
+      { key: 'client|/api/ai', windowStart: 0, windowMs: 60_000 },
+      { key: 'client|/api/ai', windowStart: 0, windowMs: 60_000 },
+      { key: 'client|/api/ai', windowStart: 60_000, windowMs: 60_000 },
+    ]);
+  });
+
+  it('does not touch the shared store when the limit is disabled', async () => {
+    const store = sharedStore();
+    const limiter = new PostgresRateLimitLimiter(store.increment);
+
+    expect((await limiter.check('client|/api/auth', 0, 60_000, 0)).allowed).toBe(true);
+    expect(store.calls).toHaveLength(0);
+  });
+
+  it('propagates store failures to the middleware error handler', async () => {
+    const limiter = new PostgresRateLimitLimiter(async () => {
+      throw new Error('database unavailable');
+    });
+
+    const app = express();
+    app.use(rateLimit({ limiter, limit: 5, scope: '/api/auth' }));
+    app.get('/api/auth/login', (_req, res) => res.json({ ok: true }));
+    app.use((error: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+      res.status(503).json({ error: error.message });
+    });
+
+    const edge = await new Promise<ReturnType<ReturnType<typeof express>['listen']>>((resolve) => {
+      const instance = app.listen(0, '127.0.0.1', () => resolve(instance));
+    });
+    const url = `http://127.0.0.1:${(edge.address() as AddressInfo).port}`;
+
+    try {
+      const response = await fetch(`${url}/api/auth/login`);
+      expect(response.status).toBe(503);
+      await expect(response.json()).resolves.toEqual({ error: 'database unavailable' });
+    } finally {
+      await new Promise<void>((resolve) => edge.close(() => resolve()));
     }
   });
 });
@@ -104,5 +198,19 @@ describe('rate-limit configuration', () => {
     expect(limitForPrefix('/api/auth', config)).toBe(10);
     expect(limitForPrefix('/api/ai', config)).toBe(25);
     expect(limitForPrefix('/api/courses', config)).toBe(100);
+  });
+
+  it('selects the store and replica count from the environment', () => {
+    expect(rateLimitStoreFromEnv({} as NodeJS.ProcessEnv)).toBe('memory');
+    expect(rateLimitStoreFromEnv({ GATEWAY_RATE_LIMIT_STORE: 'memory' } as NodeJS.ProcessEnv)).toBe('memory');
+    expect(rateLimitStoreFromEnv({ GATEWAY_RATE_LIMIT_STORE: ' POSTGRES ' } as NodeJS.ProcessEnv)).toBe('postgres');
+    expect(() =>
+      rateLimitStoreFromEnv({ GATEWAY_RATE_LIMIT_STORE: 'redis' } as NodeJS.ProcessEnv),
+    ).toThrow(/memory.*postgres/);
+
+    expect(replicaCountFromEnv({} as NodeJS.ProcessEnv)).toBe(1);
+    expect(replicaCountFromEnv({ GATEWAY_REPLICA_COUNT: '3' } as NodeJS.ProcessEnv)).toBe(3);
+    expect(replicaCountFromEnv({ GATEWAY_REPLICA_COUNT: '0' } as NodeJS.ProcessEnv)).toBe(1);
+    expect(replicaCountFromEnv({ GATEWAY_REPLICA_COUNT: 'lots' } as NodeJS.ProcessEnv)).toBe(1);
   });
 });

@@ -90,7 +90,9 @@ import {
   courses,
   enrollments,
   getDb,
+  incrementRateLimitWindow,
   organizations,
+  rateLimitWindows,
   submissions,
   users,
 } from '../src/index';
@@ -594,5 +596,40 @@ describe('PostgreSQL integration: core LMS relations', () => {
     expect(await assessmentsDb.select().from(users).where(eq(users.id, scopedUserId))).toHaveLength(
       1
     );
+  });
+});
+
+describe('PostgreSQL integration: shared rate-limit windows', () => {
+  const key = `it-rate-limit|${runId}`;
+  const windowMs = 60_000;
+  const windowStart = 10_000;
+
+  afterAll(async () => {
+    await db.delete(rateLimitWindows).where(eq(rateLimitWindows.key, key));
+  });
+
+  it('increments atomically without losing concurrent requests', async () => {
+    const counts = await Promise.all(
+      Array.from({ length: 20 }, () =>
+        incrementRateLimitWindow({ key, windowStart, windowMs }),
+      ),
+    );
+
+    expect([...counts].sort((a, b) => a - b)).toEqual(
+      Array.from({ length: 20 }, (_, index) => index + 1),
+    );
+  });
+
+  it('reuses the row and resets the counter in the next window', async () => {
+    expect(await incrementRateLimitWindow({ key, windowStart: windowStart + windowMs, windowMs })).toBe(1);
+    expect(await incrementRateLimitWindow({ key, windowStart: windowStart + windowMs, windowMs })).toBe(2);
+
+    const rows = await db
+      .select()
+      .from(rateLimitWindows)
+      .where(eq(rateLimitWindows.key, key));
+
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({ key, windowStart: windowStart + windowMs, count: 2 });
   });
 });

@@ -211,6 +211,8 @@ services:
       TRUST_PROXY: '0'
       CORS_ORIGINS: '${CORS_ORIGINS:-http://localhost:3000}'
       ENABLE_HSTS: 'false'
+      GATEWAY_RATE_LIMIT_STORE: 'memory'
+      GATEWAY_REPLICA_COUNT: '1'
       IDENTITY_URL: 'http://identity:3001'
       ORGANIZATIONS_URL: 'http://organizations:3002'
       USERS_URL: 'http://users:3003'

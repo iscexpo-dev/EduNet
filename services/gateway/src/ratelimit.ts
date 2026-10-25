@@ -7,6 +7,22 @@ export interface RateLimitDecision {
   resetAt: number;
 }
 
+/**
+ * The middleware contract. `FixedWindowLimiter` implements it synchronously for
+ * single-replica deployments; shared stores return a promise.
+ */
+export interface Limiter {
+  readonly kind: RateLimitStoreKind;
+  check(
+    key: string,
+    limit: number,
+    windowMs?: number,
+    now?: number,
+  ): RateLimitDecision | Promise<RateLimitDecision>;
+}
+
+export type RateLimitStoreKind = 'memory' | 'postgres';
+
 interface Bucket {
   windowStart: number;
   count: number;
@@ -15,12 +31,13 @@ interface Bucket {
 /**
  * Fixed-window limiter keyed by client and route scope.
  *
- * This is intentionally an in-process default: it protects a single gateway
- * instance without adding a Redis dependency. Before horizontal scaling,
- * replace the `FixedWindowLimiter` instance with a shared implementation that
- * exposes the same `check` method.
+ * This is the default single-replica implementation. Multi-replica deployments
+ * must select the shared Postgres limiter (`GATEWAY_RATE_LIMIT_STORE=postgres`);
+ * configuration validation refuses to start a multi-replica gateway on the
+ * in-process store.
  */
-export class FixedWindowLimiter {
+export class FixedWindowLimiter implements Limiter {
+  readonly kind = 'memory' as const;
   private buckets = new Map<string, Bucket>();
   private readonly maxKeys: number;
 
@@ -70,11 +87,51 @@ export class FixedWindowLimiter {
 }
 
 export interface RateLimitOptions {
-  limiter: FixedWindowLimiter;
+  limiter: Limiter;
   limit: number;
   scope: string;
   windowMs?: number;
   now?: () => number;
+}
+
+/**
+ * Shared fixed-window limiter backed by an atomic increment (PostgreSQL).
+ *
+ * The store owns the counter; this class only translates the returned count
+ * into the standard decision/headers. Keeping the increment function injectable
+ * makes the window logic testable without a database.
+ */
+export type WindowIncrementer = (
+  key: string,
+  windowStart: number,
+  windowMs: number,
+) => Promise<number>;
+
+export class PostgresRateLimitLimiter implements Limiter {
+  readonly kind = 'postgres' as const;
+
+  constructor(private readonly increment: WindowIncrementer) {}
+
+  async check(
+    key: string,
+    limit: number,
+    windowMs = 60_000,
+    now = Date.now(),
+  ): Promise<RateLimitDecision> {
+    const windowStart = Math.floor(now / windowMs) * windowMs;
+    const resetAt = windowStart + windowMs;
+    if (limit <= 0) {
+      return { allowed: true, limit: 0, remaining: 0, resetAt };
+    }
+
+    const count = await this.increment(key, windowStart, windowMs);
+    return {
+      allowed: count <= limit,
+      limit,
+      remaining: Math.max(0, limit - count),
+      resetAt,
+    };
+  }
 }
 
 export function rateLimit(options: RateLimitOptions) {
@@ -85,25 +142,29 @@ export function rateLimit(options: RateLimitOptions) {
       return;
     }
 
-    const now = options.now?.() ?? Date.now();
-    const decision = options.limiter.check(
-      `${req.ip ?? 'unknown'}|${options.scope}`,
-      options.limit,
-      windowMs,
-      now,
-    );
+    const run = async (): Promise<void> => {
+      const now = options.now?.() ?? Date.now();
+      const decision = await options.limiter.check(
+        `${req.ip ?? 'unknown'}|${options.scope}`,
+        options.limit,
+        windowMs,
+        now,
+      );
 
-    res.setHeader('X-RateLimit-Limit', String(decision.limit));
-    res.setHeader('X-RateLimit-Remaining', String(decision.remaining));
-    res.setHeader('X-RateLimit-Reset', String(Math.ceil(decision.resetAt / 1000)));
+      res.setHeader('X-RateLimit-Limit', String(decision.limit));
+      res.setHeader('X-RateLimit-Remaining', String(decision.remaining));
+      res.setHeader('X-RateLimit-Reset', String(Math.ceil(decision.resetAt / 1000)));
 
-    if (!decision.allowed) {
-      res.setHeader('Retry-After', String(Math.max(1, Math.ceil((decision.resetAt - now) / 1000))));
-      res.status(429).json({ error: 'Too many requests' });
-      return;
-    }
+      if (!decision.allowed) {
+        res.setHeader('Retry-After', String(Math.max(1, Math.ceil((decision.resetAt - now) / 1000))));
+        res.status(429).json({ error: 'Too many requests' });
+        return;
+      }
 
-    next();
+      next();
+    };
+
+    run().catch(next);
   };
 }
 
@@ -131,4 +192,28 @@ export function limitForPrefix(prefix: string, config: RateLimitConfig): number 
   if (prefix === '/api/auth') return config.authPerMinute;
   if (prefix === '/api/ai') return config.aiPerMinute;
   return config.defaultPerMinute;
+}
+
+/**
+ * Selects the shared or in-process store. An unknown value is a startup error:
+ * silently falling back to memory would make a scaled deployment look protected
+ * while each replica enforced its own limit.
+ */
+export function rateLimitStoreFromEnv(
+  env: NodeJS.ProcessEnv = process.env,
+): RateLimitStoreKind {
+  const raw = env.GATEWAY_RATE_LIMIT_STORE?.trim().toLowerCase();
+  if (!raw || raw === 'memory') return 'memory';
+  if (raw === 'postgres') return 'postgres';
+  throw new Error(
+    'GATEWAY_RATE_LIMIT_STORE must be "memory" or "postgres"',
+  );
+}
+
+/** Declared gateway replica count; configuration validation enforces the store. */
+export function replicaCountFromEnv(env: NodeJS.ProcessEnv = process.env): number {
+  const raw = env.GATEWAY_REPLICA_COUNT?.trim();
+  if (!raw) return 1;
+  const value = Number(raw);
+  return Number.isInteger(value) && value >= 1 && value <= 1000 ? value : 1;
 }

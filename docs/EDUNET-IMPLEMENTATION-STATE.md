@@ -1,7 +1,7 @@
 # EduNet Implementation State
 
-Last updated: 2026-10-24
-Branch: `main` (`8273870` at re-verification start; see the checkpoint below)
+Last updated: 2026-10-25
+Branch: `main` (rate-limit topology checkpoint on top of `0b6927e`)
 Requirements: `docs/product/PRODUCT-FOUNDATION.md`
 Gap analysis: `docs/EDUNET-ROADMAP-GAP-MATRIX.md`
 Resumable state: `PROGRESS_STATE.json` · checklist: `todo/ACTIVE-PLAN.md`
@@ -12,7 +12,7 @@ Resumable state: `PROGRESS_STATE.json` · checklist: `todo/ACTIVE-PLAN.md`
 
 ---
 
-## 2026-10-24 Re-verification (live checkout)
+## Re-verification and rate-limit checkpoint (2026-10-24 → 2026-10-25)
 
 The live checkout is `/vercel/share/v0-project` on `main` at `8273870`, which
 descends from the prompt's reported `ef96741`. The prompt's filesystem path
@@ -25,10 +25,10 @@ against the live checkout.
 | Install | `pnpm install` | **PASS** after adding a `body-parser` override (see below) |
 | Typecheck | `pnpm turbo run typecheck --concurrency=2` | **PASS — 35/35 tasks** |
 | Lint | `pnpm turbo run lint --concurrency=2` | **PASS — 32/32 tasks, 0 errors, 259 warnings** |
-| Unit tests | `pnpm turbo run test --force --concurrency=2` | **PASS — 49/49 tasks, 380 tests, 32 files** |
+| Unit tests | `pnpm turbo run test --force --concurrency=2` | **PASS — 49/49 tasks, 389 tests, 32 files** |
 | Production build | `pnpm turbo run build --force --concurrency=2` | **PASS — 29/29 tasks, Next.js build included** |
 | Dependency audit | `pnpm audit --audit-level=high` | **PASS** after fix; 1 moderate dev-only advisory remains |
-| Migration static check | `pnpm db:check` | **PASS** — 4 migrations consistent, latest `0003_futuristic_sway`; live check skipped |
+| Migration static check | `pnpm db:check` | **PASS** — 5 migrations consistent, latest `0004_sad_madelyne_pryor`; live check skipped |
 | Operations self-test | `pnpm ops:test` | **PASS** — backup, encryption, verify, restore gates, tamper detection, media |
 | Format check | `pnpm format:check` | **PASS** |
 | PostgreSQL integration | `pnpm --filter @edunet/database test:integration` | **BLOCKED** — no PostgreSQL/psql in this environment |
@@ -79,6 +79,20 @@ watchers were terminated and all gates above used limited concurrency.
    id; all three are now scoped to the caller's organization, and organization
    updates only accept `name`, `address` and `isActive`. Pagination is clamped
    in both services, and 12 unit tests cover the new policies.
+8. **Multi-replica rate limiting was ambiguous.** The gateway now selects
+   `GATEWAY_RATE_LIMIT_STORE=memory|postgres`. Memory remains the default and is
+   only valid for one replica; startup validation rejects a declared
+   `GATEWAY_REPLICA_COUNT > 1` with the in-process store. The Postgres store uses
+   one atomic `INSERT ... ON CONFLICT DO UPDATE` per request, resets counters per
+   window, prunes expired rows opportunistically, and fails closed on store
+   errors. Migration `0004` adds `rate_limit_windows`; unit tests cover shared
+   counters across replicas, window resets and error propagation, and a
+   CI-only integration test exercises the atomic increment against PostgreSQL.
+9. **Audit-log schema drift.** `audit_logs.hash` and
+   `audit_logs.previous_hash` existed in the Drizzle schema and were used by the
+   platform audit hash chain, but no migration created them. Migration `0004`
+   now adds both columns, so a fresh database matches the schema the service
+   writes against.
 
 Resumable state artifacts added: `PROGRESS_STATE.json`,
 `todo/ACTIVE-PLAN.md`, `docs/FINAL_REPORT_TEMPLATE.md`.
@@ -88,7 +102,9 @@ Resumable state artifacts added: `PROGRESS_STATE.json`,
 Migrations against a real database, PostgreSQL integration and tenant-isolation
 suites, browser E2E, container build/scan, a timed restore, staging deployment,
 load testing, accessibility audit, and pilot execution remain **BLOCKED or NOT
-RUN** in this environment. They are not passes.
+RUN** in this environment. They are not passes. The Postgres rate-limit store is
+unit-tested and has a CI-only database test; it has not been exercised against a
+live database here.
 
 ---
 
@@ -132,7 +148,8 @@ what was actually executed in this session.
 | `@edunet/support` | 10 | resources, tickets, escalation, counseling |
 | `@edunet/courses` | 7 | CRUD, teacher ownership, admin override |
 | `@edunet/enrollments` | 6 | self-enrolment, duplicate prevention, cross-student rejection |
-| `@edunet/gateway` | 19 | routing, streaming proxy, CORS/headers, rate limiting, config |
+| `@edunet/gateway` | 24 | routing, streaming proxy, CORS/headers, memory + shared rate limiting, topology config |
+| `@edunet/config` | 15 | production env validation, rate-limit store/replica rules |
 
 ---
 
@@ -181,7 +198,7 @@ Added `@edunet/gateway` on port 8080 (configurable with `GATEWAY_PORT`):
 - returns 502 with a non-disclosing error when an upstream is unavailable
 - applies an explicit CORS allowlist, baseline security headers and per-IP/per-prefix fixed-window rate limits (stricter for auth and AI)
 - does not authorise requests; each service remains the authority
-- 19 tests: route resolution, env overrides, streaming proxy, status propagation, 502, CORS/security headers, rate limiting
+- 24 tests: route resolution, env overrides, streaming proxy, status propagation, 502, CORS/security headers, memory/shared rate limiting, topology config
 
 Set `NEXT_PUBLIC_API_URL=http://localhost:8080` for local web development and
 the deployed gateway origin in production. The gateway still needs a deployment
@@ -285,7 +302,7 @@ entry points because Next.js transpiles them.
 | API Gateway | PARTIAL | `@edunet/gateway` maps all prefixes and is unit-tested; not integration-tested or deployed |
 | Backup/DR | PARTIAL | Scripts + runbook; no drill or media snapshot |
 | Performance / Load | MISSING | No load test |
-| QA | PARTIAL | 380 unit tests; one E2E journey (CI); no contract/visual/a11y suites |
+| QA | PARTIAL | 389 unit tests; one E2E journey (CI); no contract/visual/a11y suites |
 | Documentation | PARTIAL | Product/ops/state/API refreshed; some historical docs remain stale |
 | Pilot / Rollout / Operations | MISSING | No pilot plan, cohort rollout or staffing rota |
 

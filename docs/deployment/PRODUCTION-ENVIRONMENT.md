@@ -14,24 +14,28 @@ browser uses one API origin (`NEXT_PUBLIC_API_URL`) so CORS and CSP stay simple.
 Minimum pilot topology:
 
 - managed PostgreSQL 16 with TLS, automated backups and PITR;
-- 2 web replicas and 1 gateway replica (the in-process limiter requires a
-  single gateway replica until a shared store is added);
+- 2 web replicas and 1 gateway replica by default. The in-process limiter
+  enforces counters per process, so set `GATEWAY_RATE_LIMIT_STORE=postgres`
+  (and declare `GATEWAY_REPLICA_COUNT`) before running more than one gateway
+  replica;
 - 18 service processes or containers on a private network;
 - a persistent media volume or object storage with versioning;
 - a metrics/logs backend and an alert destination.
 
 ## Required API environment
 
-| Variable              | Requirement                                                            |
-| --------------------- | ---------------------------------------------------------------------- |
-| `NODE_ENV`            | `production`                                                           |
-| `JWT_SECRET`          | unique, >= 32 characters, from a secret manager; placeholders rejected |
-| `DATABASE_URL`        | PostgreSQL URL with `sslmode=require` in managed environments          |
-| `TRUST_PROXY`         | exact number of trusted proxy hops                                     |
-| `CORS_ORIGINS`        | comma-separated public web origins; empty means same-origin only       |
-| `ENABLE_HSTS`         | `true` only after HTTPS is verified on all hostnames                   |
-| `BCRYPT_COST`         | `12` for production                                                    |
-| `SHUTDOWN_TIMEOUT_MS` | graceful shutdown budget, default 10000                                |
+| Variable                   | Requirement                                                            |
+| -------------------------- | ---------------------------------------------------------------------- |
+| `NODE_ENV`                 | `production`                                                           |
+| `JWT_SECRET`               | unique, >= 32 characters, from a secret manager; placeholders rejected |
+| `DATABASE_URL`             | PostgreSQL URL with `sslmode=require` in managed environments          |
+| `TRUST_PROXY`              | exact number of trusted proxy hops                                     |
+| `CORS_ORIGINS`             | comma-separated public web origins; empty means same-origin only       |
+| `ENABLE_HSTS`              | `true` only after HTTPS is verified on all hostnames                   |
+| `GATEWAY_RATE_LIMIT_STORE` | `memory` (default, one replica) or `postgres` (shared)                 |
+| `GATEWAY_REPLICA_COUNT`    | integer replica count; required to declare for multi-replica setups    |
+| `BCRYPT_COST`              | `12` for production                                                    |
+| `SHUTDOWN_TIMEOUT_MS`      | graceful shutdown budget, default 10000                                |
 
 Production startup fails fast on missing/short JWT secrets, missing database
 URL, non-HTTPS CORS origins, `TRUST_PROXY` without a value, insecure TLS
@@ -65,7 +69,19 @@ ENABLE_HSTS=true
 GATEWAY_RATE_LIMIT_PER_MINUTE=120
 GATEWAY_AUTH_RATE_LIMIT_PER_MINUTE=20
 GATEWAY_AI_RATE_LIMIT_PER_MINUTE=30
+# Single replica (default):
+GATEWAY_RATE_LIMIT_STORE=memory
+GATEWAY_REPLICA_COUNT=1
+# Horizontal scaling (requires the gateway to reach PostgreSQL):
+# GATEWAY_RATE_LIMIT_STORE=postgres
+# GATEWAY_REPLICA_COUNT=2
 ```
+
+The shared store uses the `rate_limit_windows` table created by migration
+`0004`. Startup validation refuses `GATEWAY_REPLICA_COUNT > 1` with the
+in-process store, and the Postgres store requires `DATABASE_URL` (or the
+complete `DB_*` set) with the same TLS rules as the services. A store failure
+fails the request closed with a 5xx rather than silently allowing it.
 
 The gateway returns JSON 404s for unknown API paths and propagates request IDs.
 Keep service ports private.

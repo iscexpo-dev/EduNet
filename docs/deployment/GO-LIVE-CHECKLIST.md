@@ -28,7 +28,8 @@ verified. This workspace is **NO-GO / NOT DEPLOYED**.
 - [ ] TLS, DNS, CORS, proxy trust and cookie settings verified in staging.
 - [x] Access/refresh tokens moved out of `localStorage` into `httpOnly`,
       `Secure`, `SameSite` cookies (access cookie plus path-scoped refresh cookie).
-- [ ] Shared rate-limit store if more than one gateway replica.
+- [ ] Shared rate-limit store selected (`GATEWAY_RATE_LIMIT_STORE=postgres`)
+      and exercised if `GATEWAY_REPLICA_COUNT` is greater than one.
 - [ ] DAST/ZAP and MFA assessment completed.
 - [ ] AI provider retention terms reviewed for minors.
 

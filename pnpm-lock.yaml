@@ -761,6 +761,9 @@ importers:
 
   services/gateway:
     dependencies:
+      '@edunet/database':
+        specifier: workspace:*
+        version: link:../../packages/database
       '@edunet/observability':
         specifier: workspace:*
         version: link:../../packages/observability
