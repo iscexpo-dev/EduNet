@@ -125,7 +125,24 @@
 
 | Method | Endpoint | Auth | Description |
 |--------|----------|------|-------------|
-| GET | `/` | Any | Search (q, type, organizationId) |
+| GET | `/` | Any | Tenant-scoped search across courses, users, assignments and organizations |
+
+Query parameters:
+
+- `q` (required, max 300 characters). Whitespace-separated terms are ANDed.
+- `type` — `all` (default), `courses`, `users`, `assignments`, `organizations`.
+- `sortBy` — `relevance` (default) plus `title`, `name`, `email`, `dueDate` or
+  `createdAt` where supported by the selected type.
+- `sortOrder` — `asc` or `desc` (default `desc`).
+- `limit` (1-100, default 20) and `offset` (default 0).
+- `locale` — `en` (default) or `bn`, recorded with the search event.
+- `organizationId` — administrators may search another tenant; other callers are
+  always pinned to the organization in their access token.
+
+Matching normalizes English case, Bengali digits (`০`-`৯`), zero-width
+characters and precomposed nukta letters on both the query and stored columns.
+Relevance scores exact, prefix, word-prefix and substring matches with field
+weights, and all results exclude inactive or soft-deleted rows.
 
 ## Analytics (`/api/analytics`)
 

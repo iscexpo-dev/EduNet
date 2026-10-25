@@ -78,7 +78,10 @@ Ordered by risk. Items marked `[!]` need external infrastructure.
 - [x] Offline queue wired into submission/progress (2026-10-24); autosave
       still sends immediately and is not queued yet.
 - [x] Accessibility audit baseline (keyboard/focus/labels/contrast).
-- [ ] Search normalization/ranking for Bengali + English.
+- [x] Search normalization/ranking for Bengali + English: restored the missing
+      `services/search/src/normalize.ts`, added whitespace/AND tokenization,
+      Bengali digit/zero-width/nukta normalization, LIKE escaping, bounded
+      type/sort/pagination parsing and 21 unit tests (2026-10-25).
 - [ ] AI provider configuration and human escalation path.
 - [ ] KPI collection pipeline from persisted data.
 - [ ] Pilot cohort/training/support rota; execution remains NOT STARTED.

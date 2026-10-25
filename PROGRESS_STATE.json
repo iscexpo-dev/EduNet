@@ -3,7 +3,7 @@
   "schemaVersion": "1.0.0",
   "project": "EduNet",
   "purpose": "Canonical resumable execution state for autonomous agents. Update after every meaningful checkpoint.",
-  "lastUpdated": "2026-10-25T07:10:00Z",
+  "lastUpdated": "2026-10-25T10:36:00Z",
   "repository": {
     "path": "/vercel/share/v0-project",
     "remote": "https://github.com/iscexpo-dev/EduNet.git",
@@ -35,7 +35,7 @@
     "apps": 1,
     "services": 19,
     "packages": 12,
-    "testFiles": 32,
+    "testFiles": 33,
     "webPages": 21,
     "database": "PostgreSQL via Drizzle ORM",
     "migrations": [
@@ -49,8 +49,8 @@
   "validation": {
     "typecheck": {
       "status": "PASS",
-      "command": "pnpm turbo run typecheck --concurrency=2",
-      "evidence": "35/35 tasks, 0 errors"
+      "command": "pnpm typecheck",
+      "evidence": "36/36 tasks, 0 errors (2026-10-25 search checkpoint)"
     },
     "lint": {
       "status": "PASS",
@@ -59,8 +59,8 @@
     },
     "unitTests": {
       "status": "PASS",
-      "command": "pnpm turbo run test --force --concurrency=2",
-      "evidence": "49/49 tasks, 389 tests, 32 files"
+      "command": "pnpm test",
+      "evidence": "50/50 tasks, 410 tests, 33 files (2026-10-25 search checkpoint)"
     },
     "build": {
       "status": "PASS",
@@ -179,7 +179,7 @@
     },
     "search": {
       "status": "PARTIAL",
-      "gap": "Tenant-scoped ILIKE; no ranking/facets/Bengali normalization"
+      "gap": "Tenant-scoped relevance ranking with English/Bengali normalization, bounded sort/pagination and search event capture (2026-10-25); facets, fuzzy matching and trigram indexes still missing"
     },
     "notifications": {
       "status": "PARTIAL",
@@ -287,9 +287,9 @@
     }
   },
   "activeCheckpoint": {
-    "id": "checkpoint-13-rate-limit-topology",
-    "description": "Gateway rate limiting now supports a shared Postgres store and rejects multi-replica startup with the in-process store; migration 0004 adds the store table and closes audit-log schema drift.",
-    "startedAt": "2026-10-25T07:10:00Z",
+    "id": "checkpoint-15-search-normalization",
+    "description": "Restored the missing search normalization module and covered Bengali/English query parsing, relevance matching and pagination with executed tests.",
+    "startedAt": "2026-10-25T10:36:00Z",
     "status": "COMPLETE"
   },
   "checkpoints": [
@@ -503,6 +503,24 @@
       "artifacts": [
         "ce3d24e"
       ]
+    },
+    {
+      "id": "checkpoint-15-search-normalization",
+      "at": "2026-10-25T10:36:00Z",
+      "summary": "Restored the missing services/search/src/normalize.ts that db.ts and handlers.ts already imported, fixing the broken search build. Added bounded whitespace/AND tokenization, Bengali digit/zero-width/nukta normalization, LIKE escaping, type/sort/locale/pagination parsing and 21 unit tests. Documented search query parameters and updated the TODO/plan. Full gates pass: typecheck 36/36, lint 32/32 (0 errors), tests 50/50 tasks / 410 tests / 33 files, forced build 29/29, db:check 5 migrations consistent.",
+      "evidence": [
+        "/tmp/typecheck-search.log",
+        "/tmp/lint-search.log",
+        "/tmp/test-search-final.log",
+        "/tmp/build-search-force.log"
+      ],
+      "artifacts": [
+        "services/search/src/normalize.ts",
+        "services/search/src/normalize.test.ts",
+        "docs/api/endpoints.md",
+        "todo/10-search-analytics-ai.md",
+        "todo/ACTIVE-PLAN.md"
+      ]
     }
   ],
   "blockers": [
@@ -532,8 +550,8 @@
     }
   ],
   "nextActions": [
-    "Implement Bengali + English search normalization and relevance ranking (first unchecked unblocked launch item).",
     "Configure the AI provider and staff the human escalation path.",
+    "Add search facets/fuzzy matching plus a trigram index once query plans justify it.",
     "Wire the KPI collection pipeline from persisted data.",
     "Continue remaining offline flows and deeper admin operations.",
     "Close remaining security hardening: DAST and MFA/SSO."
