@@ -1,5 +1,5 @@
-import { afterAll, describe, expect, it } from 'vitest';
-import { eq } from 'drizzle-orm';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { eq, inArray } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
 import {
   closeDb as closeContentDb,
@@ -96,6 +96,7 @@ import {
   submissions,
   users,
 } from '../src/index';
+import { searchCourses, searchUsers } from '../../../services/search/src/db';
 
 if (!process.env.DATABASE_URL) {
   throw new Error(
@@ -597,7 +598,6 @@ describe('PostgreSQL integration: core LMS relations', () => {
       1
     );
   });
-});
 
 describe('PostgreSQL integration: shared rate-limit windows', () => {
   const key = `it-rate-limit|${runId}`;
@@ -632,4 +632,133 @@ describe('PostgreSQL integration: shared rate-limit windows', () => {
     expect(rows).toHaveLength(1);
     expect(rows[0]).toMatchObject({ key, windowStart: windowStart + windowMs, count: 2 });
   });
+});
+
+describe('PostgreSQL integration: search normalization and ranking', () => {
+  const searchOrgCode = `search-${runId}`;
+  const otherSearchOrgCode = `search-other-${runId}`;
+  const searchTeacherEmail = `search-teacher-${runId}@integration.invalid`;
+  const searchStudentEmail = `search-student-${runId}@integration.invalid`;
+  let searchOrgId = '';
+  let otherSearchOrgId = '';
+  let searchTeacherId = '';
+  const searchCourseIds: string[] = [];
+
+  beforeAll(async () => {
+    const [organization] = await db
+      .insert(organizations)
+      .values({ name: 'Search Integration School', type: 'school', code: searchOrgCode })
+      .returning();
+    searchOrgId = organization.id;
+
+    const [otherOrganization] = await db
+      .insert(organizations)
+      .values({ name: 'Other Search School', type: 'school', code: otherSearchOrgCode })
+      .returning();
+    otherSearchOrgId = otherOrganization.id;
+
+    const [teacher] = await db
+      .insert(users)
+      .values({
+        email: searchTeacherEmail,
+        passwordHash: 'integration-only-hash',
+        firstName: 'রহিম',
+        lastName: 'উদ্দিন',
+        role: 'teacher',
+        organizationId: searchOrgId,
+      })
+      .returning();
+    searchTeacherId = teacher.id;
+
+    await db.insert(users).values({
+      email: searchStudentEmail,
+      passwordHash: 'integration-only-hash',
+      firstName: 'Search',
+      lastName: 'Student',
+      role: 'student',
+      organizationId: searchOrgId,
+    });
+  });
+
+  afterAll(async () => {
+    if (searchCourseIds.length > 0) {
+      await db.delete(courses).where(inArray(courses.id, searchCourseIds));
+    }
+    await db.delete(users).where(eq(users.organizationId, searchOrgId));
+    await db.delete(users).where(eq(users.organizationId, otherSearchOrgId));
+    await db.delete(organizations).where(eq(organizations.id, searchOrgId));
+    await db.delete(organizations).where(eq(organizations.id, otherSearchOrgId));
+  });
+
+  async function createSearchCourse(input: {
+    organizationId: string;
+    title: string;
+    description: string;
+    subject?: string;
+  }) {
+    const [course] = await db
+      .insert(courses)
+      .values({
+        organizationId: input.organizationId,
+        teacherId: searchTeacherId,
+        title: input.title,
+        description: input.description,
+        subject: input.subject ?? 'search',
+      })
+      .returning();
+    searchCourseIds.push(course.id);
+    return course;
+  }
+
+  it('normalizes Bengali digits and ranks an exact title above a partial match', async () => {
+    const exact = await createSearchCourse({
+      organizationId: searchOrgId,
+      title: 'বাংলা ৫',
+      description: 'পঞ্চম শ্রেণির পাঠ্যবই',
+      subject: 'বাংলা',
+    });
+    const partial = await createSearchCourse({
+      organizationId: searchOrgId,
+      title: 'বাংলা ব্যাকরণ',
+      description: 'পঞ্চম শ্রেণির ৫ নম্বর অধ্যায়',
+      subject: 'বাংলা',
+    });
+
+    const results = await searchCourses('বাংলা ৫', searchOrgId, 10, 0);
+
+    expect(results.map((course) => course.id)).toEqual([exact.id, partial.id]);
+  });
+
+  it('matches English case-insensitively', async () => {
+    const course = await createSearchCourse({
+      organizationId: searchOrgId,
+      title: 'Advanced Mathematics',
+      description: 'Algebra and geometry',
+      subject: 'Mathematics',
+    });
+
+    const results = await searchCourses('MATHEMATICS', searchOrgId, 10, 0);
+
+    expect(results.some((row) => row.id === course.id)).toBe(true);
+  });
+
+  it('never returns a course from another tenant', async () => {
+    const otherCourse = await createSearchCourse({
+      organizationId: otherSearchOrgId,
+      title: 'বাংলা ৫',
+      description: 'অন্য প্রতিষ্ঠানের কোর্স',
+      subject: 'বাংলা',
+    });
+
+    const results = await searchCourses('বাংলা ৫', searchOrgId, 10, 0);
+
+    expect(results.some((row) => row.id === otherCourse.id)).toBe(false);
+  });
+
+  it('searches users by a Bengali name', async () => {
+    const results = await searchUsers('রহিম', searchOrgId, undefined, 10, 0);
+
+    expect(results.some((user) => user.id === searchTeacherId)).toBe(true);
+  });
+});
 });

@@ -1095,6 +1095,9 @@ importers:
       typescript:
         specifier: ^5.1.6
         version: 5.9.3
+      vitest:
+        specifier: ^4.1.12
+        version: 4.1.12(@types/node@20.19.43)(vite@6.4.5)
 
   services/submissions:
     dependencies:

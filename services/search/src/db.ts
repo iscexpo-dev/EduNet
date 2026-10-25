@@ -1,44 +1,159 @@
-import { drizzle } from 'drizzle-orm/postgres-js';
-import postgres from 'postgres';
-import { courses, users, assignments, organizations } from '@edunet/database';
-import { eq, or, and, ilike, sql, desc, asc } from 'drizzle-orm';
+import {
+  assignments,
+  courses,
+  getDb,
+  organizations,
+  searchAnalyticsEvents,
+  users,
+} from '@edunet/database';
+import {
+  and,
+  asc,
+  desc,
+  eq,
+  isNull,
+  or,
+  sql,
+  type AnyColumn,
+  type SQL,
+} from 'drizzle-orm';
+import {
+  escapeLikePattern,
+  tokenizeSearchQuery,
+  type SortOrder,
+} from './normalize';
 
-const connectionString = process.env.DATABASE_URL || 'postgres://localhost:5432/edunet';
-const client = postgres(connectionString);
-export const db = drizzle(client);
+/**
+ * Search uses SQL-side relevance rather than loading rows and sorting in
+ * memory: pagination must stay correct for Bengali and English content.
+ *
+ * Columns are normalized inside SQL (lowercase, Bengali digits, invisible
+ * characters and nukta variants). Expression indexes are intentionally not
+ * required for the pilot's data volume; a trigram index is the next step once
+ * query plans show a need.
+ */
 
-function buildSearchCondition(column: any, query: string) {
-  return ilike(column, `%${query}%`);
+type SearchExpression = AnyColumn | SQL;
+
+interface SearchField {
+  column: SearchExpression;
+  weight: number;
 }
+
+const BENGALI_DIGITS = '০১২৩৪৫৬৭৮৯';
+const ASCII_DIGITS = '0123456789';
+const INVISIBLE_CHARACTERS = ['\u200B', '\u200C', '\u200D', '\uFEFF', '\u00AD'];
+
+/** Precomposed nukta letters have decomposed canonical forms. */
+const NUKTA_REPLACEMENTS: ReadonlyArray<readonly [string, string]> = [
+  ['\u09DC', '\u09A1\u09BC'],
+  ['\u09DD', '\u09A2\u09BC'],
+  ['\u09DF', '\u09AF\u09BC'],
+];
+
+function normalizedColumn(column: SearchExpression): SQL {
+  let expression: SQL = sql`${column}`;
+
+  for (const character of INVISIBLE_CHARACTERS) {
+    expression = sql`replace(${expression}, ${character}, '')`;
+  }
+  for (const [from, to] of NUKTA_REPLACEMENTS) {
+    expression = sql`replace(${expression}, ${from}, ${to})`;
+  }
+
+  return sql`lower(translate(${expression}, ${BENGALI_DIGITS}, ${ASCII_DIGITS}))`;
+}
+
+function termCondition(column: SearchExpression, term: string): SQL {
+  return sql`${normalizedColumn(column)} like ${`%${escapeLikePattern(term)}%`}`;
+}
+
+function termScore(column: SearchExpression, term: string, weight: number): SQL {
+  const haystack = normalizedColumn(column);
+  const escaped = escapeLikePattern(term);
+
+  return sql`case
+    when ${haystack} = ${term} then ${100 * weight}
+    when ${haystack} like ${`${escaped}%`} then ${60 * weight}
+    when ${haystack} like ${`% ${escaped}%`} then ${40 * weight}
+    when ${haystack} like ${`%${escaped}%`} then ${20 * weight}
+    else 0 end`;
+}
+
+/**
+ * Every term must match at least one field. This makes "বাংলা গণিত" behave as
+ * an AND search instead of returning anything containing either word.
+ */
+function buildTermConditions(fields: readonly SearchField[], terms: readonly string[]): SQL[] {
+  return terms.map((term) => {
+    const perField = fields.map((field) => termCondition(field.column, term));
+    return or(...perField) as SQL;
+  });
+}
+
+function buildRelevance(fields: readonly SearchField[], terms: readonly string[]): SQL {
+  const parts = terms.flatMap((term) =>
+    fields.map((field) => termScore(field.column, term, field.weight)),
+  );
+  if (parts.length === 0) return sql`0`;
+  return sql`(${sql.join(parts, sql` + `)})`;
+}
+
+function buildOrderBy(
+  relevance: SQL,
+  sortBy: string,
+  sortOrder: SortOrder,
+  columns: Record<string, AnyColumn>,
+  tieBreaker: AnyColumn,
+): SQL[] {
+  if (sortBy === 'relevance') {
+    return [desc(relevance), desc(tieBreaker)];
+  }
+  const column = columns[sortBy] ?? tieBreaker;
+  return [sortOrder === 'asc' ? asc(column) : desc(column)];
+}
+
+export type CourseSort = 'relevance' | 'title' | 'createdAt';
+export type UserSort = 'relevance' | 'name' | 'email' | 'createdAt';
+export type AssignmentSort = 'relevance' | 'title' | 'dueDate' | 'createdAt';
+export type OrganizationSort = 'relevance' | 'name' | 'createdAt';
 
 export async function searchCourses(
   query: string,
   organizationId?: string,
   limit = 20,
   offset = 0,
-  sortBy: 'title' | 'createdAt' | 'enrollmentCount' = 'createdAt',
-  sortOrder: 'asc' | 'desc' = 'desc'
+  sortBy: CourseSort = 'relevance',
+  sortOrder: SortOrder = 'desc',
 ) {
-  const conditions = [
-    buildSearchCondition(courses.title, query),
-    buildSearchCondition(courses.description, query),
-    buildSearchCondition(courses.subject, query),
+  if (!organizationId) return [];
+  const terms = tokenizeSearchQuery(query);
+  if (terms.length === 0) return [];
+
+  const fields: SearchField[] = [
+    { column: courses.title, weight: 4 },
+    { column: courses.subject, weight: 2 },
+    { column: courses.description, weight: 1 },
   ];
+  const relevance = buildRelevance(fields, terms);
 
-  if (organizationId) {
-    conditions.push(eq(courses.organizationId, organizationId));
-  }
-
-  const sortColumn = sortBy === 'title' ? courses.title : courses.createdAt;
-  const orderBy = sortOrder === 'asc' ? asc(sortColumn) : desc(sortColumn);
-
-  return db.select()
+  return getDb()
+    .select()
     .from(courses)
-    .where(and(
-      eq(courses.isActive, true),
-      or(...conditions)
-    ))
-    .orderBy(orderBy)
+    .where(
+      and(
+        eq(courses.isActive, true),
+        isNull(courses.deletedAt),
+        eq(courses.organizationId, organizationId),
+        and(...buildTermConditions(fields, terms)),
+      ),
+    )
+    .orderBy(
+      ...buildOrderBy(relevance, sortBy, sortOrder, {
+        title: courses.title,
+        createdAt: courses.createdAt,
+      }, courses.createdAt),
+    )
     .limit(limit)
     .offset(offset);
 }
@@ -49,38 +164,50 @@ export async function searchUsers(
   role?: string,
   limit = 20,
   offset = 0,
-  sortBy: 'name' | 'email' | 'createdAt' = 'name',
-  sortOrder: 'asc' | 'desc' = 'asc'
+  sortBy: UserSort = 'relevance',
+  sortOrder: SortOrder = 'desc',
 ) {
-  const conditions = [
-    buildSearchCondition(users.firstName, query),
-    buildSearchCondition(users.lastName, query),
-    buildSearchCondition(users.email, query),
+  if (!organizationId) return [];
+  const terms = tokenizeSearchQuery(query);
+  if (terms.length === 0) return [];
+
+  const fullName = sql`${users.firstName} || ' ' || ${users.lastName}`;
+  const fields: SearchField[] = [
+    { column: fullName, weight: 4 },
+    { column: users.firstName, weight: 3 },
+    { column: users.lastName, weight: 3 },
+    { column: users.email, weight: 2 },
   ];
+  const relevance = buildRelevance(fields, terms);
 
-  if (organizationId) {
-    conditions.push(eq(users.organizationId, organizationId));
-  }
-
+  const conditions: SQL[] = [
+    eq(users.organizationId, organizationId),
+    isNull(users.deletedAt),
+    and(...buildTermConditions(fields, terms)) as SQL,
+  ];
   if (role) {
     conditions.push(eq(users.role, role));
   }
 
-  const sortColumn = sortBy === 'email' ? users.email : sortBy === 'createdAt' ? users.createdAt : users.firstName;
-  const orderBy = sortOrder === 'asc' ? asc(sortColumn) : desc(sortColumn);
-
-  return db.select({
-    id: users.id,
-    firstName: users.firstName,
-    lastName: users.lastName,
-    email: users.email,
-    role: users.role,
-    organizationId: users.organizationId,
-    isVerified: users.isVerified,
-  })
+  return getDb()
+    .select({
+      id: users.id,
+      firstName: users.firstName,
+      lastName: users.lastName,
+      email: users.email,
+      role: users.role,
+      organizationId: users.organizationId,
+      isVerified: users.isVerified,
+    })
     .from(users)
-    .where(or(...conditions))
-    .orderBy(orderBy)
+    .where(and(...conditions))
+    .orderBy(
+      ...buildOrderBy(relevance, sortBy, sortOrder, {
+        name: users.firstName,
+        email: users.email,
+        createdAt: users.createdAt,
+      }, users.createdAt),
+    )
     .limit(limit)
     .offset(offset);
 }
@@ -90,62 +217,88 @@ export async function searchAssignments(
   organizationId?: string,
   limit = 20,
   offset = 0,
-  sortBy: 'title' | 'dueDate' | 'createdAt' = 'dueDate',
-  sortOrder: 'asc' | 'desc' = 'asc'
+  sortBy: AssignmentSort = 'relevance',
+  sortOrder: SortOrder = 'desc',
 ) {
-  const conditions = [
-    buildSearchCondition(assignments.title, query),
-    buildSearchCondition(assignments.description, query),
+  if (!organizationId) return [];
+  const terms = tokenizeSearchQuery(query);
+  if (terms.length === 0) return [];
+
+  const fields: SearchField[] = [
+    { column: assignments.title, weight: 4 },
+    { column: courses.title, weight: 2 },
+    { column: assignments.description, weight: 1 },
   ];
+  const relevance = buildRelevance(fields, terms);
 
-  const courseConditions = [];
-  if (organizationId) {
-    courseConditions.push(eq(courses.organizationId, organizationId));
-  }
-
-  const sortColumn = sortBy === 'title' ? assignments.title : sortBy === 'createdAt' ? assignments.createdAt : assignments.dueDate;
-  const orderBy = sortOrder === 'asc' ? asc(sortColumn) : desc(sortColumn);
-
-  return db.select({
-    id: assignments.id,
-    title: assignments.title,
-    description: assignments.description,
-    dueDate: assignments.dueDate,
-    maxPoints: assignments.maxPoints,
-    courseId: assignments.courseId,
-  })
+  return getDb()
+    .select({
+      id: assignments.id,
+      title: assignments.title,
+      description: assignments.description,
+      dueDate: assignments.dueDate,
+      maxPoints: assignments.maxPoints,
+      courseId: assignments.courseId,
+    })
     .from(assignments)
     .innerJoin(courses, eq(assignments.courseId, courses.id))
-    .where(and(
-      eq(assignments.isActive, true),
-      or(...conditions),
-      ...courseConditions
-    ))
-    .orderBy(orderBy)
+    .where(
+      and(
+        eq(assignments.isActive, true),
+        isNull(assignments.deletedAt),
+        isNull(courses.deletedAt),
+        eq(courses.organizationId, organizationId),
+        and(...buildTermConditions(fields, terms)),
+      ),
+    )
+    .orderBy(
+      ...buildOrderBy(relevance, sortBy, sortOrder, {
+        title: assignments.title,
+        dueDate: assignments.dueDate,
+        createdAt: assignments.createdAt,
+      }, assignments.createdAt),
+    )
     .limit(limit)
     .offset(offset);
 }
 
 export async function searchOrganizations(
   query: string,
+  organizationId?: string,
   limit = 20,
   offset = 0,
-  sortBy: 'name' | 'createdAt' = 'name',
-  sortOrder: 'asc' | 'desc' = 'asc'
+  sortBy: OrganizationSort = 'relevance',
+  sortOrder: SortOrder = 'desc',
 ) {
-  const sortColumn = sortBy === 'createdAt' ? organizations.createdAt : organizations.name;
-  const orderBy = sortOrder === 'asc' ? asc(sortColumn) : desc(sortColumn);
+  const terms = tokenizeSearchQuery(query);
+  if (terms.length === 0) return [];
 
-  return db.select()
+  const fields: SearchField[] = [
+    { column: organizations.name, weight: 4 },
+    { column: organizations.code, weight: 2 },
+    { column: organizations.address, weight: 1 },
+  ];
+  const relevance = buildRelevance(fields, terms);
+
+  const conditions: SQL[] = [
+    eq(organizations.isActive, true),
+    isNull(organizations.deletedAt),
+    and(...buildTermConditions(fields, terms)) as SQL,
+  ];
+  if (organizationId) {
+    conditions.push(eq(organizations.id, organizationId));
+  }
+
+  return getDb()
+    .select()
     .from(organizations)
-    .where(and(
-      eq(organizations.isActive, true),
-      or(
-        buildSearchCondition(organizations.name, query),
-        buildSearchCondition(organizations.code, query)
-      )
-    ))
-    .orderBy(orderBy)
+    .where(and(...conditions))
+    .orderBy(
+      ...buildOrderBy(relevance, sortBy, sortOrder, {
+        name: organizations.name,
+        createdAt: organizations.createdAt,
+      }, organizations.createdAt),
+    )
     .limit(limit)
     .offset(offset);
 }
@@ -154,16 +307,42 @@ export async function globalSearch(
   query: string,
   organizationId?: string,
   limit = 10,
-  sortBy: 'relevance' | 'createdAt' = 'relevance',
-  sortOrder: 'asc' | 'desc' = 'desc'
 ) {
-  const coursesResult = await searchCourses(query, organizationId, limit, 0, 'createdAt', sortOrder);
-  const usersResult = await searchUsers(query, organizationId, undefined, limit, 0, 'name', 'asc');
-  const assignmentsResult = await searchAssignments(query, organizationId, limit, 0, 'dueDate', 'asc');
+  const [coursesResult, usersResult, assignmentsResult] = await Promise.all([
+    searchCourses(query, organizationId, limit, 0, 'relevance', 'desc'),
+    searchUsers(query, organizationId, undefined, limit, 0, 'relevance', 'desc'),
+    searchAssignments(query, organizationId, limit, 0, 'relevance', 'desc'),
+  ]);
 
   return {
     courses: coursesResult,
     users: usersResult,
     assignments: assignmentsResult,
   };
+}
+
+export interface SearchAnalyticsInput {
+  query: string;
+  normalizedQuery: string;
+  locale: 'en' | 'bn';
+  organizationId: string;
+  userId?: string;
+  resultCount: number;
+}
+
+/**
+ * Persists one search event for KPI reporting. Callers treat failures as
+ * non-fatal: analytics must never break a user's search.
+ */
+export async function recordSearchEvent(input: SearchAnalyticsInput): Promise<void> {
+  await getDb()
+    .insert(searchAnalyticsEvents)
+    .values({
+      organizationId: input.organizationId,
+      userId: input.userId,
+      query: input.query.slice(0, 300),
+      normalizedQuery: input.normalizedQuery.slice(0, 300),
+      locale: input.locale,
+      resultCount: input.resultCount,
+    });
 }
