@@ -3,7 +3,7 @@
   "schemaVersion": "1.0.0",
   "project": "EduNet",
   "purpose": "Canonical resumable execution state for autonomous agents. Update after every meaningful checkpoint.",
-  "lastUpdated": "2026-10-25T10:36:00Z",
+  "lastUpdated": "2026-10-26T22:54:49Z",
   "repository": {
     "path": "/vercel/share/v0-project",
     "remote": "https://github.com/iscexpo-dev/EduNet.git",
@@ -50,7 +50,7 @@
     "typecheck": {
       "status": "PASS",
       "command": "pnpm typecheck",
-      "evidence": "36/36 tasks, 0 errors (2026-10-25 search checkpoint)"
+      "evidence": "36/36 tasks, 0 errors (2026-10-26 Next.js 16 upgrade)"
     },
     "lint": {
       "status": "PASS",
@@ -60,12 +60,12 @@
     "unitTests": {
       "status": "PASS",
       "command": "pnpm test",
-      "evidence": "50/50 tasks, 410 tests, 33 files (2026-10-25 search checkpoint)"
+      "evidence": "50/50 tasks; all suites pass (2026-10-26 Next.js 16 upgrade)"
     },
     "build": {
       "status": "PASS",
-      "command": "pnpm turbo run build --force --concurrency=2",
-      "evidence": "29/29 tasks including Next.js production build"
+      "command": "pnpm --filter @edunet/web build",
+      "evidence": "Next.js 16.4.3 Turbopack production build and standalone output both pass (2026-10-26)"
     },
     "audit": {
       "status": "PASS",
@@ -287,9 +287,9 @@
     }
   },
   "activeCheckpoint": {
-    "id": "checkpoint-15-search-normalization",
-    "description": "Restored the missing search normalization module and covered Bengali/English query parsing, relevance matching and pagination with executed tests.",
-    "startedAt": "2026-10-25T10:36:00Z",
+    "id": "checkpoint-16-nextjs-16-upgrade",
+    "description": "Upgraded the web app to Next.js 16.4.3 with React 19, migrated lint to the ESLint CLI/flat config, proxy convention, and Turbopack, and verified build, lint, typecheck and tests.",
+    "startedAt": "2026-10-26T22:54:49Z",
     "status": "COMPLETE"
   },
   "checkpoints": [
@@ -520,6 +520,27 @@
         "docs/api/endpoints.md",
         "todo/10-search-analytics-ai.md",
         "todo/ACTIVE-PLAN.md"
+      ]
+    },
+    {
+      "id": "checkpoint-16-nextjs-16-upgrade",
+      "at": "2026-10-26T22:54:49Z",
+      "summary": "Upgraded Next.js 15.5.28 to 16.4.3 with React/React DOM 19.3.1 and React 19 types. Removed the Next.js 16-removed `next lint` command in favor of ESLint 9 flat config, migrated middleware.ts to the proxy convention, and configured the Turbopack workspace root. Kept legacy package linting on ESLint 8 via a root devDependency so existing .eslintrc files remain valid. Verified typecheck 36/36, lint 32/32 (0 errors), tests 50/50 tasks, and both default and standalone Turbopack production builds.",
+      "evidence": [
+        "/tmp/typecheck.log",
+        "/tmp/lint2.log",
+        "/tmp/test.log",
+        "/tmp/build-standalone.log"
+      ],
+      "artifacts": [
+        "package.json",
+        "pnpm-lock.yaml",
+        "apps/web/package.json",
+        "apps/web/next.config.js",
+        "apps/web/eslint.config.mjs",
+        "apps/web/src/proxy.ts",
+        "packages/ui/package.json",
+        "packages/auth/package.json"
       ]
     }
   ],

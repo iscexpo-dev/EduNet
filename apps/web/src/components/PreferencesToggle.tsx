@@ -11,6 +11,7 @@ export function PreferencesToggle() {
   const [locale, setLocale] = useState<Locale>('en');
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- read persisted preferences after hydration
     setDark(document.documentElement.classList.contains('dark'));
     const storedLang = localStorage.getItem('edunet-lang');
     if (storedLang && isLocale(storedLang)) setLocale(storedLang);

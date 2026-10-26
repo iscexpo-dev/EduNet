@@ -56,6 +56,7 @@ export default function ParentDashboardPage() {
 
   useEffect(() => {
     if (!token || !isParent) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- settle the loading state once auth is known
       setLoadingChildren(false);
       return;
     }
@@ -95,6 +96,7 @@ export default function ParentDashboardPage() {
 
   useEffect(() => {
     if (!token || !selectedChildId) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- clear data when the selection is cleared
       setEnrollments([]);
       setSubmissions([]);
       return;

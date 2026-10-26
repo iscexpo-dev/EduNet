@@ -153,6 +153,21 @@ Ordered by risk. Items marked `[!]` need external infrastructure.
 - [x] Compose (`local` single replica, `staging` shared store) and deployment
       docs updated.
 
+## Checkpoint 16 — Next.js 16 upgrade — COMPLETE 2026-10-26
+
+- [x] Upgraded `next` 15.5.28 → 16.4.3 in the workspace and web app.
+- [x] Upgraded React/React DOM to 19.3.1 and React types to 19.3.0 for the web
+      app, `@edunet/ui` and `@edunet/auth`.
+- [x] Replaced the removed `next lint` command with ESLint 9 flat config
+      (`eslint-config-next/core-web-vitals`); legacy packages keep ESLint 8 and
+      their existing `.eslintrc` via a root devDependency.
+- [x] Migrated `middleware.ts` to the Next.js 16 `proxy.ts` convention.
+- [x] Set the Turbopack workspace root in `next.config.js` and verified both the
+      default and `NEXT_OUTPUT=standalone` production builds.
+- [x] Evidence: typecheck 36/36, lint 32/32 (0 errors), tests 50/50 tasks,
+      Next.js 16.4.3 Turbopack build + standalone output PASS. PostgreSQL,
+      Docker and Playwright gates remain BLOCKED in this sandbox.
+
 ## Definition of done for this run
 
 - Baseline gates re-executed and recorded.

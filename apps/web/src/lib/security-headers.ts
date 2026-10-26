@@ -1,5 +1,5 @@
 /**
- * Content-Security-Policy construction shared by middleware and tests.
+ * Content-Security-Policy construction shared by proxy and tests.
  *
  * Next.js injects inline bootstrap scripts; a nonce lets production run
  * without `script-src 'unsafe-inline'`. Styles keep `unsafe-inline` because
