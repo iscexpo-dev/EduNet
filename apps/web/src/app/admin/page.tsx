@@ -57,6 +57,7 @@ export default function AdminDashboardPage() {
 
   useEffect(() => {
     if (!token || !isAdmin) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- settle the loading state once auth is known
       setLoadingUsers(false);
       setLoadingOrganizations(false);
       setLoadingAuditEvents(false);

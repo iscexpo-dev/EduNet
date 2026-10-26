@@ -12,6 +12,11 @@ const nextConfig = {
   // output, so standalone is opt-in rather than always on.
   output: process.env.NEXT_OUTPUT === 'standalone' ? 'standalone' : undefined,
   outputFileTracingRoot: path.join(__dirname, '../..'),
+  // Turbopack is the default bundler in Next.js 16. Point it at the workspace
+  // root so pnpm-linked workspace packages are resolved and traced correctly.
+  turbopack: {
+    root: path.join(__dirname, '../..'),
+  },
   transpilePackages: ['@edunet/ui', '@edunet/auth', '@edunet/api-client'],
   async headers() {
     return [

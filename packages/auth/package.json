@@ -13,11 +13,11 @@
   "dependencies": {
     "@edunet/types": "workspace:*",
     "@edunet/config": "workspace:*",
-    "react": "^18.3.0"
+    "react": "^19.3.1"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
-    "@types/react": "^18.3.0",
+    "@types/react": "^19.3.0",
     "typescript": "^5.5.0"
   }
 }
