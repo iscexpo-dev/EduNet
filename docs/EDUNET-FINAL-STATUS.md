@@ -59,7 +59,7 @@ domains.
 | 15 | Internationalisation | **PASS** | Bengali/English catalogues and toggle; native review pending |
 | 16 | Accessibility | **FAIL** | No WCAG 2.1 AA audit; baseline skip-link added in admin console |
 | 17 | Notifications | **PARTIAL** | In-app only; no email/SMS/push adapters |
-| 18 | Search | **PARTIAL** | Tenant-scoped relevance search with `?facets=1` counts; trigram fuzzy matching opt-in via `SEARCH_USE_TRIGRAM` + migration `0005_trigram_search.sql` (blocked locally, no PostgreSQL) |
+| 18 | Search | **PARTIAL** | Tenant-scoped relevance search with `?facets=1` counts; trigram fuzzy matching opt-in via `SEARCH_USE_TRIGRAM` + migration `0005_trigram_search.sql`; `/search` UI page for students/teachers/parents (blocked locally, no PostgreSQL) |
 | 19 | Analytics | **PARTIAL** | Tenant-scoped APIs and teacher course dashboard; no KPI pipeline or warehouse |
 | 20 | Communication | **PARTIAL** | Messaging/moderation/forums backend; no UI/realtime |
 | 21 | Calendar | **PARTIAL** | Backend and ICS export; no UI |

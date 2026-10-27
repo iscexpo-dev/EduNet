@@ -3,7 +3,7 @@
   "schemaVersion": "1.0.0",
   "project": "EduNet",
   "purpose": "Canonical resumable execution state for autonomous agents. Update after every meaningful checkpoint.",
-  "lastUpdated": "2026-10-27T04:55:00Z",
+  "lastUpdated": "2026-10-27T05:10:00Z",
   "repository": {
     "path": "/vercel/share/v0-project",
     "remote": "https://github.com/iscexpo-dev/EduNet.git",
@@ -38,7 +38,7 @@
     "services": 19,
     "packages": 12,
     "testFiles": 41,
-    "webPages": 33,
+    "webPages": 34,
     "database": "PostgreSQL via Drizzle ORM",
     "migrations": [
       "0000_happy_switch.sql",
@@ -52,7 +52,7 @@
     "typecheck": {
       "status": "PASS",
       "command": "pnpm turbo run typecheck --concurrency=2",
-      "evidence": "36/36 tasks, 0 errors (2026-10-27 search facets + trigram opt-in)"
+      "evidence": "36/36 tasks, 0 errors (2026-10-27 search UI page)"
     },
     "lint": {
       "status": "PASS",
@@ -67,7 +67,7 @@
     "build": {
       "status": "PASS",
       "command": "pnpm --filter @edunet/web build && pnpm --filter @edunet/content build",
-      "evidence": "Next.js 16.4.3 Turbopack production build includes /library; config, search, content/analytics/platform tsc builds pass (2026-10-27)"
+      "evidence": "Next.js 16.4.3 Turbopack production build includes /library, /search and /attendance; config, search, content/analytics/platform tsc builds pass (2026-10-27)"
     },
     "audit": {
       "status": "PASS",
@@ -181,7 +181,7 @@
     },
     "search": {
       "status": "PARTIAL",
-      "gap": "Tenant-scoped relevance ranking with English/Bengali normalization, bounded sort/pagination and search event capture (2026-10-25); `?facets=1` counts added; trigram fuzzy matching opt-in via `SEARCH_USE_TRIGRAM` + migration `0005_trigram_search.sql` (pg_trgm extension + GIN indexes); LIKE fallback until migration applied; live PostgreSQL verification blocked locally"
+      "gap": "Tenant-scoped relevance ranking with English/Bengali normalization, bounded sort/pagination and search event capture (2026-10-25); `?facets=1` counts added; trigram fuzzy matching opt-in via `SEARCH_USE_TRIGRAM` + migration `0005_trigram_search.sql`; student `/search` UI page added; LIKE fallback until migration applied; live PostgreSQL verification blocked locally"
     },
     "notifications": {
       "status": "PARTIAL",
@@ -289,10 +289,10 @@
     }
   },
   "activeCheckpoint": {
-    "id": "checkpoint-27-search-facets-trigram",
-    "description": "Added search facets (`?facets=1`) returning per-type counts and an opt-in trigram fuzzy-matching path (`SEARCH_USE_TRIGRAM=true` + migration `0005_trigram_search.sql`) with LIKE fallback. Added `SEARCH_USE_TRIGRAM` config validation, the migration, `parseBoolean`/`trigramEnabled` helpers, and unit tests (search suite 28/28).",
-    "startedAt": "2026-10-27T04:47:00Z",
-    "completedAt": "2026-10-27T04:55:00Z",
+    "id": "checkpoint-28-search-ui-page",
+    "description": "Added a student/teacher/parent /search UI page calling GET /api/search with type filter, facets toggle, grouped results (courses/people/assignments), facet counts, search/facet delete actions, and loading/error/empty states. Linked Search from the student, teacher, parent and admin dashboard cards.",
+    "startedAt": "2026-10-27T05:00:00Z",
+    "completedAt": "2026-10-27T05:10:00Z",
     "status": "COMPLETE"
   },
   "checkpoints": [
@@ -765,6 +765,24 @@
         "docs/EDUNET-FINAL-STATUS.md",
         "docs/EDUNET-IMPLEMENTATION-STATE.md",
         "docs/EDUNET-ROADMAP-GAP-MATRIX.md",
+        "todo/ACTIVE-PLAN.md",
+        "PROGRESS_STATE.json"
+      ]
+    },
+    {
+      "id": "checkpoint-28-search-ui-page",
+      "at": "2026-10-27T05:10:00Z",
+      "summary": "Added /search UI page: calls GET /api/search with q/type/facets, renders grouped results for \"all\" and flat lists for single types, shows facet counts (courses by subject, people by role), loading/error/empty states, and links to courses. Linked Search from all role dashboards.",
+      "evidence": [
+        "/tmp/test-search-ui.log",
+        "/tmp/tc-search-ui.log",
+        "/tmp/lint-search-ui.log",
+        "/tmp/web-build-library.log"
+      ],
+      "artifacts": [
+        "apps/web/src/app/search/page.tsx",
+        "apps/web/src/app/dashboard/page.tsx",
+        "docs/api/endpoints.md",
         "todo/ACTIVE-PLAN.md",
         "PROGRESS_STATE.json"
       ]

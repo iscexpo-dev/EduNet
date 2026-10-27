@@ -38,6 +38,12 @@ const LINKS_BY_ROLE: Record<string, DashboardLink[]> = {
       href: '/library',
       action: 'Open my library',
     },
+    {
+      title: 'Search',
+      description: 'Find courses, people and assignments across your organization',
+      href: '/search',
+      action: 'Search',
+    },
   ],
   teacher: [
     {
@@ -51,6 +57,12 @@ const LINKS_BY_ROLE: Record<string, DashboardLink[]> = {
       description: 'Start a new course for your students',
       href: '/teacher/courses/new',
       action: 'Create course',
+    },
+    {
+      title: 'Search',
+      description: 'Find courses, people and assignments across your organization',
+      href: '/search',
+      action: 'Search',
     },
   ],
   parent: [
@@ -66,6 +78,12 @@ const LINKS_BY_ROLE: Record<string, DashboardLink[]> = {
       href: '/attendance',
       action: 'View attendance',
     },
+    {
+      title: 'Search',
+      description: 'Find courses, people and assignments across your organization',
+      href: '/search',
+      action: 'Search',
+    },
   ],
   admin: [
     {
@@ -73,6 +91,12 @@ const LINKS_BY_ROLE: Record<string, DashboardLink[]> = {
       description: 'Review courses in your organization',
       href: '/courses',
       action: 'Browse courses',
+    },
+    {
+      title: 'Search',
+      description: 'Find courses, people and assignments across your organization',
+      href: '/search',
+      action: 'Search',
     },
   ],
 };

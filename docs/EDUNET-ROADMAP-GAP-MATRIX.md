@@ -65,7 +65,7 @@ coverage and an operational story.
 | 16 | Internationalisation | COMPLETE | Bengali/English catalogues, `Intl` formatting, locale detection, interpolation, web language toggle; native Bengali review pending |
 | 17 | Accessibility | PARTIAL | Semantic primitives and focus styles; no WCAG 2.1 AA audit, keyboard test suite or screen-reader verification; skip link added in admin console |
 | 18 | Notifications | PARTIAL | In-app notification CRUD, read state, preferences, templates; no email/SMS push adapters or delivery worker |
-| 19 | Search | PARTIAL | Tenant-scoped relevance search with `?facets=1` counts; trigram fuzzy matching opt-in via `SEARCH_USE_TRIGRAM` + migration `0005_trigram_search.sql` (pg_trgm extension + GIN indexes); LIKE fallback until migration applied |
+| 19 | Search | PARTIAL | Tenant-scoped relevance search with `?facets=1` counts; trigram fuzzy matching opt-in via `SEARCH_USE_TRIGRAM` + migration `0005_trigram_search.sql` (pg_trgm extension + GIN indexes); `/search` UI page added; LIKE fallback until migration applied |
 | 20 | Analytics | PARTIAL | Tenant/owner-scoped course, student, assignment and engagement endpoints with a teacher dashboard; no warehouse/export or KPI instrumentation |
 
 ## 21-30. Engagement, AI, Support, Administration

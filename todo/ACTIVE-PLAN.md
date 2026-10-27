@@ -324,6 +324,20 @@ Ordered by risk. Items marked `[!]` need external infrastructure.
 - [x] Added `SEARCH_USE_TRIGRAM` boolean validation to `@edunet/config` with tests; added `parseBoolean` and `trigramEnabled` helpers with tests (search suite 28/28).
 - [x] Evidence: search typecheck/lint/build pass (0 errors), search tests 28/28, config typecheck/test/lint pass. PostgreSQL-backed trigram verification is BLOCKED locally (no PostgreSQL); migration `0005` is static-only until applied in CI.
 
+## Checkpoint 28 — Search UI page — COMPLETE 2026-10-27
+
+- [x] Added `/search` UI page for students, teachers and parents.
+- [x] Calls `GET /api/search` with `q`, `type` and `facets`; renders grouped
+  results (courses, people, assignments) for `all` and a flat list for single
+  types.
+- [x] Shows facet counts (courses by subject, people by role) when `?facets=1`.
+- [x] Loading, error/try-again and empty states; links results to courses.
+- [x] Linked Search from the student, teacher, parent and admin dashboard cards.
+- [x] Evidence: web typecheck/lint (0 errors, 2 pre-existing warnings), Next.js
+  production build includes `/search`, workspace typecheck 36/36, tests 51/51
+  tasks, lint 32/32 (0 errors). PostgreSQL, Docker and Playwright gates remain
+  BLOCKED in this sandbox.
+
 ## Definition of done for this run
 
 - Baseline gates re-executed and recorded.

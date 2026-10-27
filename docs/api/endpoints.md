@@ -154,6 +154,9 @@ Trigram fuzzy/typo-tolerant matching (`pg_trgm` similarity) is opt-in: set
 columns). Until that migration is applied and query plans justify it, search
 falls back to the normalized LIKE relevance scoring above.
 
+A student/teacher/parent search UI is available at `/search`, linked from the
+dashboard for all roles.
+
 ## Analytics (`/api/analytics`)
 
 | Method | Endpoint | Auth | Description |

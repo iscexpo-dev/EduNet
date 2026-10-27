@@ -284,7 +284,7 @@ entry points because Next.js transpiles them.
 | Parent Platform | PARTIAL | `/parent` dashboard (children, courses, grades) and child-scoped `/attendance` view; API hardened for same-org linking, path-param access, whitelisted updates and grade permission; self-service linking missing |
 | Teacher Platform | PARTIAL | Core authoring/grading UI, course analytics dashboard and scoped attendance marking; no workload UI |
 | Notifications | PARTIAL | In-app only; no delivery adapters |
-| Search | PARTIAL | Tenant-scoped relevance search with `?facets=1` counts; trigram fuzzy matching opt-in via `SEARCH_USE_TRIGRAM` + migration `0005_trigram_search.sql` |
+| Search | PARTIAL | Tenant-scoped relevance search with `?facets=1` counts; trigram fuzzy matching opt-in via `SEARCH_USE_TRIGRAM` + migration `0005_trigram_search.sql`; `/search` UI page added |
 | Analytics | PARTIAL | Tenant/owner-scoped endpoints and teacher course dashboard; no warehouse/KPI pipeline |
 | Communication | PARTIAL | Messaging/moderation/forums backend; no UI/realtime |
 | Calendar / Tutoring / Events | PARTIAL | Full backend; no UI |
