@@ -1,7 +1,7 @@
 'use client';
 
 import { apiUrl } from '@/lib/api-url';
-import { enqueue } from '@edunet/offline';
+import { enqueueOfflineAction } from '@/lib/offline-queue';
 
 import { useEffect, useState } from 'react';
 import { useAuth } from '@edunet/auth';
@@ -41,6 +41,13 @@ export default function CourseLearningPage() {
   const [error, setError] = useState('');
   const [progressError, setProgressError] = useState('');
   const [savingProgress, setSavingProgress] = useState(false);
+  const [bookmarks, setBookmarks] = useState<{ lessonId: string }[]>([]);
+  const [bookmarkSaving, setBookmarkSaving] = useState(false);
+  const [note, setNote] = useState('');
+  const [savedNote, setSavedNote] = useState('');
+  const [noteSaving, setNoteSaving] = useState(false);
+  const [noteError, setNoteError] = useState('');
+  const [noteStatus, setNoteStatus] = useState('');
 
   useEffect(() => {
     if (!user || !token || !courseId) return;
@@ -75,6 +82,15 @@ export default function CourseLearningPage() {
           const progressData = await progressResponse.json();
           setProgress(progressData);
         }
+
+        const bookmarksResponse = await fetch(apiUrl('/api/content/bookmarks'), {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        if (bookmarksResponse.ok) {
+          setBookmarks(await bookmarksResponse.json());
+        }
       } catch (err: any) {
         setError(err.message);
       } finally {
@@ -85,8 +101,157 @@ export default function CourseLearningPage() {
     fetchData();
   }, [user, token, courseId]);
 
+  useEffect(() => {
+    if (!user || !token || !currentLesson || user.role !== 'student') return;
+
+    let cancelled = false;
+    const loadNote = async () => {
+      try {
+        const response = await fetch(
+          apiUrl(`/api/content/lessons/${currentLesson.id}/note`),
+          { headers: { Authorization: `Bearer ${token}` } },
+        );
+        if (!response.ok) return;
+        const data = await response.json();
+        if (cancelled) return;
+        const content = typeof data?.content === 'string' ? data.content : '';
+        setNote(content);
+        setSavedNote(content);
+        setNoteError('');
+        setNoteStatus('');
+      } catch {
+        // Offline or transient failure: keep the editor usable.
+      }
+    };
+
+    void loadNote();
+    return () => {
+      cancelled = true;
+    };
+  }, [user, token, currentLesson]);
+
   const getProgressForLesson = (lessonId: string) => {
     return progress.find((p) => p.lessonId === lessonId);
+  };
+
+  const isBookmarked = (lessonId: string) =>
+    bookmarks.some((bookmark) => bookmark.lessonId === lessonId);
+
+  const handleToggleBookmark = async () => {
+    if (!user || !token || !currentLesson) return;
+    const lessonId = currentLesson.id;
+    const bookmarked = isBookmarked(lessonId);
+    setBookmarkSaving(true);
+    setNoteError('');
+
+    if (!navigator.onLine) {
+      enqueueOfflineAction({
+        id: `offline-${crypto.randomUUID()}`,
+        type: 'bookmark',
+        entityId: lessonId,
+        endpoint: bookmarked
+          ? `/api/content/bookmarks/${lessonId}`
+          : '/api/content/bookmarks',
+        method: bookmarked ? 'DELETE' : 'POST',
+        body: bookmarked ? undefined : { lessonId },
+        createdAt: Date.now(),
+        version: 1,
+        idempotencyKey: `offline-${crypto.randomUUID()}`,
+      });
+      setBookmarks((current) =>
+        bookmarked
+          ? current.filter((bookmark) => bookmark.lessonId !== lessonId)
+          : [...current, { lessonId }],
+      );
+      setNoteStatus('Bookmark saved offline — it will sync when you reconnect.');
+      setBookmarkSaving(false);
+      return;
+    }
+
+    try {
+      const response = await fetch(
+        apiUrl(
+          bookmarked
+            ? `/api/content/bookmarks/${lessonId}`
+            : '/api/content/bookmarks',
+        ),
+        {
+          method: bookmarked ? 'DELETE' : 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: bookmarked ? undefined : JSON.stringify({ lessonId }),
+        },
+      );
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.error || 'Could not update bookmark');
+      }
+      setBookmarks((current) =>
+        bookmarked
+          ? current.filter((bookmark) => bookmark.lessonId !== lessonId)
+          : [...current, { lessonId }],
+      );
+    } catch (err: any) {
+      setNoteError(err.message);
+    } finally {
+      setBookmarkSaving(false);
+    }
+  };
+
+  const handleSaveNote = async () => {
+    if (!user || !token || !currentLesson) return;
+    const lessonId = currentLesson.id;
+    const content = note.trim();
+    if (!content) {
+      setNoteError('Write something before saving.');
+      return;
+    }
+
+    setNoteSaving(true);
+    setNoteError('');
+    setNoteStatus('');
+
+    if (!navigator.onLine) {
+      enqueueOfflineAction({
+        id: `offline-${crypto.randomUUID()}`,
+        type: 'note',
+        entityId: lessonId,
+        endpoint: `/api/content/lessons/${lessonId}/note`,
+        method: 'PUT',
+        body: { content },
+        createdAt: Date.now(),
+        version: 1,
+        idempotencyKey: `offline-${crypto.randomUUID()}`,
+      });
+      setSavedNote(content);
+      setNoteStatus('Note saved offline — it will sync when you reconnect.');
+      setNoteSaving(false);
+      return;
+    }
+
+    try {
+      const response = await fetch(
+        apiUrl(`/api/content/lessons/${lessonId}/note`),
+        {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ content }),
+        },
+      );
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Could not save note');
+      setSavedNote(data.content ?? content);
+      setNoteStatus('Note saved.');
+    } catch (err: any) {
+      setNoteError(err.message);
+    } finally {
+      setNoteSaving(false);
+    }
   };
 
   const handleLessonClick = (lesson: Lesson) => {
@@ -99,7 +264,7 @@ export default function CourseLearningPage() {
     setProgressError('');
 
     if (!navigator.onLine) {
-      enqueue([], {
+      enqueueOfflineAction({
         id: `offline-${crypto.randomUUID()}`,
         type: 'lesson_progress',
         entityId: currentLesson.id,
@@ -282,6 +447,71 @@ export default function CourseLearningPage() {
                   {currentLesson.type === 'quiz' && (
                     <div className="bg-blue-50 p-6 rounded-lg">
                       <p className="text-blue-700">Quiz content would be displayed here</p>
+                    </div>
+                  )}
+                </div>
+
+                <div className="mt-6 border-t pt-6">
+                  {user.role === 'student' && (
+                    <div className="space-y-4">
+                      <div className="flex flex-wrap items-center justify-between gap-3">
+                        <div>
+                          <h2 className="text-lg font-semibold">Your learning tools</h2>
+                          <p className="text-sm text-gray-600">
+                            Bookmarks and notes are private to your account.
+                          </p>
+                        </div>
+                        <Button
+                          variant={isBookmarked(currentLesson.id) ? 'secondary' : 'primary'}
+                          isLoading={bookmarkSaving}
+                          onClick={handleToggleBookmark}
+                        >
+                          {isBookmarked(currentLesson.id)
+                            ? 'Remove bookmark'
+                            : 'Bookmark lesson'}
+                        </Button>
+                      </div>
+
+                      <div>
+                        <label
+                          htmlFor="lesson-note"
+                          className="mb-2 block text-sm font-medium text-gray-700"
+                        >
+                          Lesson notes
+                        </label>
+                        <textarea
+                          id="lesson-note"
+                          value={note}
+                          onChange={(event) => {
+                            setNote(event.target.value);
+                            setNoteStatus('');
+                          }}
+                          rows={5}
+                          maxLength={20000}
+                          placeholder="Write down what you want to remember..."
+                          className="w-full rounded-md border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                        <div className="mt-2 flex flex-wrap items-center gap-3">
+                          <Button
+                            variant="primary"
+                            isLoading={noteSaving}
+                            onClick={handleSaveNote}
+                            disabled={note.trim() === savedNote.trim()}
+                          >
+                            Save note
+                          </Button>
+                          {noteStatus && (
+                            <p role="status" className="text-sm text-green-700">
+                              {noteStatus}
+                            </p>
+                          )}
+                          {noteError && (
+                            <p role="alert" className="text-sm text-red-600">
+                              {noteError}
+                            </p>
+                          )}
+                        </div>
+                      </div>
                     </div>
                   )}
                 </div>

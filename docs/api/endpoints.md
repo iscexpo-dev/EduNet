@@ -186,6 +186,20 @@ cookie. Refresh tokens live in the httpOnly `edunet_refresh` cookie scoped to
 | GET | `/resources/:id` | Bearer | Get resource |
 | PUT | `/resources/:id` | Teacher/Admin | Update resource |
 | DELETE | `/resources/:id` | Teacher/Admin | Delete resource |
+| GET | `/courses/:courseId/objectives` | Bearer | List a course's learning objectives |
+| POST | `/courses/:courseId/objectives` | Teacher/Admin (owner) | Create a learning objective |
+| PUT | `/objectives/:id` | Teacher/Admin (owner) | Update a learning objective |
+| DELETE | `/objectives/:id` | Teacher/Admin (owner) | Delete a learning objective |
+| GET | `/lessons/:lessonId/objectives` | Bearer | List objectives attached to a lesson |
+| POST | `/lessons/:lessonId/objectives` | Teacher/Admin (owner) | Attach `{ objectiveId }` to a lesson |
+| DELETE | `/lessons/:lessonId/objectives/:objectiveId` | Teacher/Admin (owner) | Detach an objective |
+| GET | `/bookmarks` | Student | List the caller's lesson bookmarks |
+| POST | `/bookmarks` | Student | Bookmark `{ lessonId }` (idempotent) |
+| DELETE | `/bookmarks/:lessonId` | Student | Remove the caller's bookmark |
+| GET | `/notes` | Student | List the caller's lesson notes |
+| GET | `/lessons/:lessonId/note` | Student | Get the caller's note (or `null`) |
+| PUT | `/lessons/:lessonId/note` | Student | Upsert `{ content }` (trimmed, max 20,000 chars) |
+| DELETE | `/lessons/:lessonId/note` | Student | Delete the caller's note |
 | POST | `/media` | Teacher/Admin | Upload media (multipart, 25 MB cap) |
 | GET | `/media` | Bearer | List media |
 | GET | `/media/:id/access` | Bearer | Mint a short-lived signed URL |

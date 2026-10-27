@@ -18,7 +18,30 @@ import {
   createResource,
   updateResource,
   deleteResource,
+  listObjectivesByCourse,
+  findObjectiveById,
+  createObjective,
+  updateObjective,
+  deleteObjective,
+  listObjectivesByLesson,
+  attachObjective,
+  detachObjective,
+  listBookmarksByStudent,
+  createBookmark,
+  deleteBookmark,
+  listNotesByStudent,
+  findNote,
+  upsertNote,
+  deleteNote,
 } from './db';
+import {
+  canManageCourse,
+  canOwnPersonalState,
+  isUuid,
+  parseNoteContent,
+  parseObjectiveInput,
+  parseObjectiveUpdate,
+} from './policy';
 
 export interface AuthRequest extends Request {
   user?: {
@@ -412,6 +435,289 @@ export async function deleteResourceHandler(req: AuthRequest, res: Response) {
 
     const resource = await deleteResource(id, organizationId);
     res.json(resource);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+}
+
+// Learning objective handlers
+export async function listCourseObjectivesHandler(req: AuthRequest, res: Response) {
+  const organizationId = req.user?.organizationId;
+  if (!organizationId) return res.status(403).json({ error: 'Organization context required' });
+  try {
+    const { courseId } = req.params;
+    if (!isUuid(courseId)) return res.status(400).json({ error: 'Invalid course id' });
+
+    const course = await findCourseById(courseId, organizationId);
+    if (!course) return res.status(404).json({ error: 'Course not found' });
+
+    res.json(await listObjectivesByCourse(courseId, organizationId));
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+}
+
+export async function createCourseObjectiveHandler(req: AuthRequest, res: Response) {
+  const organizationId = req.user?.organizationId;
+  if (!organizationId) return res.status(403).json({ error: 'Organization context required' });
+  try {
+    const { courseId } = req.params;
+    if (!isUuid(courseId)) return res.status(400).json({ error: 'Invalid course id' });
+
+    const course = await findCourseById(courseId, organizationId);
+    if (!course) return res.status(404).json({ error: 'Course not found' });
+    if (!canManageCourse(req.user?.role, req.user?.id, course.teacherId)) {
+      return res.status(403).json({ error: 'You can only edit your own courses' });
+    }
+
+    const input = parseObjectiveInput(req.body);
+    const objective = await createObjective({ courseId, ...input }, organizationId);
+    res.status(201).json(objective);
+  } catch (error: any) {
+    res.status(400).json({ error: error.message });
+  }
+}
+
+export async function updateObjectiveHandler(req: AuthRequest, res: Response) {
+  const organizationId = req.user?.organizationId;
+  if (!organizationId) return res.status(403).json({ error: 'Organization context required' });
+  try {
+    const { id } = req.params;
+    if (!isUuid(id)) return res.status(400).json({ error: 'Invalid objective id' });
+
+    const existing = await findObjectiveById(id, organizationId);
+    if (!existing) return res.status(404).json({ error: 'Objective not found' });
+
+    const course = await findCourseById(existing.courseId, organizationId);
+    if (!canManageCourse(req.user?.role, req.user?.id, course?.teacherId)) {
+      return res.status(403).json({ error: 'You can only edit your own courses' });
+    }
+
+    const patch = parseObjectiveUpdate(req.body);
+    res.json(await updateObjective(id, organizationId, patch));
+  } catch (error: any) {
+    res.status(400).json({ error: error.message });
+  }
+}
+
+export async function deleteObjectiveHandler(req: AuthRequest, res: Response) {
+  const organizationId = req.user?.organizationId;
+  if (!organizationId) return res.status(403).json({ error: 'Organization context required' });
+  try {
+    const { id } = req.params;
+    if (!isUuid(id)) return res.status(400).json({ error: 'Invalid objective id' });
+
+    const existing = await findObjectiveById(id, organizationId);
+    if (!existing) return res.status(404).json({ error: 'Objective not found' });
+
+    const course = await findCourseById(existing.courseId, organizationId);
+    if (!canManageCourse(req.user?.role, req.user?.id, course?.teacherId)) {
+      return res.status(403).json({ error: 'You can only delete objectives for your own courses' });
+    }
+
+    res.json(await deleteObjective(id, organizationId));
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+}
+
+export async function listLessonObjectivesHandler(req: AuthRequest, res: Response) {
+  const organizationId = req.user?.organizationId;
+  if (!organizationId) return res.status(403).json({ error: 'Organization context required' });
+  try {
+    const { lessonId } = req.params;
+    if (!isUuid(lessonId)) return res.status(400).json({ error: 'Invalid lesson id' });
+
+    const lesson = await findLessonById(lessonId, organizationId);
+    if (!lesson) return res.status(404).json({ error: 'Lesson not found' });
+
+    res.json(await listObjectivesByLesson(lessonId, organizationId));
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+}
+
+export async function attachLessonObjectiveHandler(req: AuthRequest, res: Response) {
+  const organizationId = req.user?.organizationId;
+  if (!organizationId) return res.status(403).json({ error: 'Organization context required' });
+  try {
+    const { lessonId } = req.params;
+    if (!isUuid(lessonId)) return res.status(400).json({ error: 'Invalid lesson id' });
+
+    const objectiveId =
+      typeof req.body?.objectiveId === 'string' ? req.body.objectiveId.trim() : '';
+    if (!isUuid(objectiveId)) {
+      return res.status(400).json({ error: 'objectiveId must be a valid id' });
+    }
+
+    const lesson = await findLessonById(lessonId, organizationId);
+    if (!lesson) return res.status(404).json({ error: 'Lesson not found' });
+    const course = await findCourseById(lesson.courseId, organizationId);
+    if (!canManageCourse(req.user?.role, req.user?.id, course?.teacherId)) {
+      return res.status(403).json({ error: 'You can only edit your own courses' });
+    }
+
+    const link = await attachObjective(lessonId, objectiveId, organizationId);
+    res.status(201).json(link);
+  } catch (error: any) {
+    const notFound = /not found/i.test(error.message);
+    res.status(notFound ? 404 : 400).json({ error: error.message });
+  }
+}
+
+export async function detachLessonObjectiveHandler(req: AuthRequest, res: Response) {
+  const organizationId = req.user?.organizationId;
+  if (!organizationId) return res.status(403).json({ error: 'Organization context required' });
+  try {
+    const { lessonId, objectiveId } = req.params;
+    if (!isUuid(lessonId) || !isUuid(objectiveId)) {
+      return res.status(400).json({ error: 'Invalid lesson or objective id' });
+    }
+
+    const lesson = await findLessonById(lessonId, organizationId);
+    if (!lesson) return res.status(404).json({ error: 'Lesson not found' });
+    const course = await findCourseById(lesson.courseId, organizationId);
+    if (!canManageCourse(req.user?.role, req.user?.id, course?.teacherId)) {
+      return res.status(403).json({ error: 'You can only edit your own courses' });
+    }
+
+    const link = await detachObjective(lessonId, objectiveId, organizationId);
+    if (!link) return res.status(404).json({ error: 'Objective is not attached to this lesson' });
+    res.json(link);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+}
+
+// Bookmark handlers. Every query is scoped to the caller and their organization.
+export async function listBookmarksHandler(req: AuthRequest, res: Response) {
+  const organizationId = req.user?.organizationId;
+  if (!organizationId || !req.user) {
+    return res.status(403).json({ error: 'Organization context required' });
+  }
+  if (!canOwnPersonalState(req.user.role)) {
+    return res.status(403).json({ error: 'Only students have lesson bookmarks' });
+  }
+  try {
+    res.json(await listBookmarksByStudent(req.user.id, organizationId));
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+}
+
+export async function createBookmarkHandler(req: AuthRequest, res: Response) {
+  const organizationId = req.user?.organizationId;
+  if (!organizationId || !req.user) {
+    return res.status(403).json({ error: 'Organization context required' });
+  }
+  if (!canOwnPersonalState(req.user.role)) {
+    return res.status(403).json({ error: 'Only students have lesson bookmarks' });
+  }
+  try {
+    const lessonId = typeof req.body?.lessonId === 'string' ? req.body.lessonId.trim() : '';
+    if (!isUuid(lessonId)) return res.status(400).json({ error: 'lessonId must be a valid id' });
+
+    const bookmark = await createBookmark(lessonId, req.user.id, organizationId);
+    res.status(201).json(bookmark);
+  } catch (error: any) {
+    const notFound = /not found/i.test(error.message);
+    res.status(notFound ? 404 : 400).json({ error: error.message });
+  }
+}
+
+export async function deleteBookmarkHandler(req: AuthRequest, res: Response) {
+  const organizationId = req.user?.organizationId;
+  if (!organizationId || !req.user) {
+    return res.status(403).json({ error: 'Organization context required' });
+  }
+  if (!canOwnPersonalState(req.user.role)) {
+    return res.status(403).json({ error: 'Only students have lesson bookmarks' });
+  }
+  try {
+    const { lessonId } = req.params;
+    if (!isUuid(lessonId)) return res.status(400).json({ error: 'Invalid lesson id' });
+
+    const bookmark = await deleteBookmark(lessonId, req.user.id, organizationId);
+    if (!bookmark) return res.status(404).json({ error: 'Bookmark not found' });
+    res.json(bookmark);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+}
+
+// Note handlers. Notes are private to the student who wrote them.
+export async function listNotesHandler(req: AuthRequest, res: Response) {
+  const organizationId = req.user?.organizationId;
+  if (!organizationId || !req.user) {
+    return res.status(403).json({ error: 'Organization context required' });
+  }
+  if (!canOwnPersonalState(req.user.role)) {
+    return res.status(403).json({ error: 'Only students have lesson notes' });
+  }
+  try {
+    res.json(await listNotesByStudent(req.user.id, organizationId));
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+}
+
+export async function getLessonNoteHandler(req: AuthRequest, res: Response) {
+  const organizationId = req.user?.organizationId;
+  if (!organizationId || !req.user) {
+    return res.status(403).json({ error: 'Organization context required' });
+  }
+  if (!canOwnPersonalState(req.user.role)) {
+    return res.status(403).json({ error: 'Only students have lesson notes' });
+  }
+  try {
+    const { lessonId } = req.params;
+    if (!isUuid(lessonId)) return res.status(400).json({ error: 'Invalid lesson id' });
+
+    const lesson = await findLessonById(lessonId, organizationId);
+    if (!lesson) return res.status(404).json({ error: 'Lesson not found' });
+
+    res.json((await findNote(lessonId, req.user.id, organizationId)) ?? null);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+}
+
+export async function upsertLessonNoteHandler(req: AuthRequest, res: Response) {
+  const organizationId = req.user?.organizationId;
+  if (!organizationId || !req.user) {
+    return res.status(403).json({ error: 'Organization context required' });
+  }
+  if (!canOwnPersonalState(req.user.role)) {
+    return res.status(403).json({ error: 'Only students have lesson notes' });
+  }
+  try {
+    const { lessonId } = req.params;
+    if (!isUuid(lessonId)) return res.status(400).json({ error: 'Invalid lesson id' });
+
+    const content = parseNoteContent(req.body);
+    const note = await upsertNote(lessonId, req.user.id, organizationId, content);
+    res.json(note);
+  } catch (error: any) {
+    const notFound = /not found/i.test(error.message);
+    res.status(notFound ? 404 : 400).json({ error: error.message });
+  }
+}
+
+export async function deleteLessonNoteHandler(req: AuthRequest, res: Response) {
+  const organizationId = req.user?.organizationId;
+  if (!organizationId || !req.user) {
+    return res.status(403).json({ error: 'Organization context required' });
+  }
+  if (!canOwnPersonalState(req.user.role)) {
+    return res.status(403).json({ error: 'Only students have lesson notes' });
+  }
+  try {
+    const { lessonId } = req.params;
+    if (!isUuid(lessonId)) return res.status(400).json({ error: 'Invalid lesson id' });
+
+    const note = await deleteNote(lessonId, req.user.id, organizationId);
+    if (!note) return res.status(404).json({ error: 'Note not found' });
+    res.json(note);
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }

@@ -3,7 +3,7 @@
   "schemaVersion": "1.0.0",
   "project": "EduNet",
   "purpose": "Canonical resumable execution state for autonomous agents. Update after every meaningful checkpoint.",
-  "lastUpdated": "2026-10-26T22:54:49Z",
+  "lastUpdated": "2026-10-27T00:30:00Z",
   "repository": {
     "path": "/vercel/share/v0-project",
     "remote": "https://github.com/iscexpo-dev/EduNet.git",
@@ -49,23 +49,23 @@
   "validation": {
     "typecheck": {
       "status": "PASS",
-      "command": "pnpm typecheck",
-      "evidence": "36/36 tasks, 0 errors (2026-10-26 Next.js 16 upgrade)"
+      "command": "pnpm turbo run typecheck --concurrency=2",
+      "evidence": "36/36 tasks, 0 errors (2026-10-27 content objectives/bookmarks/notes)"
     },
     "lint": {
       "status": "PASS",
       "command": "pnpm turbo run lint --concurrency=2",
-      "evidence": "32/32 tasks, 0 errors; warnings only"
+      "evidence": "32/32 tasks, 0 errors; warnings only; @edunet/content and @edunet/web lint 0 errors (2026-10-27)"
     },
     "unitTests": {
       "status": "PASS",
-      "command": "pnpm test",
-      "evidence": "50/50 tasks; all suites pass (2026-10-26 Next.js 16 upgrade)"
+      "command": "pnpm turbo run test --concurrency=2",
+      "evidence": "50/50 tasks; content 41 tests (2 files) after adding 17 policy cases; all suites pass (2026-10-27)"
     },
     "build": {
       "status": "PASS",
-      "command": "pnpm --filter @edunet/web build",
-      "evidence": "Next.js 16.4.3 Turbopack production build and standalone output both pass (2026-10-26)"
+      "command": "pnpm --filter @edunet/web build && pnpm --filter @edunet/content build",
+      "evidence": "Next.js 16.4.3 Turbopack production build and content tsc build pass (2026-10-27)"
     },
     "audit": {
       "status": "PASS",
@@ -167,7 +167,7 @@
     },
     "content": {
       "status": "PARTIAL",
-      "gap": "Lessons/media/signed URLs/versions; objectives/bookmarks/notes routes missing; no S3 provider"
+      "gap": "Lessons/media/signed URLs/versions; learning objectives, lesson bookmarks and private notes APIs added with org-scoped queries and validation (2026-10-27); no S3 provider and objectives/bookmarks have no teacher/student UI beyond lesson learn page"
     },
     "communication": {
       "status": "PARTIAL",
@@ -199,7 +199,7 @@
     },
     "offline": {
       "status": "PARTIAL",
-      "gap": "Queue/service worker exist; wired into assignment submit and lesson progress; remaining assessment/note/bookmark flows"
+      "gap": "Queue/service worker wired into assignment submit, lesson progress, lesson notes and bookmarks; queue persistence bug fixed with a single storage-aware enqueue helper; assessment offline submission still missing"
     },
     "internationalization": {
       "status": "PASS",
@@ -287,9 +287,9 @@
     }
   },
   "activeCheckpoint": {
-    "id": "checkpoint-16-nextjs-16-upgrade",
-    "description": "Upgraded the web app to Next.js 16.4.3 with React 19, migrated lint to the ESLint CLI/flat config, proxy convention, and Turbopack, and verified build, lint, typecheck and tests.",
-    "startedAt": "2026-10-26T22:54:49Z",
+    "id": "checkpoint-17-content-personal-state",
+    "description": "Implemented learning objective, lesson bookmark and private lesson note APIs with organization scoping, teacher ownership checks and student-only personal state, plus offline queue persistence fixes and learn-page note/bookmark UI.",
+    "startedAt": "2026-10-27T00:20:00Z",
     "status": "COMPLETE"
   },
   "checkpoints": [
@@ -542,6 +542,27 @@
         "packages/ui/package.json",
         "packages/auth/package.json"
       ]
+    },
+    {
+      "id": "checkpoint-17-content-personal-state",
+      "at": "2026-10-27T00:30:00Z",
+      "summary": "Implemented the content gaps around personal learning state using the existing learning_objectives/lesson_objectives/lesson_bookmarks/lesson_notes tables (no new migration needed). Added org-scoped DB queries, a pure policy module with 17 unit tests, handlers and routes for course/lesson objectives (teacher-owner or admin mutations) and student-only bookmarks and notes (caller-pinned, trimmed 20k limit). Fixed offline queue writes so enqueued work is actually persisted, and added bookmark/note controls with offline enqueue to the lesson learn page. Verified content build + lint (0 errors), web typecheck + lint (0 errors) + Next.js production build, workspace typecheck 36/36 and tests 50/50.",
+      "evidence": [
+        "/tmp/tc2.log",
+        "/tmp/test2.log",
+        "/tmp/webbuild.log"
+      ],
+      "artifacts": [
+        "services/content/src/db.ts",
+        "services/content/src/policy.ts",
+        "services/content/src/policy.test.ts",
+        "services/content/src/handlers.ts",
+        "services/content/src/routes.ts",
+        "apps/web/src/lib/offline-queue.ts",
+        "apps/web/src/app/my-courses/[id]/learn/page.tsx",
+        "apps/web/src/app/my-courses/[id]/assignments/[assignmentId]/page.tsx",
+        "docs/api/endpoints.md"
+      ]
     }
   ],
   "blockers": [
@@ -574,7 +595,8 @@
     "Configure the AI provider and staff the human escalation path.",
     "Add search facets/fuzzy matching plus a trigram index once query plans justify it.",
     "Wire the KPI collection pipeline from persisted data.",
-    "Continue remaining offline flows and deeper admin operations.",
+    "Continue remaining offline flows (assessment submission) and deeper admin operations.",
+    "Expose learning objectives in teacher course authoring UI.",
     "Close remaining security hardening: DAST and MFA/SSO."
   ],
   "filesOfRecord": {

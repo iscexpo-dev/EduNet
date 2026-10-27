@@ -1,7 +1,7 @@
 'use client';
 
 import { apiUrl } from '@/lib/api-url';
-import { enqueue } from '@edunet/offline';
+import { enqueueOfflineAction } from '@/lib/offline-queue';
 
 import { useEffect, useState } from 'react';
 import { useAuth } from '@edunet/auth';
@@ -78,7 +78,7 @@ export default function AssignmentSubmissionPage() {
     setError('');
 
     if (!navigator.onLine) {
-      enqueue([], {
+      enqueueOfflineAction({
         id: `offline-${crypto.randomUUID()}`,
         type: 'assignment_submit',
         entityId: String(assignmentId),

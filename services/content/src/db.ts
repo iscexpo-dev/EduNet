@@ -301,3 +301,278 @@ export async function deleteMediaFile(id: string, organizationId: string) {
     .returning();
   return result[0];
 }
+
+// Learning objective operations. Objectives belong to a course, so tenant
+// scope is always derived from the course's organization.
+export async function listObjectivesByCourse(
+  courseId: string,
+  organizationId: string,
+) {
+  return db
+    .select()
+    .from(schema.learningObjectives)
+    .where(
+      and(
+        eq(schema.learningObjectives.courseId, courseId),
+        inArray(schema.learningObjectives.courseId, scopedCourseIds(organizationId)),
+      ),
+    )
+    .orderBy(schema.learningObjectives.order, schema.learningObjectives.createdAt);
+}
+
+export async function findObjectiveById(id: string, organizationId: string) {
+  const [objective] = await db
+    .select()
+    .from(schema.learningObjectives)
+    .where(
+      and(
+        eq(schema.learningObjectives.id, id),
+        inArray(schema.learningObjectives.courseId, scopedCourseIds(organizationId)),
+      ),
+    )
+    .limit(1);
+  return objective ?? null;
+}
+
+export async function createObjective(
+  data: typeof schema.learningObjectives.$inferInsert,
+  organizationId: string,
+) {
+  if (!(await findCourseById(data.courseId!, organizationId))) throw new Error('Course not found');
+  const [objective] = await db
+    .insert(schema.learningObjectives)
+    .values(data)
+    .returning();
+  return objective;
+}
+
+export async function updateObjective(
+  id: string,
+  organizationId: string,
+  data: Partial<Pick<typeof schema.learningObjectives.$inferInsert, 'description' | 'order'>>,
+) {
+  const [objective] = await db
+    .update(schema.learningObjectives)
+    .set(data)
+    .where(
+      and(
+        eq(schema.learningObjectives.id, id),
+        inArray(schema.learningObjectives.courseId, scopedCourseIds(organizationId)),
+      ),
+    )
+    .returning();
+  return objective;
+}
+
+export async function deleteObjective(id: string, organizationId: string) {
+  const [objective] = await db
+    .delete(schema.learningObjectives)
+    .where(
+      and(
+        eq(schema.learningObjectives.id, id),
+        inArray(schema.learningObjectives.courseId, scopedCourseIds(organizationId)),
+      ),
+    )
+    .returning();
+  return objective;
+}
+
+export async function listObjectivesByLesson(
+  lessonId: string,
+  organizationId: string,
+) {
+  return db
+    .select({
+      id: schema.learningObjectives.id,
+      courseId: schema.learningObjectives.courseId,
+      description: schema.learningObjectives.description,
+      order: schema.learningObjectives.order,
+      createdAt: schema.learningObjectives.createdAt,
+    })
+    .from(schema.lessonObjectives)
+    .innerJoin(
+      schema.learningObjectives,
+      eq(schema.lessonObjectives.objectiveId, schema.learningObjectives.id),
+    )
+    .where(
+      and(
+        eq(schema.lessonObjectives.lessonId, lessonId),
+        inArray(schema.lessonObjectives.lessonId, scopedLessonIds(organizationId)),
+      ),
+    )
+    .orderBy(schema.learningObjectives.order, schema.learningObjectives.createdAt);
+}
+
+export async function attachObjective(
+  lessonId: string,
+  objectiveId: string,
+  organizationId: string,
+) {
+  const lesson = await findLessonById(lessonId, organizationId);
+  if (!lesson) throw new Error('Lesson not found');
+  const objective = await findObjectiveById(objectiveId, organizationId);
+  if (!objective) throw new Error('Objective not found');
+  if (objective.courseId !== lesson.courseId) {
+    throw new Error('Objective and lesson must belong to the same course');
+  }
+
+  const [link] = await db
+    .insert(schema.lessonObjectives)
+    .values({ lessonId, objectiveId })
+    .onConflictDoNothing()
+    .returning();
+  if (link) return link;
+
+  const [existing] = await db
+    .select()
+    .from(schema.lessonObjectives)
+    .where(
+      and(
+        eq(schema.lessonObjectives.lessonId, lessonId),
+        eq(schema.lessonObjectives.objectiveId, objectiveId),
+      ),
+    )
+    .limit(1);
+  return existing;
+}
+
+export async function detachObjective(
+  lessonId: string,
+  objectiveId: string,
+  organizationId: string,
+) {
+  if (!(await findLessonById(lessonId, organizationId))) throw new Error('Lesson not found');
+  const [link] = await db
+    .delete(schema.lessonObjectives)
+    .where(
+      and(
+        eq(schema.lessonObjectives.lessonId, lessonId),
+        eq(schema.lessonObjectives.objectiveId, objectiveId),
+      ),
+    )
+    .returning();
+  return link ?? null;
+}
+
+// Personal lesson bookmarks. Scoped to the student's own rows and the
+// organization that owns the lesson's course.
+const scopedBookmarks = (studentId: string, organizationId: string) =>
+  and(
+    eq(schema.lessonBookmarks.studentId, studentId),
+    inArray(schema.lessonBookmarks.lessonId, scopedLessonIds(organizationId)),
+  );
+
+export async function listBookmarksByStudent(studentId: string, organizationId: string) {
+  return db
+    .select({
+      id: schema.lessonBookmarks.id,
+      lessonId: schema.lessonBookmarks.lessonId,
+      createdAt: schema.lessonBookmarks.createdAt,
+      lessonTitle: schema.lessons.title,
+      courseId: schema.lessons.courseId,
+    })
+    .from(schema.lessonBookmarks)
+    .innerJoin(schema.lessons, eq(schema.lessonBookmarks.lessonId, schema.lessons.id))
+    .where(scopedBookmarks(studentId, organizationId))
+    .orderBy(desc(schema.lessonBookmarks.createdAt));
+}
+
+export async function findBookmark(lessonId: string, studentId: string, organizationId: string) {
+  const [bookmark] = await db
+    .select()
+    .from(schema.lessonBookmarks)
+    .where(and(eq(schema.lessonBookmarks.lessonId, lessonId), scopedBookmarks(studentId, organizationId)))
+    .limit(1);
+  return bookmark ?? null;
+}
+
+export async function createBookmark(lessonId: string, studentId: string, organizationId: string) {
+  if (!(await findLessonById(lessonId, organizationId))) throw new Error('Lesson not found');
+  const [student] = await db
+    .select({ id: users.id })
+    .from(users)
+    .where(and(eq(users.id, studentId), eq(users.organizationId, organizationId)))
+    .limit(1);
+  if (!student) throw new Error('Student not found');
+
+  const [bookmark] = await db
+    .insert(schema.lessonBookmarks)
+    .values({ lessonId, studentId })
+    .onConflictDoNothing()
+    .returning();
+  return bookmark ?? findBookmark(lessonId, studentId, organizationId);
+}
+
+export async function deleteBookmark(lessonId: string, studentId: string, organizationId: string) {
+  const [bookmark] = await db
+    .delete(schema.lessonBookmarks)
+    .where(and(eq(schema.lessonBookmarks.lessonId, lessonId), scopedBookmarks(studentId, organizationId)))
+    .returning();
+  return bookmark ?? null;
+}
+
+// Personal lesson notes: one note per student and lesson, last write wins.
+const scopedNotes = (studentId: string, organizationId: string) =>
+  and(
+    eq(schema.lessonNotes.studentId, studentId),
+    inArray(schema.lessonNotes.lessonId, scopedLessonIds(organizationId)),
+  );
+
+export async function listNotesByStudent(studentId: string, organizationId: string) {
+  return db
+    .select({
+      id: schema.lessonNotes.id,
+      lessonId: schema.lessonNotes.lessonId,
+      content: schema.lessonNotes.content,
+      createdAt: schema.lessonNotes.createdAt,
+      updatedAt: schema.lessonNotes.updatedAt,
+      lessonTitle: schema.lessons.title,
+      courseId: schema.lessons.courseId,
+    })
+    .from(schema.lessonNotes)
+    .innerJoin(schema.lessons, eq(schema.lessonNotes.lessonId, schema.lessons.id))
+    .where(scopedNotes(studentId, organizationId))
+    .orderBy(desc(schema.lessonNotes.updatedAt));
+}
+
+export async function findNote(lessonId: string, studentId: string, organizationId: string) {
+  const [note] = await db
+    .select()
+    .from(schema.lessonNotes)
+    .where(and(eq(schema.lessonNotes.lessonId, lessonId), scopedNotes(studentId, organizationId)))
+    .limit(1);
+  return note ?? null;
+}
+
+export async function upsertNote(
+  lessonId: string,
+  studentId: string,
+  organizationId: string,
+  content: string,
+) {
+  if (!(await findLessonById(lessonId, organizationId))) throw new Error('Lesson not found');
+  const [student] = await db
+    .select({ id: users.id })
+    .from(users)
+    .where(and(eq(users.id, studentId), eq(users.organizationId, organizationId)))
+    .limit(1);
+  if (!student) throw new Error('Student not found');
+
+  const [note] = await db
+    .insert(schema.lessonNotes)
+    .values({ lessonId, studentId, content })
+    .onConflictDoUpdate({
+      target: [schema.lessonNotes.lessonId, schema.lessonNotes.studentId],
+      set: { content, updatedAt: new Date() },
+    })
+    .returning();
+  return note;
+}
+
+export async function deleteNote(lessonId: string, studentId: string, organizationId: string) {
+  const [note] = await db
+    .delete(schema.lessonNotes)
+    .where(and(eq(schema.lessonNotes.lessonId, lessonId), scopedNotes(studentId, organizationId)))
+    .returning();
+  return note ?? null;
+}
