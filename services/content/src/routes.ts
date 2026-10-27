@@ -16,6 +16,20 @@ import {
   listResourcesHandler,
   updateResourceHandler,
   deleteResourceHandler,
+  listCourseObjectivesHandler,
+  createCourseObjectiveHandler,
+  updateObjectiveHandler,
+  deleteObjectiveHandler,
+  listLessonObjectivesHandler,
+  attachLessonObjectiveHandler,
+  detachLessonObjectiveHandler,
+  listBookmarksHandler,
+  createBookmarkHandler,
+  deleteBookmarkHandler,
+  listNotesHandler,
+  getLessonNoteHandler,
+  upsertLessonNoteHandler,
+  deleteLessonNoteHandler,
 } from './handlers';
 import {
   uploadMediaHandler,
@@ -49,6 +63,28 @@ export function registerRoutes(app: any) {
   router.get('/resources/:id', authenticate, getResourceHandler);
   router.put('/resources/:id', authenticate, authorize('teacher', 'admin'), updateResourceHandler);
   router.delete('/resources/:id', authenticate, authorize('teacher', 'admin'), deleteResourceHandler);
+
+  // Learning objectives. Reading is open to authenticated members of the
+  // organization; mutations are limited to the owning teacher or an admin
+  // (enforced again in each handler).
+  router.get('/courses/:courseId/objectives', authenticate, listCourseObjectivesHandler);
+  router.post('/courses/:courseId/objectives', authenticate, authorize('teacher', 'admin'), createCourseObjectiveHandler);
+  router.put('/objectives/:id', authenticate, authorize('teacher', 'admin'), updateObjectiveHandler);
+  router.delete('/objectives/:id', authenticate, authorize('teacher', 'admin'), deleteObjectiveHandler);
+  router.get('/lessons/:lessonId/objectives', authenticate, listLessonObjectivesHandler);
+  router.post('/lessons/:lessonId/objectives', authenticate, authorize('teacher', 'admin'), attachLessonObjectiveHandler);
+  router.delete('/lessons/:lessonId/objectives/:objectiveId', authenticate, authorize('teacher', 'admin'), detachLessonObjectiveHandler);
+
+  // Personal learning state. Handlers pin every row to the caller's id, so a
+  // forged body cannot read or mutate another student's data.
+  router.get('/bookmarks', authenticate, authorize('student'), listBookmarksHandler);
+  router.post('/bookmarks', authenticate, authorize('student'), createBookmarkHandler);
+  router.delete('/bookmarks/:lessonId', authenticate, authorize('student'), deleteBookmarkHandler);
+
+  router.get('/notes', authenticate, authorize('student'), listNotesHandler);
+  router.get('/lessons/:lessonId/note', authenticate, authorize('student'), getLessonNoteHandler);
+  router.put('/lessons/:lessonId/note', authenticate, authorize('student'), upsertLessonNoteHandler);
+  router.delete('/lessons/:lessonId/note', authenticate, authorize('student'), deleteLessonNoteHandler);
 
   // Media routes. Uploads are teacher/admin owned; access URLs are signed.
   router.post('/media', authenticate, authorize('teacher', 'admin'), uploadMediaHandler);

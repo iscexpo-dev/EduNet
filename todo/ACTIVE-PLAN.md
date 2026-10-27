@@ -168,6 +168,25 @@ Ordered by risk. Items marked `[!]` need external infrastructure.
       Next.js 16.4.3 Turbopack build + standalone output PASS. PostgreSQL,
       Docker and Playwright gates remain BLOCKED in this sandbox.
 
+## Checkpoint 17 — Content personal state — COMPLETE 2026-10-27
+
+- [x] Served the existing `learning_objectives` / `lesson_objectives` tables:
+      course objective CRUD and lesson attach/detach, restricted to the owning
+      teacher or an admin, with cross-course attachment rejected.
+- [x] Added student-only lesson bookmarks (`GET/POST/DELETE /bookmarks`) and
+      private notes (`GET /notes`, lesson note get/upsert/delete`) pinned to the
+      caller id and the lesson's organization.
+- [x] Added `services/content/src/policy.ts` (uuid, ownership, payload and
+      pagination validation) with 17 unit tests; content suite 41/41.
+- [x] Fixed the offline queue write path: pages previously called
+      `enqueue([], …)` without persisting, so queued work was dropped. Added
+      `apps/web/src/lib/offline-queue.ts` and wired assignment/lesson flows.
+- [x] Added bookmark and note controls (offline-aware) to the lesson learn page.
+- [x] Evidence: content build/lint 0 errors, web typecheck/lint 0 errors and
+      Next.js production build, workspace typecheck 36/36, tests 50/50.
+- [x] Documented the new endpoints in `docs/api/endpoints.md`.
+- [ ] Remaining: offline assessment submission and objectives authoring UI.
+
 ## Definition of done for this run
 
 - Baseline gates re-executed and recorded.
