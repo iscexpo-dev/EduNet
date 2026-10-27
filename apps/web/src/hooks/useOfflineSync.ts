@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import {
   createLocalStorageAdapter,
   flushQueue,
@@ -11,8 +11,11 @@ import {
 import { useAuth } from '@edunet/auth';
 import { apiUrl } from '@/lib/api-url';
 
+const BACKGROUND_SYNC_INTERVAL_MS = 30_000;
+
 export function useOfflineSync(): { flush: () => Promise<SyncResult> } {
   const { token } = useAuth();
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const send: ActionSender = useCallback(
     async (action: OfflineAction) => {
@@ -52,16 +55,41 @@ export function useOfflineSync(): { flush: () => Promise<SyncResult> } {
     return result;
   }, [send, token]);
 
+  const flushIfOnline = useCallback(() => {
+    if (!token || !navigator.onLine) return;
+    const adapter = createLocalStorageAdapter(localStorage);
+    const queue = adapter.read() as OfflineAction[];
+    const hasReady = queue.some(
+      (action) => action.state !== 'syncing' && action.nextAttemptAt <= Date.now(),
+    );
+    if (hasReady) void flush();
+  }, [token, flush]);
+
   useEffect(() => {
     const handleOnline = () => {
-      void flush();
+      void flushIfOnline();
+    };
+    const handleVisible = () => {
+      if (document.visibilityState === 'visible') {
+        void flushIfOnline();
+      }
     };
 
     window.addEventListener('online', handleOnline);
+    document.addEventListener('visibilitychange', handleVisible);
+
+    intervalRef.current = setInterval(flushIfOnline, BACKGROUND_SYNC_INTERVAL_MS);
+    if (navigator.onLine) void flushIfOnline();
+
     return () => {
       window.removeEventListener('online', handleOnline);
+      document.removeEventListener('visibilitychange', handleVisible);
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
     };
-  }, [flush]);
+  }, [flush, flushIfOnline]);
 
   return { flush };
 }

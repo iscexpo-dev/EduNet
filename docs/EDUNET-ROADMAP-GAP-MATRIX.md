@@ -61,7 +61,7 @@ coverage and an operational story.
 | 12 | Assignments and submissions | PARTIAL | Deadlines, rubrics, autosave, revisions, grade revisions, feedback, ownership checks; assignment attachments and late-submission policy missing |
 | 13 | Assessment engine | PARTIAL | Five objective types (MCQ, multiple select, true/false, short answer, fill-in-blank, matching), partial credit, manual grading, grade history, rechecks, seeded randomisation; basic student/teacher UI only |
 | 14 | Question banks and exam analytics | PARTIAL | Banks, attach/list/update, paginated bank-question listing (`GET /question-banks/:id/questions`, 2026-10-24), randomisation; exam item analytics and blueprint coverage missing |
-| 15 | Offline and PWA | PARTIAL | Offline queue, backoff, dedupe, conflict resolution, download planner, service worker, banner, offline page; wired into assignment/assessment submit, progress, notes and bookmarks; `/offline/queue` retry/discard triage; no background sync or automatic merge |
+| 15 | Offline and PWA | PARTIAL | Offline queue, backoff, dedupe, conflict resolution, download planner, service worker, banner, offline page; wired into assignment/assessment submit, progress, notes and bookmarks; `/offline/queue` retry/discard triage; background sync on reconnect/visibility/interval; automatic last-write-wins dedupe of superseded edits |
 | 16 | Internationalisation | COMPLETE | Bengali/English catalogues, `Intl` formatting, locale detection, interpolation, web language toggle; native Bengali review pending |
 | 17 | Accessibility | PARTIAL | Semantic primitives and focus styles; no WCAG 2.1 AA audit, keyboard test suite or screen-reader verification; skip link added in admin console |
 | 18 | Notifications | PARTIAL | In-app notification CRUD, read state, preferences, templates; no email/SMS push adapters or delivery worker |
@@ -123,8 +123,7 @@ Ordered by launch risk, not feature appeal:
    (#33; token storage and scanner tooling completed in repository) before exposing
    any endpoint publicly.
 4. **Backup/restore drill** — prove RTO with media included (#38).
-5. **Add background sync and automatic merge**; manual queue triage and
-   mutation wiring are complete (#15).
+5. Background sync and automatic last-write-wins merge complete; server-versioned merge and Background Sync API remain out of scope (#15).
 6. **AI UI + provider configuration + human escalation path** — otherwise the
    completed AI backend is unreachable (#26).
 7. **Admin, communication and support UI** — current backends have no complete

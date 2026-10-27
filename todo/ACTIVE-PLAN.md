@@ -310,6 +310,13 @@ Ordered by risk. Items marked `[!]` need external infrastructure.
 - [x] Linked from the student dashboard and My Courses header.
 - [x] Evidence: web typecheck/lint (0 errors, 2 pre-existing warnings), Next.js production build includes `/library`, workspace typecheck 36/36, tests 51/51 tasks, lint 32/32 (0 errors). PostgreSQL, Docker and Playwright gates remain BLOCKED in this sandbox.
 
+## Checkpoint 26 — Offline background sync and automatic conflict resolution — COMPLETE 2026-10-27
+
+- [x] `useOfflineSync` now background-syncs on reconnect (`online`), page visibility (`visibilitychange` → visible) and every 30 seconds via `setInterval`, only when due/pending actions exist.
+- [x] `@edunet/offline` `flushQueue` runs `dedupeQueue` first: pending edits superseded by a newer same-entity/type/method/endpoint edit are dropped automatically (client-side last-write-wins). Syncing actions are never dropped.
+- [x] Added `LAST_WRITE_WINS_TYPES` (lesson_progress, assignment_autosave, note, bookmark) and `dedupeQueue` with 4 unit tests; offline suite 25/25.
+- [x] Evidence: offline tests 25/25, web typecheck/lint (0 errors, 2 pre-existing warnings), Next.js production build, workspace typecheck 36/36, tests 51/51 tasks, lint 32/32 (0 errors). PostgreSQL, Docker and Playwright gates remain BLOCKED in this sandbox.
+
 ## Definition of done for this run
 
 - Baseline gates re-executed and recorded.

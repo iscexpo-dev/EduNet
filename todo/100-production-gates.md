@@ -27,7 +27,7 @@ are marked with their limitation.
 18. [ ] Calendar — backend/ICS exists; no calendar UI
 19. [ ] Analytics — tenant/owner-scoped endpoints and teacher course dashboard; KPI pipeline/warehouse still missing
 20. [ ] AI — consent/safety/quota backend complete; no UI and no provider configured
-21. [x] Offline — queue wired into assignment/assessment submit, progress, notes and bookmarks; `/offline/queue` retry/discard conflict triage; background sync missing
+21. [x] Offline — queue wired into assignment/assessment submit, progress, notes and bookmarks; `/offline/queue` retry/discard triage; background sync and automatic last-write-wins dedupe; server-versioned merge missing
 22. [ ] Low-bandwidth — download planner exists; no device/network validation
 23. [x] Bengali — catalogue and formatter implemented; native review pending
 24. [ ] Accessibility — no WCAG 2.1 AA audit

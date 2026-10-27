@@ -2,7 +2,7 @@
 
 | Capability | Status | Evidence / next step | Verification |
 |---|---|---|---|
-| Root providers and offline support | Implemented | `apps/web/src/app/layout.tsx`; `/offline/queue` retry/discard conflict triage | Typecheck and browser load |
+| Root providers and offline support | Implemented | `apps/web/src/app/layout.tsx`; `/offline/queue` retry/discard conflict triage; background sync and automatic last-write-wins dedupe | Typecheck and browser load |
 | Auth routes | Implemented | `src/app/login`, `src/app/register` | Auth redirect smoke test |
 | Student portal | Partial | `src/app/my-courses`, progress routes, `/attendance` and `/library` exist | Role-scoped browser flow |
 | Teacher portal | Partial | Course, lesson, assignment, analytics and attendance routes exist | Teacher flow with API |

@@ -7,6 +7,7 @@ import {
   flushQueue,
   markFailed,
   markSyncing,
+  dedupeQueue,
   planDownloads,
   resolveConflict,
   selectReady,
@@ -184,6 +185,61 @@ describe('resolveConflict', () => {
         { value: 'server', updatedAt: 20, version: 1 },
       ),
     ).toMatchObject({ value: 'local' });
+  });
+});
+
+describe('dedupeQueue', () => {
+  const autosave = (id: string, body: unknown, createdAt: number) => {
+    const action = enqueue([], {
+      ...baseInput,
+      id,
+      body,
+      createdAt,
+    })[0]!;
+    return { ...action, updatedAt: createdAt };
+  };
+
+  it('drops older pending edits superseded by a newer one for the same entity', () => {
+    const queue = [
+      autosave('a1', { content: 'first' }, 1000),
+      autosave('a2', { content: 'second' }, 2000),
+    ];
+    expect(dedupeQueue(queue).map((action) => action.id)).toEqual(['a2']);
+  });
+
+  it('keeps actions for different entities, methods and non-resolvable types', () => {
+    const other = {
+      ...autosave('b1', { content: 'x' }, 1000),
+      entityId: 'sub-2',
+    };
+    const submission = {
+      ...baseInput,
+      id: 'c1',
+      type: 'assignment_submit' as const,
+      body: { answer: 'a' },
+    };
+    const queue = [autosave('a1', { content: 'first' }, 1000), other, submission];
+    expect(dedupeQueue(queue).map((action) => action.id).sort()).toEqual(
+      ['a1', 'b1', 'c1'].sort(),
+    );
+  });
+
+  it('keeps actions currently syncing even if superseded', () => {
+    const queue = [
+      { ...autosave('a1', { content: 'first' }, 1000), state: 'syncing' as const },
+      autosave('a2', { content: 'second' }, 2000),
+    ];
+    expect(dedupeQueue(queue).map((action) => action.id).sort()).toEqual(['a1', 'a2']);
+  });
+
+  it('drops older failed edits superseded by a newer pending edit', () => {
+    const failed = {
+      ...autosave('a1', { content: 'first' }, 1000),
+      state: 'failed' as const,
+      nextAttemptAt: 1,
+    };
+    const queue = [failed, autosave('a2', { content: 'second' }, 2000)];
+    expect(dedupeQueue(queue).map((action) => action.id)).toEqual(['a2']);
   });
 });
 

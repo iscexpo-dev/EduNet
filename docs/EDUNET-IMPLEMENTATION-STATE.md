@@ -277,7 +277,7 @@ entry points because Next.js transpiles them.
 | Content & Media | PARTIAL | Lessons, resources, media, signed URLs, versions, objectives/bookmarks/notes APIs and teacher lesson/objective editor; no S3 provider |
 | Assignments & Submissions | PARTIAL | Rubrics, autosave, revisions, grade history; no attachments/late policy |
 | Assessment | PARTIAL | Five objective types, partial credit, rechecks, banks, randomisation; UI basic |
-| Offline / PWA | PARTIAL | Queue, backoff, dedupe, conflict resolution, service worker; wired into assignment submit, assessment submit, lesson progress, notes and bookmarks; `/offline/queue` supports retry/discard triage with 409/412 conflict labels; no background sync or automatic merge |
+| Offline / PWA | PARTIAL | Queue, backoff, dedupe, conflict resolution, service worker; wired into assignment submit, assessment submit, lesson progress, notes and bookmarks; `/offline/queue` retry/discard triage with 409/412 labels; background sync on reconnect/visibility/interval; `flushQueue` auto-dedupe of superseded edits |
 | i18n | COMPLETE | Bengali/English catalogues and web toggle; native review pending |
 | Design System | PARTIAL | 16 primitives, tokens, dark mode; no icon system/RTL audit |
 | Student Platform | PARTIAL | Attendance view at `/attendance` and notes/bookmarks library at `/library`; academic/achievement/certificate/streak UI missing |
@@ -333,6 +333,6 @@ entry points because Next.js transpiles them.
 3. Harden the edge: rate limiting, CORS, security headers, dependency scan;
    token storage now uses httpOnly access/refresh cookies.
 4. Drill backup and restore, including the media volume, and record the RTO.
-5. Add background sync and a dedicated bookmarks/notes list; manual queue triage is implemented.
+5. Background sync and automatic last-write-wins dedupe implemented; dedicated bookmarks/notes list (`/library`) shipped.
 6. Add the AI, admin, communication and support UI surfaces.
 7. Run load, accessibility and Bengali review before any pilot cohort.

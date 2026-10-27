@@ -118,6 +118,50 @@ export function backoffDelay(attempts: number, options: BackoffOptions = {}): nu
   return Math.min(max, base * 2 ** (attempts - 1));
 }
 
+/**
+ * Action types where a newer pending edit for the same entity supersedes an
+ * older one. Last-write-wins is safe here because these edits are idempotent
+ * or represent incremental state rather than distinct graded submissions.
+ */
+export const LAST_WRITE_WINS_TYPES: readonly OfflineActionType[] = [
+  'lesson_progress',
+  'assignment_autosave',
+  'note',
+  'bookmark',
+];
+
+/**
+ * Removes pending actions superseded by a newer edit for the same entity,
+ * type, method and endpoint. This is automatic client-side last-write-wins
+ * conflict resolution: the older edit is dropped without being sent.
+ */
+export function dedupeQueue(queue: readonly OfflineAction[]): OfflineAction[] {
+  const groups = new Map<string, OfflineAction[]>();
+  const kept: OfflineAction[] = [];
+
+  for (const action of queue) {
+    if (
+      action.state === 'syncing' ||
+      !LAST_WRITE_WINS_TYPES.includes(action.type as OfflineActionType)
+    ) {
+      kept.push(action);
+      continue;
+    }
+    const key = `${action.type}|${action.entityId}|${action.method}|${action.endpoint}`;
+    const group = groups.get(key) ?? [];
+    group.push(action);
+    groups.set(key, group);
+  }
+
+  for (const group of groups.values()) {
+    const updatedAt = (action: OfflineAction) => action.updatedAt ?? action.createdAt;
+    group.sort((a, b) => updatedAt(b) - updatedAt(a) || b.createdAt - a.createdAt || b.id.localeCompare(a.id));
+    kept.push(group[0]!);
+  }
+
+  return kept;
+}
+
 /** Actions ready to be sent, oldest first. Ordering is stable by id. */
 export function selectReady(
   queue: readonly OfflineAction[],
@@ -203,7 +247,7 @@ export async function flushQueue(
   now: () => number = () => Date.now(),
   limit = 20,
 ): Promise<SyncResult> {
-  let working = [...queue];
+  let working = dedupeQueue([...queue]);
   const synced: string[] = [];
   const failed: string[] = [];
 

@@ -55,7 +55,7 @@ domains.
 | 11 | Student platform | **PARTIAL** | Attendance view at `/attendance` and notes/bookmarks library at `/library`; academic/achievement/certificate UI missing |
 | 12 | Teacher platform | **PARTIAL** | Core authoring/grading UI, course analytics dashboard and scoped attendance marking; workload UI missing |
 | 13 | Parent platform | **PARTIAL** | Parent dashboard at `/parent` and child-scoped attendance view at `/attendance`; self-service linking missing |
-| 14 | Offline and PWA | **PARTIAL** | Queue/service worker/banner and `/offline/queue` retry/discard conflict triage; wired into assignment/assessment submit, progress, notes and bookmarks; no background sync or automatic merge |
+| 14 | Offline and PWA | **PARTIAL** | Queue/service worker/banner and `/offline/queue` retry/discard conflict triage; wired into assignment/assessment submit, progress, notes and bookmarks; background sync on reconnect/visibility/interval; automatic last-write-wins dedupe of superseded edits |
 | 15 | Internationalisation | **PASS** | Bengali/English catalogues and toggle; native review pending |
 | 16 | Accessibility | **FAIL** | No WCAG 2.1 AA audit; baseline skip-link added in admin console |
 | 17 | Notifications | **PARTIAL** | In-app only; no email/SMS/push adapters |
@@ -132,7 +132,7 @@ domains.
 3. Move tokens out of localStorage (implemented via httpOnly access/refresh
    cookies); final CSP and pilot validation remain.
 4. Run a timed restore including the media volume.
-5. Add background sync and automatic conflict merge; manual queue triage is implemented.
+5. Background sync and automatic last-write-wins dedupe implemented; server-versioned merge and Background Sync API remain out of scope.
 6. Build AI, admin, communication and support UI slices.
 7. Run load, WCAG 2.1 AA and native Bengali review.
 8. Define the pilot cohort, support rota and go/no-go checklist.

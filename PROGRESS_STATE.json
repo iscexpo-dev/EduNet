@@ -3,7 +3,7 @@
   "schemaVersion": "1.0.0",
   "project": "EduNet",
   "purpose": "Canonical resumable execution state for autonomous agents. Update after every meaningful checkpoint.",
-  "lastUpdated": "2026-10-27T04:34:00Z",
+  "lastUpdated": "2026-10-27T04:46:00Z",
   "repository": {
     "path": "/vercel/share/v0-project",
     "remote": "https://github.com/iscexpo-dev/EduNet.git",
@@ -52,7 +52,7 @@
     "typecheck": {
       "status": "PASS",
       "command": "pnpm turbo run typecheck --concurrency=2",
-      "evidence": "36/36 tasks, 0 errors (2026-10-27 student library bookmarks/notes view)"
+      "evidence": "36/36 tasks, 0 errors (2026-10-27 offline background sync + auto conflict resolution)"
     },
     "lint": {
       "status": "PASS",
@@ -62,12 +62,12 @@
     "unitTests": {
       "status": "PASS",
       "command": "pnpm turbo run test --concurrency=2",
-      "evidence": "51/51 tasks; offline 21 tests cover backoff, retry, dedupe, conflict resolution and captured HTTP failure metadata; platform 39, analytics 19 and content 46 tests; all suites pass (2026-10-27)"
+      "evidence": "51/51 tasks; offline 25 tests (21 original + 4 last-write-wins dedupe tests); platform 39, analytics 19 and content 46 tests; all suites pass (2026-10-27)"
     },
     "build": {
       "status": "PASS",
       "command": "pnpm --filter @edunet/web build && pnpm --filter @edunet/content build",
-      "evidence": "Next.js 16.4.3 Turbopack production build includes the lesson editor, course analytics, /teacher/attendance, /attendance, /offline/queue and /library; platform/analytics/content/offline tsc builds pass (2026-10-27)"
+      "evidence": "Next.js 16.4.3 Turbopack production build includes the lesson editor, course analytics, /teacher/attendance, /attendance, /offline/queue and /library; offline flush now dedupes superseded edits and background-syncs on online/visibility/interval; platform/analytics/content/offline tsc builds pass (2026-10-27)"
     },
     "audit": {
       "status": "PASS",
@@ -201,7 +201,7 @@
     },
     "offline": {
       "status": "PARTIAL",
-      "gap": "Queue/service worker wired into assignment submit, assessment submit, lesson progress, lesson notes and bookmarks; /offline/queue provides retry-all/retry-one/discard triage, reviews payloads and surfaces HTTP 409/412 conflicts with captured failure metadata; sync is foreground/online-event only with no Background Sync API or automatic merge"
+      "gap": "Queue/service worker wired into assignment/assessment submit, progress, notes and bookmarks; `/offline/queue` retry/discard conflict triage; `useOfflineSync` background-syncs on online/visibility/30s interval; `flushQueue` auto-dedupe superseded pending edits (last-write-wins) for lesson_progress/assignment_autosave/note/bookmark; no server-versioned merge or Background Sync API"
     },
     "internationalization": {
       "status": "PASS",
@@ -289,10 +289,10 @@
     }
   },
   "activeCheckpoint": {
-    "id": "checkpoint-25-library-bookmarks-notes",
-    "description": "Added a student-only /library page listing bookmarked lessons and private lesson notes. It fetches /api/content/bookmarks and /api/content/notes, supports search across titles/notes, links to courses, deletes bookmarks/notes, and shows loading/error/empty/success states. Linked from the student dashboard and My Courses.",
-    "startedAt": "2026-10-27T04:30:00Z",
-    "completedAt": "2026-10-27T04:34:00Z",
+    "id": "checkpoint-26-offline-background-sync-auto-conflict-resolution",
+    "description": "Extended the offline queue with background sync (online/visibility/30-second interval flush via useOfflineSync) and automatic client-side conflict resolution: flushQueue drops pending edits superseded by a newer same-entity edit (last-write-wins) before sending. Offline package gains LAST_WRITE_WINS_TYPES and dedupeQueue with 4 new unit tests (25 total).",
+    "startedAt": "2026-10-27T04:40:00Z",
+    "completedAt": "2026-10-27T04:46:00Z",
     "status": "COMPLETE"
   },
   "checkpoints": [
@@ -723,6 +723,24 @@
         "todo/ACTIVE-PLAN.md",
         "PROGRESS_STATE.json"
       ]
+    },
+    {
+      "id": "checkpoint-26-offline-background-sync-auto-conflict-resolution",
+      "at": "2026-10-27T04:46:00Z",
+      "summary": "Extended offline support: useOfflineSync now background-syncs on reconnect, page visibility and a 30-second interval; flushQueue automatically drops pending edits superseded by a newer same-entity edit (last-write-wins) via dedupeQueue. Added LAST_WRITE_WINS_TYPES and 4 dedupe tests (offline suite 25/25). Full gates pass.",
+      "evidence": [
+        "/tmp/test-background-sync.log",
+        "/tmp/tc-background-sync.log",
+        "/tmp/lint-background-sync.log",
+        "/tmp/web-build-library.log"
+      ],
+      "artifacts": [
+        "packages/offline/src/index.ts",
+        "packages/offline/src/index.test.ts",
+        "apps/web/src/hooks/useOfflineSync.ts",
+        "todo/ACTIVE-PLAN.md",
+        "PROGRESS_STATE.json"
+      ]
     }
   ],
   "blockers": [
@@ -755,7 +773,6 @@
     "Configure the AI provider and staff the human escalation path.",
     "Add search facets/fuzzy matching plus a trigram index once query plans justify it.",
     "Wire the KPI collection pipeline from persisted data.",
-    "Add background sync and automatic conflict merge beyond manual retry/discard.",
     "Close remaining security hardening: DAST and MFA/SSO."
   ],
   "filesOfRecord": {
