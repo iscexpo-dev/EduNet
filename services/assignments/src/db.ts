@@ -1,6 +1,6 @@
 import { drizzle } from 'drizzle-orm/postgres-js';
-import { assignments, courses, submissions, users } from '@edunet/database';
-import { and, eq, inArray } from 'drizzle-orm';
+import { assignments, courses, enrollments, submissions, users } from '@edunet/database';
+import { and, eq, inArray, isNull } from 'drizzle-orm';
 import postgres from 'postgres';
 
 let client: postgres.Sql | null = null;
@@ -46,18 +46,51 @@ export async function findAssignmentById(id: string, organizationId: string) {
   return result[0]?.assignment || null;
 }
 
+export async function isStudentEnrolled(
+  studentId: string,
+  courseId: string,
+  organizationId: string,
+) {
+  const db = getDb();
+  const result = await db
+    .select({ id: enrollments.id })
+    .from(enrollments)
+    .innerJoin(courses, eq(enrollments.courseId, courses.id))
+    .innerJoin(users, eq(enrollments.studentId, users.id))
+    .where(
+      and(
+        eq(enrollments.studentId, studentId),
+        eq(enrollments.courseId, courseId),
+        eq(enrollments.status, 'active'),
+        isNull(enrollments.deletedAt),
+        eq(courses.organizationId, organizationId),
+        eq(users.organizationId, organizationId),
+      ),
+    )
+    .limit(1);
+  return result.length > 0;
+}
+
 export async function listAssignmentsByCourse(
   courseId: string,
   organizationId: string,
   limit = 50,
-  offset = 0
+  offset = 0,
+  activeOnly = false
 ) {
   const db = getDb();
   const result = await db
     .select({ assignment: assignments })
     .from(assignments)
     .innerJoin(courses, eq(assignments.courseId, courses.id))
-    .where(and(eq(assignments.courseId, courseId), eq(courses.organizationId, organizationId)))
+    .where(
+      and(
+        eq(assignments.courseId, courseId),
+        eq(courses.organizationId, organizationId),
+        activeOnly ? eq(assignments.isActive, true) : undefined,
+        activeOnly ? isNull(assignments.deletedAt) : undefined,
+      ),
+    )
     .limit(limit)
     .offset(offset);
   return result.map(({ assignment }) => assignment);

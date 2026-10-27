@@ -1,6 +1,6 @@
 import { drizzle } from 'drizzle-orm/postgres-js';
 import { courses, enrollments, users } from '@edunet/database';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, isNull } from 'drizzle-orm';
 import postgres from 'postgres';
 
 let client: postgres.Sql | null = null;
@@ -36,12 +36,48 @@ export async function findCourseById(id: string, organizationId: string) {
   return result[0] || null;
 }
 
-export async function listCoursesByOrganization(organizationId: string, limit = 50, offset = 0) {
+export async function isStudentEnrolled(
+  studentId: string,
+  courseId: string,
+  organizationId: string,
+) {
+  const db = getDb();
+  const result = await db
+    .select({ id: enrollments.id })
+    .from(enrollments)
+    .innerJoin(courses, eq(enrollments.courseId, courses.id))
+    .innerJoin(users, eq(enrollments.studentId, users.id))
+    .where(
+      and(
+        eq(enrollments.studentId, studentId),
+        eq(enrollments.courseId, courseId),
+        eq(enrollments.status, 'active'),
+        isNull(enrollments.deletedAt),
+        eq(courses.organizationId, organizationId),
+        eq(users.organizationId, organizationId),
+      ),
+    )
+    .limit(1);
+  return result.length > 0;
+}
+
+export async function listCoursesByOrganization(
+  organizationId: string,
+  limit = 50,
+  offset = 0,
+  activeOnly = false,
+) {
   const db = getDb();
   return db
     .select()
     .from(courses)
-    .where(eq(courses.organizationId, organizationId))
+    .where(
+      and(
+        eq(courses.organizationId, organizationId),
+        activeOnly ? eq(courses.isActive, true) : undefined,
+        activeOnly ? isNull(courses.deletedAt) : undefined,
+      ),
+    )
     .limit(limit)
     .offset(offset);
 }
@@ -50,13 +86,21 @@ export async function listCoursesByTeacher(
   organizationId: string,
   teacherId: string,
   limit = 50,
-  offset = 0
+  offset = 0,
+  activeOnly = false,
 ) {
   const db = getDb();
   return db
     .select()
     .from(courses)
-    .where(and(eq(courses.organizationId, organizationId), eq(courses.teacherId, teacherId)))
+    .where(
+      and(
+        eq(courses.organizationId, organizationId),
+        eq(courses.teacherId, teacherId),
+        activeOnly ? eq(courses.isActive, true) : undefined,
+        activeOnly ? isNull(courses.deletedAt) : undefined,
+      ),
+    )
     .limit(limit)
     .offset(offset);
 }

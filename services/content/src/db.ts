@@ -1,7 +1,7 @@
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 import * as schema from './schema';
-import { courses, users } from '@edunet/database';
+import { courses, enrollments, users } from '@edunet/database';
 import { eq, and, or, desc, isNull, sql, inArray } from 'drizzle-orm';
 
 const connectionString = process.env.DATABASE_URL || 'postgres://localhost:5432/edunet';
@@ -16,15 +16,62 @@ export async function findCourseById(id: string, organizationId: string) {
 export async function closeDb() { await client.end(); }
 
 // Lesson operations
+export async function isStudentEnrolled(
+  studentId: string,
+  courseId: string,
+  organizationId: string,
+) {
+  const [row] = await db
+    .select({ id: enrollments.id })
+    .from(enrollments)
+    .innerJoin(courses, eq(enrollments.courseId, courses.id))
+    .innerJoin(users, eq(enrollments.studentId, users.id))
+    .where(
+      and(
+        eq(enrollments.studentId, studentId),
+        eq(enrollments.courseId, courseId),
+        eq(enrollments.status, 'active'),
+        isNull(enrollments.deletedAt),
+        eq(courses.organizationId, organizationId),
+        eq(users.organizationId, organizationId),
+      ),
+    )
+    .limit(1);
+  return Boolean(row);
+}
+
 export async function findLessonById(id: string, organizationId: string) {
-  const result = await db.select().from(schema.lessons).where(and(eq(schema.lessons.id, id), inArray(schema.lessons.courseId, scopedCourseIds(organizationId)))).limit(1);
+  const result = await db
+    .select()
+    .from(schema.lessons)
+    .where(
+      and(
+        eq(schema.lessons.id, id),
+        inArray(schema.lessons.courseId, scopedCourseIds(organizationId)),
+        isNull(schema.lessons.deletedAt),
+      ),
+    )
+    .limit(1);
   return result[0] || null;
 }
 
-export async function listLessonsByCourse(courseId: string, organizationId: string, limit = 100, offset = 0) {
+export async function listLessonsByCourse(
+  courseId: string,
+  organizationId: string,
+  limit = 100,
+  offset = 0,
+  publishedOnly = false,
+) {
   return db.select()
     .from(schema.lessons)
-    .where(and(eq(schema.lessons.courseId, courseId), inArray(schema.lessons.courseId, scopedCourseIds(organizationId))))
+    .where(
+      and(
+        eq(schema.lessons.courseId, courseId),
+        inArray(schema.lessons.courseId, scopedCourseIds(organizationId)),
+        isNull(schema.lessons.deletedAt),
+        publishedOnly ? eq(schema.lessons.isPublished, 'true') : undefined,
+      ),
+    )
     .orderBy(schema.lessons.order)
     .limit(limit)
     .offset(offset);
@@ -104,7 +151,13 @@ export async function findResourceById(id: string, organizationId: string) {
 export async function listResourcesByLesson(lessonId: string, organizationId: string, limit = 50, offset = 0) {
   return db.select()
     .from(schema.resources)
-    .where(and(eq(schema.resources.lessonId, lessonId), inArray(schema.resources.lessonId, scopedLessonIds(organizationId))))
+    .where(
+      and(
+        eq(schema.resources.lessonId, lessonId),
+        inArray(schema.resources.lessonId, scopedLessonIds(organizationId)),
+        isNull(schema.resources.deletedAt),
+      ),
+    )
     .orderBy(schema.resources.order)
     .limit(limit)
     .offset(offset);
@@ -113,7 +166,13 @@ export async function listResourcesByLesson(lessonId: string, organizationId: st
 export async function listResourcesByCourse(courseId: string, organizationId: string, limit = 50, offset = 0) {
   return db.select()
     .from(schema.resources)
-    .where(and(eq(schema.resources.courseId, courseId), inArray(schema.resources.courseId, scopedCourseIds(organizationId))))
+    .where(
+      and(
+        eq(schema.resources.courseId, courseId),
+        inArray(schema.resources.courseId, scopedCourseIds(organizationId)),
+        isNull(schema.resources.deletedAt),
+      ),
+    )
     .orderBy(schema.resources.order)
     .limit(limit)
     .offset(offset);

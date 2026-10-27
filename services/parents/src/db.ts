@@ -72,7 +72,12 @@ export async function findParentChildRelationship(parentId: string, childId: str
   return result[0] || null;
 }
 
-export async function listChildrenByParent(parentId: string, limit = 50, offset = 0) {
+export async function listChildrenByParent(
+  parentId: string,
+  limit = 50,
+  offset = 0,
+  organizationId?: string,
+) {
   const relationships = await getDb()
     .select()
     .from(parentChildRelationships)
@@ -100,10 +105,22 @@ export async function listChildrenByParent(parentId: string, limit = 50, offset 
       createdAt: users.createdAt,
     })
     .from(users)
-    .where(and(inArray(users.id, childIds), eq(users.role, 'student'), isNull(users.deletedAt)));
+    .where(
+      and(
+        inArray(users.id, childIds),
+        eq(users.role, 'student'),
+        isNull(users.deletedAt),
+        organizationId ? eq(users.organizationId, organizationId) : undefined,
+      ),
+    );
 }
 
-export async function listParentsByChild(childId: string, limit = 50, offset = 0) {
+export async function listParentsByChild(
+  childId: string,
+  limit = 50,
+  offset = 0,
+  organizationId?: string,
+) {
   const relationships = await getDb()
     .select()
     .from(parentChildRelationships)
@@ -131,7 +148,14 @@ export async function listParentsByChild(childId: string, limit = 50, offset = 0
       createdAt: users.createdAt,
     })
     .from(users)
-    .where(and(inArray(users.id, parentIds), eq(users.role, 'parent'), isNull(users.deletedAt)));
+    .where(
+      and(
+        inArray(users.id, parentIds),
+        eq(users.role, 'parent'),
+        isNull(users.deletedAt),
+        organizationId ? eq(users.organizationId, organizationId) : undefined,
+      ),
+    );
 }
 
 export async function createParentChildRelationship(
@@ -162,7 +186,7 @@ export async function deleteParentChildRelationship(id: string) {
 }
 
 // Child progress and grades for parents
-export async function getChildEnrollments(childId: string) {
+export async function getChildEnrollments(childId: string, organizationId: string) {
   return getDb()
     .select({
       enrollmentId: enrollments.id,
@@ -175,10 +199,16 @@ export async function getChildEnrollments(childId: string) {
     })
     .from(enrollments)
     .innerJoin(courses, eq(enrollments.courseId, courses.id))
-    .where(and(eq(enrollments.studentId, childId), isNull(enrollments.deletedAt)));
+    .where(
+      and(
+        eq(enrollments.studentId, childId),
+        eq(courses.organizationId, organizationId),
+        isNull(enrollments.deletedAt),
+      ),
+    );
 }
 
-export async function getChildSubmissions(childId: string) {
+export async function getChildSubmissions(childId: string, organizationId: string) {
   return getDb()
     .select({
       submissionId: submissions.id,
@@ -193,5 +223,12 @@ export async function getChildSubmissions(childId: string) {
     })
     .from(submissions)
     .innerJoin(assignments, eq(submissions.assignmentId, assignments.id))
-    .where(and(eq(submissions.studentId, childId), isNull(submissions.deletedAt)));
+    .innerJoin(courses, eq(assignments.courseId, courses.id))
+    .where(
+      and(
+        eq(submissions.studentId, childId),
+        eq(courses.organizationId, organizationId),
+        isNull(submissions.deletedAt),
+      ),
+    );
 }

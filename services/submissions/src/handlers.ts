@@ -6,6 +6,7 @@ import {
   findAssignmentById,
   findSubmissionById,
   findSubmission,
+  isStudentEnrolled,
   listSubmissionsByAssignment,
   listSubmissionsByStudent,
   createSubmission,
@@ -48,6 +49,30 @@ function requireOrganizationId(req: AuthRequest, res: Response): string | null {
   return organizationId;
 }
 
+function parsePagination(query: Request['query']) {
+  const rawLimit = Number.parseInt(String(query.limit ?? ''), 10);
+  const rawOffset = Number.parseInt(String(query.offset ?? ''), 10);
+  return {
+    limit: Number.isFinite(rawLimit) ? Math.min(Math.max(rawLimit, 1), 200) : 50,
+    offset: Number.isFinite(rawOffset) ? Math.max(rawOffset, 0) : 0,
+  };
+}
+
+async function canStaffAccessSubmission(
+  req: AuthRequest,
+  submission: { studentId: string; assignmentId: string },
+  organizationId: string,
+) {
+  if (req.user?.role === 'admin') return true;
+  if (req.user?.role === 'student') return submission.studentId === req.user.id;
+  if (req.user?.role !== 'teacher') return false;
+
+  const assignment = await findAssignmentById(submission.assignmentId, organizationId);
+  if (!assignment) return false;
+  const course = await findCourseById(assignment.courseId, organizationId);
+  return course?.teacherId === req.user.id;
+}
+
 const rubricSchema = z.object({
   criteria: z
     .array(
@@ -84,6 +109,12 @@ export async function createSubmissionHandler(req: AuthRequest, res: Response) {
     const assignment = await findAssignmentById(assignmentId, organizationId);
     if (!assignment) {
       return res.status(404).json({ error: 'Assignment not found' });
+    }
+    if (!assignment.isActive) {
+      return res.status(409).json({ error: 'This assignment is no longer accepting submissions' });
+    }
+    if (!(await isStudentEnrolled(req.user.id, assignment.courseId, organizationId))) {
+      return res.status(403).json({ error: 'You must be enrolled in this course to submit' });
     }
 
     const now = new Date();
@@ -227,8 +258,8 @@ export async function historyHandler(req: AuthRequest, res: Response) {
     if (!submission) {
       return res.status(404).json({ error: 'Submission not found' });
     }
-    if (req.user?.role === 'student' && submission.studentId !== req.user.id) {
-      return res.status(403).json({ error: 'You can only view your own submission history' });
+    if (!(await canStaffAccessSubmission(req, submission, organizationId))) {
+      return res.status(403).json({ error: 'You are not authorized to view this submission history' });
     }
 
     const [revisions, events, gradeRevisions] = await Promise.all([
@@ -313,8 +344,8 @@ export async function getSubmissionHandler(req: AuthRequest, res: Response) {
     if (!submission) {
       return res.status(404).json({ error: 'Submission not found' });
     }
-    if (req.user?.role === 'student' && submission.studentId !== req.user.id) {
-      return res.status(403).json({ error: 'You can only view your own submissions' });
+    if (!(await canStaffAccessSubmission(req, submission, organizationId))) {
+      return res.status(403).json({ error: 'You are not authorized to view this submission' });
     }
     res.json(submission);
   } catch (error: any) {
@@ -328,10 +359,11 @@ export async function listSubmissionsHandler(req: AuthRequest, res: Response) {
     if (!organizationId) return;
 
     const { assignmentId, studentId } = req.query as { assignmentId?: string; studentId?: string };
+    const { limit, offset } = parsePagination(req.query);
 
     if (req.user?.role === 'student') {
       // Students list their own submissions only.
-      const submissions = await listSubmissionsByStudent(organizationId, req.user.id);
+      const submissions = await listSubmissionsByStudent(req.user.id, organizationId, limit, offset);
       return res.json(submissions);
     }
     if (req.user?.role === 'teacher') {
@@ -341,16 +373,16 @@ export async function listSubmissionsHandler(req: AuthRequest, res: Response) {
         if (!assignment || !course || course.teacherId !== req.user.id) {
           return res.status(403).json({ error: 'You can only list submissions for your own courses' });
         }
-        return res.json(await listSubmissionsByAssignment(assignmentId, organizationId));
+        return res.json(await listSubmissionsByAssignment(assignmentId, organizationId, limit, offset));
       }
       return res.status(400).json({ error: 'assignmentId is required for teachers' });
     }
     if (req.user?.role === 'admin') {
       if (assignmentId) {
-        return res.json(await listSubmissionsByAssignment(assignmentId, organizationId));
+        return res.json(await listSubmissionsByAssignment(assignmentId, organizationId, limit, offset));
       }
       if (studentId) {
-        return res.json(await listSubmissionsByStudent(organizationId, studentId));
+        return res.json(await listSubmissionsByStudent(studentId, organizationId, limit, offset));
       }
       return res.status(400).json({ error: 'assignmentId or studentId is required' });
     }
@@ -421,17 +453,26 @@ export async function gradeSubmissionHandler(req: AuthRequest, res: Response) {
     }
 
     const isRegrade = existing.grade !== null;
+    let regradeReason: string | undefined;
+    if (isRegrade) {
+      // Validate the audit reason before writing so a rejected regrade cannot
+      // leave the grade updated without a corresponding revision record.
+      const regrade = regradeSchema.safeParse({ ...req.body, reason: req.body?.reason });
+      if (!regrade.success) {
+        return res.status(400).json({ error: 'Regrading requires a reason of 1-300 characters' });
+      }
+      regradeReason = regrade.data.reason;
+    }
+
     const submission = await gradeSubmission(id, organizationId, req.body.grade, req.user!.id as string, feedback);
 
     if (isRegrade) {
-      // Regrade requires a stated reason for the audit trail.
-      const regrade = regradeSchema.parse({ ...req.body, reason: req.body?.reason });
       await recordGradeRevision({
         submissionId: id,
         adjustedBy: req.user?.id ?? null,
         previousGrade: existing.grade as number,
         newGrade: req.body.grade,
-        reason: regrade.reason,
+        reason: regradeReason as string,
       });
       await recordSubmissionEvent({
         submissionId: id,
@@ -468,6 +509,9 @@ export async function deleteSubmissionHandler(req: AuthRequest, res: Response) {
 
     if (req.user?.role === 'student' && existing.studentId !== req.user.id) {
       return res.status(403).json({ error: 'You can only delete your own submissions' });
+    }
+    if (req.user?.role === 'student' && existing.grade !== null) {
+      return res.status(409).json({ error: 'Graded submissions cannot be deleted' });
     }
 
     const submission = await deleteSubmission(id, organizationId);

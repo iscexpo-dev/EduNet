@@ -113,7 +113,13 @@ export function canReadChildAttendance(
   return Boolean(relationship && relationship.parentId === userId && relationship.canViewAttendance);
 }
 
-export function canManageRelationship(
+/**
+ * Parents may read their own relationship record, but only administrators may
+ * create, change permissions on, or delete the link. Self-asserted parent
+ * links would otherwise expose a student's learning data to any account that
+ * knows the student's id.
+ */
+export function canViewRelationship(
   role: string,
   userId: string,
   organizationId: string | undefined,
@@ -125,4 +131,18 @@ export function canManageRelationship(
     return Boolean(organizationId) && relationshipOrganizationId === organizationId;
   }
   return false;
+}
+
+export function canManageRelationship(
+  role: string,
+  _userId: string,
+  organizationId: string | undefined,
+  _relationshipParentId: string,
+  relationshipOrganizationId: string | undefined,
+): boolean {
+  return (
+    role === 'admin' &&
+    Boolean(organizationId) &&
+    relationshipOrganizationId === organizationId
+  );
 }

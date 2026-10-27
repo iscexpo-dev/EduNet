@@ -13,7 +13,9 @@ import {
 } from './db';
 import {
   canManageRelationship,
+  canReadChildAssignments,
   canReadChildGrades,
+  canViewRelationship,
   parsePagination,
   sanitizeRelationshipUpdate,
 } from './policy';
@@ -52,7 +54,7 @@ async function authorizeChildAccess(
 
   if (user.role === 'parent') {
     const relationship = await findParentChildRelationship(user.id, childId);
-    if (!relationship) {
+    if (!relationship || user.organizationId !== child.organizationId) {
       res.status(403).json({ error: 'You are not authorized to view this child' });
       return null;
     }
@@ -83,8 +85,13 @@ export async function createParentChildRelationshipHandler(req: AuthRequest, res
       return res.status(401).json({ error: 'Not authenticated' });
     }
 
-    if (user.role === 'parent' && user.id !== parentId) {
-      return res.status(403).json({ error: 'Parents can only create relationships for themselves' });
+    if (user.role !== 'admin') {
+      return res.status(403).json({ error: 'Only administrators can create parent relationships' });
+    }
+
+    const normalizedRelationship = relationship.trim();
+    if (normalizedRelationship.length === 0 || normalizedRelationship.length > 50) {
+      return res.status(400).json({ error: 'relationship must be between 1 and 50 characters' });
     }
 
     const parent = await findUserById(parentId);
@@ -98,7 +105,7 @@ export async function createParentChildRelationshipHandler(req: AuthRequest, res
     if (parent.organizationId !== child.organizationId) {
       return res.status(403).json({ error: 'Parent and child must belong to the same organization' });
     }
-    if (user.role === 'admin' && user.organizationId !== child.organizationId) {
+    if (!user.organizationId || user.organizationId !== child.organizationId) {
       return res.status(403).json({ error: 'You are not authorized to manage this organization' });
     }
 
@@ -110,7 +117,7 @@ export async function createParentChildRelationshipHandler(req: AuthRequest, res
     const relationshipData = await createParentChildRelationship({
       parentId,
       childId,
-      relationship: relationship.trim(),
+      relationship: normalizedRelationship,
       isPrimary: req.body.isPrimary === true,
       canViewGrades: req.body.canViewGrades !== false,
       canViewAttendance: req.body.canViewAttendance !== false,
@@ -135,7 +142,7 @@ export async function getParentChildRelationshipHandler(req: AuthRequest, res: R
     const child = await findUserById(relationship.childId);
     if (
       !child ||
-      !canManageRelationship(
+      !canViewRelationship(
         req.user?.role ?? '',
         req.user?.id ?? '',
         req.user?.organizationId,
@@ -165,7 +172,12 @@ export async function listChildrenHandler(req: AuthRequest, res: Response) {
     }
 
     const { limit, offset } = parsePagination(req.query);
-    const children = await listChildrenByParent(parentId, limit, offset);
+    const children = await listChildrenByParent(
+      parentId,
+      limit,
+      offset,
+      req.user?.organizationId,
+    );
     res.json(children);
   } catch {
     res.status(500).json({ error: 'Unable to list children' });
@@ -188,7 +200,7 @@ export async function listParentsHandler(req: AuthRequest, res: Response) {
     }
 
     const { limit, offset } = parsePagination(req.query);
-    const parents = await listParentsByChild(childId, limit, offset);
+    const parents = await listParentsByChild(childId, limit, offset, child.organizationId);
     res.json(parents);
   } catch {
     res.status(500).json({ error: 'Unable to list parents' });
@@ -267,7 +279,7 @@ export async function getChildEnrollmentsHandler(req: AuthRequest, res: Response
     const authorized = await authorizeChildAccess(req, res, childId);
     if (!authorized) return;
 
-    const enrollments = await getChildEnrollments(childId);
+    const enrollments = await getChildEnrollments(childId, authorized.organizationId);
     res.json(enrollments);
   } catch {
     res.status(500).json({ error: 'Unable to load enrollments' });
@@ -286,12 +298,15 @@ export async function getChildSubmissionsHandler(req: AuthRequest, res: Response
 
     if (req.user?.role === 'parent') {
       const relationship = await findParentChildRelationship(req.user.id, childId);
-      if (!canReadChildGrades(req.user.role, req.user.id, relationship)) {
-        return res.status(403).json({ error: 'You are not authorized to view this child\'s grades' });
+      if (
+        !canReadChildGrades(req.user.role, req.user.id, relationship) ||
+        !canReadChildAssignments(req.user.role, req.user.id, relationship)
+      ) {
+        return res.status(403).json({ error: 'You are not authorized to view this child\'s work' });
       }
     }
 
-    const submissions = await getChildSubmissions(childId);
+    const submissions = await getChildSubmissions(childId, authorized.organizationId);
     res.json(submissions);
   } catch {
     res.status(500).json({ error: 'Unable to load submissions' });
