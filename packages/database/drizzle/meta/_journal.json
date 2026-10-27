@@ -36,6 +36,13 @@
       "when": 1792911498389,
       "tag": "0004_sad_madelyne_pryor",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1792920000000,
+      "tag": "0005_trigram_search",
+      "breakpoints": true
     }
   ]
 }

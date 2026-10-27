@@ -3,7 +3,7 @@
   "schemaVersion": "1.0.0",
   "project": "EduNet",
   "purpose": "Canonical resumable execution state for autonomous agents. Update after every meaningful checkpoint.",
-  "lastUpdated": "2026-10-27T05:10:00Z",
+  "lastUpdated": "2026-10-27T05:20:00Z",
   "repository": {
     "path": "/vercel/share/v0-project",
     "remote": "https://github.com/iscexpo-dev/EduNet.git",
@@ -77,7 +77,7 @@
     "migrationStaticCheck": {
       "status": "PASS",
       "command": "pnpm db:check",
-      "evidence": "5 migrations consistent, latest 0004_sad_madelyne_pryor; live check skipped"
+      "evidence": "6 migrations consistent, latest 0005_trigram_search; live check skipped (no DATABASE_URL) (2026-10-27)"
     },
     "opsScripts": {
       "status": "PASS",
