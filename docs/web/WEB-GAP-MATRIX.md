@@ -8,7 +8,7 @@
 | Teacher portal | Partial | Course, lesson, assignment routes exist | Teacher flow with API |
 | Parent portal | Partial | `src/app/parent` exists | Relationship-scoped API response |
 | Admin portal | Partial | `src/app/admin` exists | Backend capability audit |
-| Public landing page | Implemented | `src/app/page.tsx` | Responsive browser screenshot |
+| Public landing page | Implemented | `src/app/page.tsx` and `src/components/PublicShell.tsx`; bilingual entry points, skip link, responsive navigation and focus states | Responsive browser screenshot |
 | Public education directory | Partial | `/courses` exists; institution directory is new surface | Search contract verification |
 | Help and contact | Missing | Add static guidance and honest support path | Link and accessibility check |
 | Tutor opportunities | Backend-dependent | Only expose supported engagement endpoints | API contract check |
