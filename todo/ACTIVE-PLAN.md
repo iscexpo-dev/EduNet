@@ -317,6 +317,13 @@ Ordered by risk. Items marked `[!]` need external infrastructure.
 - [x] Added `LAST_WRITE_WINS_TYPES` (lesson_progress, assignment_autosave, note, bookmark) and `dedupeQueue` with 4 unit tests; offline suite 25/25.
 - [x] Evidence: offline tests 25/25, web typecheck/lint (0 errors, 2 pre-existing warnings), Next.js production build, workspace typecheck 36/36, tests 51/51 tasks, lint 32/32 (0 errors). PostgreSQL, Docker and Playwright gates remain BLOCKED in this sandbox.
 
+## Checkpoint 27 — Search facets and opt-in trigram fuzzy matching — COMPLETE 2026-10-27
+
+- [x] Added `?facets=1` to `GET /api/search`. Single types respond `{ items, facets }`; `all` gains a `facets` object with per-type totals. Courses facet by subject, users by role; counts reflect the same tenant, active/non-deleted and term filters.
+- [x] Added opt-in trigram fuzzy/typo-tolerant matching: `SEARCH_USE_TRIGRAM=true` plus migration `0005_trigram_search.sql` (creates `pg_trgm` extension and GIN trigram indexes on search columns) switches `flushQueue`-adjacent matching to `similarity()`/`%` scoring; otherwise search falls back to normalized LIKE relevance.
+- [x] Added `SEARCH_USE_TRIGRAM` boolean validation to `@edunet/config` with tests; added `parseBoolean` and `trigramEnabled` helpers with tests (search suite 28/28).
+- [x] Evidence: search typecheck/lint/build pass (0 errors), search tests 28/28, config typecheck/test/lint pass. PostgreSQL-backed trigram verification is BLOCKED locally (no PostgreSQL); migration `0005` is static-only until applied in CI.
+
 ## Definition of done for this run
 
 - Baseline gates re-executed and recorded.

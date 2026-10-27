@@ -5,16 +5,19 @@ import {
   recordSearchEvent,
   searchAssignments,
   searchCourses,
+  searchFacets,
   searchOrganizations,
   searchUsers,
   type AssignmentSort,
   type CourseSort,
   type OrganizationSort,
+  type SearchFacets,
   type UserSort,
 } from './db';
 import {
   isSearchQueryTooLong,
   normalizeSearchQuery,
+  parseBoolean,
   parseSearchLocale,
   parseSearchPagination,
   parseSearchType,
@@ -69,6 +72,11 @@ export async function searchHandler(req: AuthRequest, res: Response) {
     const sortOrder = parseSortOrder(req.query.sortOrder);
     const role = typeof req.query.role === 'string' ? req.query.role : undefined;
     const locale = parseSearchLocale(req.query.locale);
+
+    const facetsRequested = parseBoolean(req.query.facets);
+    if (req.query.facets !== undefined && facetsRequested === undefined) {
+      return res.status(400).json({ error: 'Invalid facets parameter' });
+    }
 
     const isAdmin = req.user?.role === 'admin';
     const requestedOrganization =
@@ -139,6 +147,21 @@ export async function searchHandler(req: AuthRequest, res: Response) {
         break;
     }
 
+    const resultCount = countResults(results);
+    if (facetsRequested === true) {
+      const facets: SearchFacets = await searchFacets(
+        type,
+        organizationId,
+        normalizedQuery,
+        role,
+      );
+      if (type === 'all') {
+        results = { ...(results as Record<string, unknown>), facets };
+      } else {
+        results = { items: results, facets };
+      }
+    }
+
     if (organizationId) {
       void recordSearchEvent({
         query: rawQuery,
@@ -146,7 +169,7 @@ export async function searchHandler(req: AuthRequest, res: Response) {
         locale,
         organizationId,
         userId: req.user?.id,
-        resultCount: countResults(results),
+        resultCount,
       }).catch((error: unknown) => {
         logger.warn('search_analytics_failed', {
           message: error instanceof Error ? error.message : String(error),

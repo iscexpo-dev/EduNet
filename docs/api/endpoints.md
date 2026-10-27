@@ -138,11 +138,21 @@ Query parameters:
 - `locale` — `en` (default) or `bn`, recorded with the search event.
 - `organizationId` — administrators may search another tenant; other callers are
   always pinned to the organization in their access token.
+- `facets` — `true`/`1` to include facet counts. For a single type the response
+  becomes `{ items, facets }`; for `all` a `facets` object is added to the
+  result. Facets reflect the same tenant, active/non-deleted and term filters
+  as the matching results.
 
 Matching normalizes English case, Bengali digits (`০`-`৯`), zero-width
 characters and precomposed nukta letters on both the query and stored columns.
 Relevance scores exact, prefix, word-prefix and substring matches with field
 weights, and all results exclude inactive or soft-deleted rows.
+
+Trigram fuzzy/typo-tolerant matching (`pg_trgm` similarity) is opt-in: set
+`SEARCH_USE_TRIGRAM=true` and apply migration `0005_trigram_search.sql`
+(which creates the `pg_trgm` extension and GIN trigram indexes on search
+columns). Until that migration is applied and query plans justify it, search
+falls back to the normalized LIKE relevance scoring above.
 
 ## Analytics (`/api/analytics`)
 

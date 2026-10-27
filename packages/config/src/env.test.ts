@@ -49,6 +49,40 @@ describe('environment validation', () => {
     expect(plaintext.errors.some((issue) => issue.variable === 'DATABASE_URL')).toBe(true);
   });
 
+  it('accepts valid SEARCH_USE_TRIGRAM boolean values', () => {
+    for (const value of ['true', '1', 'yes', 'on']) {
+      const result = validateEnvironment({
+        role: 'service',
+        env: { ...PRODUCTION_SERVICE, SEARCH_USE_TRIGRAM: value },
+      });
+      expect(result.errors.find((issue) => issue.variable === 'SEARCH_USE_TRIGRAM')).toBeUndefined();
+    }
+    for (const value of ['false', '0', 'no', 'off']) {
+      const result = validateEnvironment({
+        role: 'service',
+        env: { ...PRODUCTION_SERVICE, SEARCH_USE_TRIGRAM: value },
+      });
+      expect(result.errors.find((issue) => issue.variable === 'SEARCH_USE_TRIGRAM')).toBeUndefined();
+    }
+  });
+
+  it('rejects an invalid SEARCH_USE_TRIGRAM value', () => {
+    const result = validateEnvironment({
+      role: 'service',
+      env: { ...PRODUCTION_SERVICE, SEARCH_USE_TRIGRAM: 'maybe' },
+    });
+    expect(result.errors.some((issue) => issue.variable === 'SEARCH_USE_TRIGRAM')).toBe(true);
+  });
+
+  it('treats an unset SEARCH_USE_TRIGRAM as disabled', () => {
+    const result = validateEnvironment({
+      role: 'service',
+      env: { ...PRODUCTION_SERVICE },
+    });
+    expect(result.errors.find((issue) => issue.variable === 'SEARCH_USE_TRIGRAM')).toBeUndefined();
+    expect(result.ok).toBe(true);
+  });
+
   it('requires explicit https CORS origins for the gateway', () => {
     const result = validateEnvironment({
       role: 'gateway',

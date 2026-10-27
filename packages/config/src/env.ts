@@ -52,6 +52,29 @@ export function isPlaceholder(value: string | undefined): boolean {
   return trimmed.length === 0 || PLACEHOLDER_PATTERNS.some((pattern) => pattern.test(trimmed));
 }
 
+function booleanFlag(
+  env: Environment,
+  variable: string,
+  issue: (variable: string, message: string) => void,
+): boolean | undefined {
+  const raw = env[variable]?.trim();
+  if (raw === undefined || raw === '') return undefined;
+  const lower = raw.toLowerCase();
+  if (
+    lower === '1' ||
+    lower === 'true' ||
+    lower === 'yes' ||
+    lower === 'on'
+  ) {
+    return true;
+  }
+  if (lower === '0' || lower === 'false' || lower === 'no' || lower === 'off') {
+    return false;
+  }
+  issue(variable, 'must be a boolean (true/false/yes/no/on/off/1/0)');
+  return undefined;
+}
+
 function integerInRange(
   env: Environment,
   variable: string,
@@ -167,6 +190,8 @@ export function validateEnvironment(options: ValidateOptions = {}): EnvironmentV
   if (env.LOG_LEVEL && !VALID_LOG_LEVELS.has(env.LOG_LEVEL.toLowerCase())) {
     error('LOG_LEVEL', 'must be one of debug, info, warn or error');
   }
+
+  booleanFlag(env, 'SEARCH_USE_TRIGRAM', error);
 
   integerInRange(env, 'TRUST_PROXY', 0, 16, error);
   integerInRange(env, 'BCRYPT_COST', 4, 15, error);

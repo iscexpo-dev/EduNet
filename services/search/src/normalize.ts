@@ -139,3 +139,20 @@ export function parseSearchPagination(query: Record<string, unknown>): {
 
   return { limit, offset };
 }
+
+/**
+ * Parses an optional boolean query parameter. Returns `undefined` when the
+ * parameter is absent so callers can distinguish "not requested" from "false".
+ * Unrecognized present values are left to the caller to reject.
+ */
+export function parseBoolean(value: unknown): boolean | undefined {
+  if (value === undefined || value === null) return undefined;
+  const raw = String(value).trim().toLowerCase();
+  if (raw === '1' || raw === 'true' || raw === 'yes' || raw === 'on') {
+    return true;
+  }
+  if (raw === '0' || raw === 'false' || raw === 'no' || raw === 'off') {
+    return false;
+  }
+  return undefined;
+}

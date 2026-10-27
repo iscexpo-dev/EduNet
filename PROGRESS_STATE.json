@@ -3,7 +3,7 @@
   "schemaVersion": "1.0.0",
   "project": "EduNet",
   "purpose": "Canonical resumable execution state for autonomous agents. Update after every meaningful checkpoint.",
-  "lastUpdated": "2026-10-27T04:46:00Z",
+  "lastUpdated": "2026-10-27T04:55:00Z",
   "repository": {
     "path": "/vercel/share/v0-project",
     "remote": "https://github.com/iscexpo-dev/EduNet.git",
@@ -37,7 +37,7 @@
     "apps": 1,
     "services": 19,
     "packages": 12,
-    "testFiles": 40,
+    "testFiles": 41,
     "webPages": 33,
     "database": "PostgreSQL via Drizzle ORM",
     "migrations": [
@@ -52,22 +52,22 @@
     "typecheck": {
       "status": "PASS",
       "command": "pnpm turbo run typecheck --concurrency=2",
-      "evidence": "36/36 tasks, 0 errors (2026-10-27 offline background sync + auto conflict resolution)"
+      "evidence": "36/36 tasks, 0 errors (2026-10-27 search facets + trigram opt-in)"
     },
     "lint": {
       "status": "PASS",
       "command": "pnpm turbo run lint --concurrency=2",
-      "evidence": "32/32 tasks, 0 errors; platform, analytics, offline and web lint 0 errors with pre-existing warnings only (2026-10-27)"
+      "evidence": "32/32 tasks, 0 errors; config, search and web lint 0 errors with pre-existing warnings only (2026-10-27)"
     },
     "unitTests": {
       "status": "PASS",
       "command": "pnpm turbo run test --concurrency=2",
-      "evidence": "51/51 tasks; offline 25 tests (21 original + 4 last-write-wins dedupe tests); platform 39, analytics 19 and content 46 tests; all suites pass (2026-10-27)"
+      "evidence": "51/51 tasks; config 18 tests, search 28 tests (incl. 4 trigram + 5 parseBoolean tests), platform 39, analytics 19 and content 46 tests; all suites pass (2026-10-27)"
     },
     "build": {
       "status": "PASS",
       "command": "pnpm --filter @edunet/web build && pnpm --filter @edunet/content build",
-      "evidence": "Next.js 16.4.3 Turbopack production build includes the lesson editor, course analytics, /teacher/attendance, /attendance, /offline/queue and /library; offline flush now dedupes superseded edits and background-syncs on online/visibility/interval; platform/analytics/content/offline tsc builds pass (2026-10-27)"
+      "evidence": "Next.js 16.4.3 Turbopack production build includes /library; config, search, content/analytics/platform tsc builds pass (2026-10-27)"
     },
     "audit": {
       "status": "PASS",
@@ -181,7 +181,7 @@
     },
     "search": {
       "status": "PARTIAL",
-      "gap": "Tenant-scoped relevance ranking with English/Bengali normalization, bounded sort/pagination and search event capture (2026-10-25); facets, fuzzy matching and trigram indexes still missing"
+      "gap": "Tenant-scoped relevance ranking with English/Bengali normalization, bounded sort/pagination and search event capture (2026-10-25); `?facets=1` counts added; trigram fuzzy matching opt-in via `SEARCH_USE_TRIGRAM` + migration `0005_trigram_search.sql` (pg_trgm extension + GIN indexes); LIKE fallback until migration applied; live PostgreSQL verification blocked locally"
     },
     "notifications": {
       "status": "PARTIAL",
@@ -289,10 +289,10 @@
     }
   },
   "activeCheckpoint": {
-    "id": "checkpoint-26-offline-background-sync-auto-conflict-resolution",
-    "description": "Extended the offline queue with background sync (online/visibility/30-second interval flush via useOfflineSync) and automatic client-side conflict resolution: flushQueue drops pending edits superseded by a newer same-entity edit (last-write-wins) before sending. Offline package gains LAST_WRITE_WINS_TYPES and dedupeQueue with 4 new unit tests (25 total).",
-    "startedAt": "2026-10-27T04:40:00Z",
-    "completedAt": "2026-10-27T04:46:00Z",
+    "id": "checkpoint-27-search-facets-trigram",
+    "description": "Added search facets (`?facets=1`) returning per-type counts and an opt-in trigram fuzzy-matching path (`SEARCH_USE_TRIGRAM=true` + migration `0005_trigram_search.sql`) with LIKE fallback. Added `SEARCH_USE_TRIGRAM` config validation, the migration, `parseBoolean`/`trigramEnabled` helpers, and unit tests (search suite 28/28).",
+    "startedAt": "2026-10-27T04:47:00Z",
+    "completedAt": "2026-10-27T04:55:00Z",
     "status": "COMPLETE"
   },
   "checkpoints": [
@@ -741,6 +741,33 @@
         "todo/ACTIVE-PLAN.md",
         "PROGRESS_STATE.json"
       ]
+    },
+    {
+      "id": "checkpoint-27-search-facets-trigram",
+      "at": "2026-10-27T04:55:00Z",
+      "summary": "Extended /api/search with facets (`?facets=1` returns per-type counts; single types respond `{ items, facets }`, `all` gains a `facets` field) and an opt-in trigram fuzzy-matching path gated behind `SEARCH_USE_TRIGRAM=true` and migration `0005_trigram_search.sql` (pg_trgm extension + GIN trigram indexes), with LIKE fallback. Added config validation + test, `parseBoolean` + `trigramEnabled` + tests (search suite 28/28).",
+      "evidence": [
+        "/tmp/test-search-facets.log",
+        "/tmp/tc-search-facets.log",
+        "/tmp/lint-search-facets.log",
+        "/tmp/build-search-facets.log"
+      ],
+      "artifacts": [
+        "packages/config/src/env.ts",
+        "packages/config/src/env.test.ts",
+        "packages/database/drizzle/0005_trigram_search.sql",
+        "services/search/src/db.ts",
+        "services/search/src/handlers.ts",
+        "services/search/src/normalize.ts",
+        "services/search/src/normalize.test.ts",
+        "services/search/src/trigram.test.ts",
+        "docs/api/endpoints.md",
+        "docs/EDUNET-FINAL-STATUS.md",
+        "docs/EDUNET-IMPLEMENTATION-STATE.md",
+        "docs/EDUNET-ROADMAP-GAP-MATRIX.md",
+        "todo/ACTIVE-PLAN.md",
+        "PROGRESS_STATE.json"
+      ]
     }
   ],
   "blockers": [
@@ -771,7 +798,6 @@
   ],
   "nextActions": [
     "Configure the AI provider and staff the human escalation path.",
-    "Add search facets/fuzzy matching plus a trigram index once query plans justify it.",
     "Wire the KPI collection pipeline from persisted data.",
     "Close remaining security hardening: DAST and MFA/SSO."
   ],

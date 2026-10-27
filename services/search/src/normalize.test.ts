@@ -7,6 +7,7 @@ import {
   escapeLikePattern,
   isSearchQueryTooLong,
   normalizeSearchQuery,
+  parseBoolean,
   parseSearchLocale,
   parseSearchPagination,
   parseSearchType,
@@ -154,5 +155,30 @@ describe('parseSearchPagination', () => {
       offset: 0,
     });
     expect(parseSearchPagination({ offset: '-10' }).offset).toBe(0);
+  });
+});
+
+describe('parseBoolean', () => {
+  it('returns undefined when the parameter is absent', () => {
+    expect(parseBoolean(undefined)).toBeUndefined();
+    expect(parseBoolean(null)).toBeUndefined();
+  });
+
+  it('recognizes truthy values', () => {
+    for (const value of ['1', 'true', 'yes', 'on', 'True', ' YES ']) {
+      expect(parseBoolean(value)).toBe(true);
+    }
+  });
+
+  it('recognizes falsy values', () => {
+    for (const value of ['0', 'false', 'no', 'off', 'False', ' no ']) {
+      expect(parseBoolean(value)).toBe(false);
+    }
+  });
+
+  it('returns undefined for unrecognized present values', () => {
+    expect(parseBoolean('maybe')).toBeUndefined();
+    expect(parseBoolean('')).toBeUndefined();
+    expect(parseBoolean('2')).toBeUndefined();
   });
 });
