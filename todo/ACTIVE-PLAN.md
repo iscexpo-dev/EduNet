@@ -187,6 +187,13 @@ Ordered by risk. Items marked `[!]` need external infrastructure.
 - [x] Documented the new endpoints in `docs/api/endpoints.md`.
 - [ ] Remaining: offline assessment submission and objectives authoring UI.
 
+## Checkpoint 18 — Public shell accessibility and responsive navigation — COMPLETE 2026-10-27
+
+- [x] Added a keyboard-visible skip link targeting the public content region.
+- [x] Made public navigation available on small screens without horizontal page overflow.
+- [x] Added visible focus rings and an accessible home label to public shell controls.
+- [x] Web typecheck and lint pass with two pre-existing warnings and zero errors.
+
 ## Definition of done for this run
 
 - Baseline gates re-executed and recorded.
