@@ -1,6 +1,6 @@
 import { drizzle } from 'drizzle-orm/postgres-js';
-import { assignments, courses, submissions, users } from '@edunet/database';
-import { eq, and, inArray } from 'drizzle-orm';
+import { assignments, courses, enrollments, submissions, users } from '@edunet/database';
+import { eq, and, inArray, isNull } from 'drizzle-orm';
 import postgres from 'postgres';
 
 let client: postgres.Sql | null = null;
@@ -44,6 +44,31 @@ export async function findAssignmentById(id: string, organizationId: string) {
     .innerJoin(courses, eq(assignments.courseId, courses.id))
     .where(and(eq(assignments.id, id), eq(courses.organizationId, organizationId)));
   return result[0]?.assignment || null;
+}
+
+export async function isStudentEnrolled(
+  studentId: string,
+  courseId: string,
+  organizationId: string,
+) {
+  const db = getDb();
+  const result = await db
+    .select({ id: enrollments.id })
+    .from(enrollments)
+    .innerJoin(courses, eq(enrollments.courseId, courses.id))
+    .innerJoin(users, eq(enrollments.studentId, users.id))
+    .where(
+      and(
+        eq(enrollments.studentId, studentId),
+        eq(enrollments.courseId, courseId),
+        eq(enrollments.status, 'active'),
+        isNull(enrollments.deletedAt),
+        eq(courses.organizationId, organizationId),
+        eq(users.organizationId, organizationId),
+      ),
+    )
+    .limit(1);
+  return result.length > 0;
 }
 
 export async function findSubmissionById(id: string, organizationId: string) {
@@ -130,17 +155,30 @@ export async function createSubmission(data: {
     .from(assignments)
     .innerJoin(courses, eq(assignments.courseId, courses.id))
     .innerJoin(users, eq(users.id, data.studentId))
+    .innerJoin(
+      enrollments,
+      and(
+        eq(enrollments.courseId, courses.id),
+        eq(enrollments.studentId, users.id),
+      ),
+    )
     .where(
       and(
         eq(assignments.id, data.assignmentId),
+        eq(assignments.isActive, true),
+        isNull(assignments.deletedAt),
         eq(courses.organizationId, data.organizationId),
         eq(users.organizationId, data.organizationId),
-        eq(users.role, 'student')
+        eq(users.role, 'student'),
+        eq(enrollments.status, 'active'),
+        isNull(enrollments.deletedAt),
       )
     )
     .limit(1);
   if (!validTarget) {
-    throw new Error('Assignment and student must belong to the authenticated organization');
+    throw new Error(
+      'Assignment and student must belong to the authenticated organization and active enrollment',
+    );
   }
 
   const [submission] = await db

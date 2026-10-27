@@ -15,9 +15,15 @@ vi.mock('./db', () => ({
 describe('Enrollment Handlers', () => {
   const originalEnv = process.env;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     process.env = { ...originalEnv };
     process.env.JWT_SECRET = 'test-secret-key';
+    const { findCourseById } = await import('./db');
+    (findCourseById as any).mockResolvedValue({
+      id: 'course-1',
+      isActive: true,
+      teacherId: 'teacher-1',
+    });
   });
 
   afterEach(() => {
@@ -77,6 +83,36 @@ describe('Enrollment Handlers', () => {
 
       expect(res.statusCode).toBe(403);
       expect(res.body.error).toBe('Students can only enroll themselves');
+    });
+
+    it('should reject student enrollment in an inactive course', async () => {
+      const { findCourseById } = await import('./db');
+      (findCourseById as any).mockResolvedValue({
+        id: 'course-1',
+        isActive: false,
+        teacherId: 'teacher-1',
+      });
+
+      const req: any = {
+        body: { studentId: 'student-1', courseId: 'course-1' },
+        user: { id: 'student-1', role: 'student', organizationId: 'org-1' },
+      };
+      const res: any = {
+        statusCode: 200,
+        body: undefined,
+        status(code: number) {
+          this.statusCode = code;
+          return this;
+        },
+        json(data: any) {
+          this.body = data;
+          return this;
+        },
+      };
+
+      await createEnrollmentHandler(req, res);
+
+      expect(res.statusCode).toBe(409);
     });
 
     it('should reject duplicate enrollment', async () => {

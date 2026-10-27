@@ -42,6 +42,14 @@ export async function createEnrollmentHandler(req: AuthRequest, res: Response) {
       return res.status(403).json({ error: 'Students can only enroll themselves' });
     }
 
+    const course = await findCourseById(courseId, organizationId);
+    if (!course) {
+      return res.status(404).json({ error: 'Course not found' });
+    }
+    if (req.user?.role === 'student' && !course.isActive) {
+      return res.status(409).json({ error: 'This course is not open for enrollment' });
+    }
+
     const existing = await findEnrollment(studentId, courseId, organizationId);
     if (existing) {
       return res.status(409).json({ error: 'Already enrolled in this course' });
@@ -69,6 +77,15 @@ export async function getEnrollmentHandler(req: AuthRequest, res: Response) {
     if (req.user?.role === 'student' && enrollment.studentId !== req.user.id) {
       return res.status(403).json({ error: 'You can only view your own enrollments' });
     }
+    if (req.user?.role === 'teacher') {
+      const course = await findCourseById(enrollment.courseId, organizationId);
+      if (!course || course.teacherId !== req.user.id) {
+        return res.status(403).json({ error: 'You can only view enrollments for your own courses' });
+      }
+    }
+    if (req.user?.role !== 'student' && req.user?.role !== 'teacher' && req.user?.role !== 'admin') {
+      return res.status(403).json({ error: 'Insufficient permissions' });
+    }
 
     res.json(enrollment);
   } catch (error: any) {
@@ -82,8 +99,10 @@ export async function listEnrollmentsHandler(req: AuthRequest, res: Response) {
     if (!organizationId) return;
 
     const { studentId, courseId } = req.query;
-    const limit = parseInt(req.query.limit as string) || 50;
-    const offset = parseInt(req.query.offset as string) || 0;
+    const rawLimit = Number.parseInt(String(req.query.limit ?? ''), 10);
+    const rawOffset = Number.parseInt(String(req.query.offset ?? ''), 10);
+    const limit = Number.isFinite(rawLimit) ? Math.min(Math.max(rawLimit, 1), 200) : 50;
+    const offset = Number.isFinite(rawOffset) ? Math.max(rawOffset, 0) : 0;
 
     let result;
     if (req.user?.role === 'student') {
@@ -97,6 +116,9 @@ export async function listEnrollmentsHandler(req: AuthRequest, res: Response) {
         result = await listEnrollmentsByStudent(req.user.id, organizationId, limit, offset);
       }
     } else if (studentId && typeof studentId === 'string') {
+      if (req.user?.role !== 'admin') {
+        return res.status(403).json({ error: 'Only administrators can view another student\'s enrollments' });
+      }
       result = await listEnrollmentsByStudent(studentId, organizationId, limit, offset);
     } else if (courseId && typeof courseId === 'string') {
       const course = await findCourseById(courseId, organizationId);

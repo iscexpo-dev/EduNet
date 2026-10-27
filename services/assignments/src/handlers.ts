@@ -3,6 +3,7 @@ import { assignmentSchema, assignmentUpdateSchema } from '@edunet/validation';
 import {
   findCourseById,
   findAssignmentById,
+  isStudentEnrolled,
   listAssignmentsByCourse,
   createAssignment,
   updateAssignment,
@@ -25,6 +26,15 @@ function requireOrganizationId(req: AuthRequest, res: Response): string | null {
     return null;
   }
   return organizationId;
+}
+
+function parsePagination(query: Request['query']) {
+  const rawLimit = Number.parseInt(String(query.limit ?? ''), 10);
+  const rawOffset = Number.parseInt(String(query.offset ?? ''), 10);
+  return {
+    limit: Number.isFinite(rawLimit) ? Math.min(Math.max(rawLimit, 1), 200) : 50,
+    offset: Number.isFinite(rawOffset) ? Math.max(rawOffset, 0) : 0,
+  };
 }
 
 export async function createAssignmentHandler(req: AuthRequest, res: Response) {
@@ -70,6 +80,27 @@ export async function getAssignmentHandler(req: AuthRequest, res: Response) {
       return res.status(404).json({ error: 'Assignment not found' });
     }
 
+    const course = await findCourseById(assignment.courseId, organizationId);
+    if (!course) {
+      return res.status(404).json({ error: 'Assignment not found' });
+    }
+
+    if (req.user?.role === 'student') {
+      if (
+        !assignment.isActive ||
+        !(await isStudentEnrolled(req.user.id, assignment.courseId, organizationId))
+      ) {
+        return res.status(403).json({ error: 'You must be enrolled in this course' });
+      }
+      return res.json(assignment);
+    }
+    if (req.user?.role === 'teacher' && course.teacherId !== req.user.id) {
+      return res.status(403).json({ error: 'You can only view assignments for your own courses' });
+    }
+    if (req.user?.role !== 'teacher' && req.user?.role !== 'admin') {
+      return res.status(403).json({ error: 'Insufficient permissions' });
+    }
+
     const submissionCount = await getAssignmentSubmissionCount(id, organizationId);
     res.json({ ...assignment, submissionCount });
   } catch (error: any) {
@@ -83,8 +114,7 @@ export async function listAssignmentsHandler(req: AuthRequest, res: Response) {
     if (!organizationId) return;
 
     const { courseId } = req.query;
-    const limit = parseInt(req.query.limit as string) || 50;
-    const offset = parseInt(req.query.offset as string) || 0;
+    const { limit, offset } = parsePagination(req.query);
 
     if (!courseId || typeof courseId !== 'string') {
       return res.status(400).json({ error: 'courseId is required' });
@@ -95,7 +125,23 @@ export async function listAssignmentsHandler(req: AuthRequest, res: Response) {
       return res.status(404).json({ error: 'Course not found' });
     }
 
-    const assignments = await listAssignmentsByCourse(courseId, organizationId, limit, offset);
+    if (req.user?.role === 'student') {
+      if (!(await isStudentEnrolled(req.user.id, courseId, organizationId))) {
+        return res.status(403).json({ error: 'You must be enrolled in this course' });
+      }
+    } else if (req.user?.role === 'teacher' && course.teacherId !== req.user.id) {
+      return res.status(403).json({ error: 'You can only view assignments for your own courses' });
+    } else if (req.user?.role !== 'teacher' && req.user?.role !== 'admin') {
+      return res.status(403).json({ error: 'Insufficient permissions' });
+    }
+
+    const assignments = await listAssignmentsByCourse(
+      courseId,
+      organizationId,
+      limit,
+      offset,
+      req.user?.role === 'student',
+    );
     res.json(assignments);
   } catch (error: any) {
     res.status(500).json({ error: error.message });

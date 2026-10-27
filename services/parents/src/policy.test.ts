@@ -4,6 +4,7 @@ import {
   canReadChildAssignments,
   canReadChildAttendance,
   canReadChildGrades,
+  canViewRelationship,
   parsePagination,
   sanitizeRelationshipUpdate,
   type ParentRelationship,
@@ -71,8 +72,8 @@ describe('parent read permissions', () => {
 });
 
 describe('canManageRelationship', () => {
-  it('lets parents manage only their own relationship', () => {
-    expect(canManageRelationship('parent', 'parent-1', 'org-1', 'parent-1', 'org-1')).toBe(true);
+  it('does not let parents create, edit, or delete school-verified links', () => {
+    expect(canManageRelationship('parent', 'parent-1', 'org-1', 'parent-1', 'org-1')).toBe(false);
     expect(canManageRelationship('parent', 'parent-2', 'org-1', 'parent-1', 'org-1')).toBe(false);
   });
 
@@ -85,5 +86,17 @@ describe('canManageRelationship', () => {
   it('rejects unrelated roles', () => {
     expect(canManageRelationship('teacher', 'teacher-1', 'org-1', 'parent-1', 'org-1')).toBe(false);
     expect(canManageRelationship('student', 'student-1', 'org-1', 'parent-1', 'org-1')).toBe(false);
+  });
+});
+
+describe('canViewRelationship', () => {
+  it('lets linked parents read their own relationship', () => {
+    expect(canViewRelationship('parent', 'parent-1', 'org-1', 'parent-1', 'org-1')).toBe(true);
+    expect(canViewRelationship('parent', 'parent-2', 'org-1', 'parent-1', 'org-1')).toBe(false);
+  });
+
+  it('lets admins read relationships only within their organization', () => {
+    expect(canViewRelationship('admin', 'admin-1', 'org-1', 'parent-1', 'org-1')).toBe(true);
+    expect(canViewRelationship('admin', 'admin-1', 'org-1', 'parent-1', 'org-2')).toBe(false);
   });
 });

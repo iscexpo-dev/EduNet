@@ -4,6 +4,7 @@ import { findCourseById } from './db';
 
 vi.mock('./db', () => ({
   findCourseById: vi.fn(),
+  isStudentEnrolled: vi.fn(),
   listCoursesByOrganization: vi.fn(),
   listCoursesByTeacher: vi.fn(),
   createCourse: vi.fn(),

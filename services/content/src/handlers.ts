@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { findCourseById } from './db';
 import {
   findLessonById,
+  isStudentEnrolled,
   listLessonsByCourse,
   createLesson,
   updateLesson,
@@ -37,6 +38,7 @@ import {
 import {
   canManageCourse,
   canOwnPersonalState,
+  clampPagination,
   isUuid,
   parseNoteContent,
   parseObjectiveInput,
@@ -49,6 +51,22 @@ export interface AuthRequest extends Request {
     role: string;
     organizationId?: string;
   };
+}
+
+async function canReadCourseContent(req: AuthRequest, courseId: string): Promise<boolean> {
+  const organizationId = req.user?.organizationId;
+  const userId = req.user?.id;
+  const role = req.user?.role;
+  if (!organizationId || !userId) return false;
+  if (role === 'admin') return true;
+
+  const course = await findCourseById(courseId, organizationId);
+  if (!course) return false;
+  if (role === 'teacher') return course.teacherId === userId;
+  if (role === 'student') {
+    return isStudentEnrolled(userId, courseId, organizationId);
+  }
+  return false;
 }
 
 // Lesson handlers
@@ -98,7 +116,14 @@ export async function getLessonHandler(req: AuthRequest, res: Response) {
     if (!lesson) {
       return res.status(404).json({ error: 'Lesson not found' });
     }
-    
+
+    if (!(await canReadCourseContent(req, lesson.courseId))) {
+      return res.status(403).json({ error: 'You are not authorized to view this lesson' });
+    }
+    if (req.user?.role === 'student' && lesson.isPublished !== 'true') {
+      return res.status(404).json({ error: 'Lesson not found' });
+    }
+
     res.json(lesson);
   } catch (error: any) {
     res.status(500).json({ error: error.message });
@@ -110,14 +135,23 @@ export async function listLessonsHandler(req: AuthRequest, res: Response) {
   if (!organizationId) return res.status(403).json({ error: 'Organization context required' });
   try {
     const { courseId } = req.query;
-    const limit = parseInt(req.query.limit as string) || 100;
-    const offset = parseInt(req.query.offset as string) || 0;
-    
+    const { limit, offset } = clampPagination(req.query, { limit: 100 });
+
     if (!courseId || typeof courseId !== 'string') {
       return res.status(400).json({ error: 'courseId is required' });
     }
-    
-    const lessons = await listLessonsByCourse(courseId, organizationId, limit, offset);
+
+    if (!(await canReadCourseContent(req, courseId))) {
+      return res.status(403).json({ error: 'You are not authorized to view this course content' });
+    }
+
+    const lessons = await listLessonsByCourse(
+      courseId,
+      organizationId,
+      limit,
+      offset,
+      req.user?.role === 'student',
+    );
     res.json(lessons);
   } catch (error: any) {
     res.status(500).json({ error: error.message });
@@ -190,6 +224,20 @@ export async function createLessonProgressHandler(req: AuthRequest, res: Respons
     if (req.user?.role === 'student' && req.user.id !== studentId) {
       return res.status(403).json({ error: 'Students can only track their own progress' });
     }
+    if (req.user?.role !== 'student' && req.user?.role !== 'admin') {
+      return res.status(403).json({ error: 'Only students can record lesson progress' });
+    }
+
+    const lesson = await findLessonById(lessonId, organizationId);
+    if (!lesson) {
+      return res.status(404).json({ error: 'Lesson not found' });
+    }
+    if (
+      req.user.role === 'student' &&
+      !(await isStudentEnrolled(req.user.id, lesson.courseId, organizationId))
+    ) {
+      return res.status(403).json({ error: 'You must be enrolled in this course' });
+    }
 
     const existing = await findLessonProgress(lessonId, studentId, organizationId);
     const values = {
@@ -223,7 +271,10 @@ export async function getLessonProgressHandler(req: AuthRequest, res: Response) 
     if (req.user?.role === 'student' && progress.studentId !== req.user.id) {
       return res.status(403).json({ error: 'You can only view your own progress' });
     }
-    
+    if (req.user?.role !== 'student' && req.user?.role !== 'admin') {
+      return res.status(403).json({ error: 'Insufficient permissions' });
+    }
+
     res.json(progress);
   } catch (error: any) {
     res.status(500).json({ error: error.message });
@@ -235,9 +286,8 @@ export async function listLessonProgressHandler(req: AuthRequest, res: Response)
   if (!organizationId) return res.status(403).json({ error: 'Organization context required' });
   try {
     const { studentId } = req.query;
-    const limit = parseInt(req.query.limit as string) || 50;
-    const offset = parseInt(req.query.offset as string) || 0;
-    
+    const { limit, offset } = clampPagination(req.query);
+
     if (!studentId || typeof studentId !== 'string') {
       return res.status(400).json({ error: 'studentId is required' });
     }
@@ -245,7 +295,10 @@ export async function listLessonProgressHandler(req: AuthRequest, res: Response)
     if (req.user?.role === 'student' && req.user.id !== studentId) {
       return res.status(403).json({ error: 'You can only view your own progress' });
     }
-    
+    if (req.user?.role !== 'student' && req.user?.role !== 'admin') {
+      return res.status(403).json({ error: 'Insufficient permissions' });
+    }
+
     const progressList = await listLessonProgressByStudent(studentId, organizationId, limit, offset);
     res.json(progressList);
   } catch (error: any) {
@@ -267,6 +320,15 @@ export async function updateLessonProgressHandler(req: AuthRequest, res: Respons
 
     if (req.user?.role === 'student' && existing.studentId !== req.user.id) {
       return res.status(403).json({ error: 'You can only update your own progress' });
+    }
+    if (req.user?.role !== 'student' && req.user?.role !== 'admin') {
+      return res.status(403).json({ error: 'Insufficient permissions' });
+    }
+    if (req.user.role === 'student') {
+      const lesson = await findLessonById(existing.lessonId, organizationId);
+      if (!lesson || !(await isStudentEnrolled(req.user.id, lesson.courseId, organizationId))) {
+        return res.status(403).json({ error: 'You must be enrolled in this course' });
+      }
     }
 
     const progressRecord = await updateLessonProgress(id, organizationId, {
@@ -296,6 +358,9 @@ export async function deleteLessonProgressHandler(req: AuthRequest, res: Respons
 
     if (req.user?.role === 'student' && existing.studentId !== req.user.id) {
       return res.status(403).json({ error: 'You can only delete your own progress' });
+    }
+    if (req.user?.role !== 'student' && req.user?.role !== 'admin') {
+      return res.status(403).json({ error: 'Insufficient permissions' });
     }
 
     const progressRecord = await deleteLessonProgress(id, organizationId);
