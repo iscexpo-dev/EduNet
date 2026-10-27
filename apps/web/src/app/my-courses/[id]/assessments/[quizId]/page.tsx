@@ -1,6 +1,7 @@
 'use client';
 
 import { apiUrl } from '@/lib/api-url';
+import { enqueueOfflineAction } from '@/lib/offline-queue';
 
 import { useEffect, useState } from 'react';
 import { useAuth } from '@edunet/auth';
@@ -84,6 +85,23 @@ export default function QuizTakingPage() {
 
     setSubmitting(true);
     setError('');
+
+    if (!navigator.onLine) {
+      enqueueOfflineAction({
+        id: `offline-${crypto.randomUUID()}`,
+        type: 'assessment_answer',
+        entityId: attemptId,
+        endpoint: `/api/assessments/quiz-attempts/${attemptId}/submit`,
+        method: 'PUT',
+        body: { answers },
+        createdAt: Date.now(),
+        version: 1,
+        idempotencyKey: `offline-${crypto.randomUUID()}`,
+      });
+      setSubmitting(false);
+      setError('Quiz saved offline. It will be submitted when you reconnect.');
+      return;
+    }
 
     try {
       const response = await fetch(apiUrl(`/api/assessments/quiz-attempts/${attemptId}/submit`), {
