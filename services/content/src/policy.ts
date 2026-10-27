@@ -11,6 +11,12 @@ export const MAX_OBJECTIVE_LENGTH = 1_000;
 export const MAX_NOTE_LENGTH = 20_000;
 export const MAX_PAGE_SIZE = 100;
 export const DEFAULT_PAGE_SIZE = 50;
+export const MAX_LESSON_TITLE_LENGTH = 300;
+export const MAX_LESSON_DESCRIPTION_LENGTH = 10_000;
+export const MAX_LESSON_DURATION_LENGTH = 50;
+
+export const LESSON_TYPES = ['text', 'video', 'document', 'interactive', 'quiz'] as const;
+export type LessonType = (typeof LESSON_TYPES)[number];
 
 export function isUuid(value: unknown): value is string {
   return typeof value === 'string' && UUID_PATTERN.test(value);
@@ -95,6 +101,110 @@ export function parseObjectiveUpdate(
       throw new Error('order must be a non-negative integer');
     }
     update.order = order;
+  }
+
+  if (Object.keys(update).length === 0) {
+    throw new Error('No updatable fields supplied');
+  }
+
+  return update;
+}
+
+export interface LessonUpdateInput {
+  title?: string;
+  description?: string | null;
+  type?: LessonType;
+  content?: Record<string, unknown> | null;
+  order?: string;
+  duration?: string | null;
+  isPublished?: 'true' | 'false';
+}
+
+const optionalText = (
+  value: unknown,
+  field: string,
+  maxLength: number,
+): string | null => {
+  if (value === null) return null;
+  if (typeof value !== 'string') throw new Error(`${field} must be a string`);
+  const text = value.trim();
+  if (text.length > maxLength) {
+    throw new Error(`${field} must be at most ${maxLength} characters`);
+  }
+  return text;
+};
+
+/**
+ * Whitelists and validates lesson edits. Unlike a plain object spread this
+ * ignores unknown fields, so callers can never change `courseId`, `moduleId`
+ * or `deletedAt` through the update endpoint.
+ */
+export function parseLessonUpdate(body: unknown): LessonUpdateInput {
+  if (typeof body !== 'object' || body === null || Array.isArray(body)) {
+    throw new Error('Lesson payload is required');
+  }
+  const value = body as Record<string, unknown>;
+  const update: LessonUpdateInput = {};
+
+  if (value.title !== undefined) {
+    const title = typeof value.title === 'string' ? value.title.trim() : '';
+    if (!title) throw new Error('title is required');
+    if (title.length > MAX_LESSON_TITLE_LENGTH) {
+      throw new Error(`title must be at most ${MAX_LESSON_TITLE_LENGTH} characters`);
+    }
+    update.title = title;
+  }
+
+  if (value.description !== undefined) {
+    update.description = optionalText(
+      value.description,
+      'description',
+      MAX_LESSON_DESCRIPTION_LENGTH,
+    );
+  }
+
+  if (value.type !== undefined) {
+    const type = typeof value.type === 'string' ? value.type.trim() : '';
+    if (!LESSON_TYPES.includes(type as LessonType)) {
+      throw new Error(`type must be one of ${LESSON_TYPES.join(', ')}`);
+    }
+    update.type = type as LessonType;
+  }
+
+  if (value.content !== undefined) {
+    if (value.content === null) {
+      update.content = null;
+    } else if (typeof value.content !== 'object' || Array.isArray(value.content)) {
+      throw new Error('content must be a JSON object');
+    } else {
+      update.content = value.content as Record<string, unknown>;
+    }
+  }
+
+  if (value.order !== undefined) {
+    const order =
+      typeof value.order === 'number' && Number.isFinite(value.order)
+        ? String(value.order)
+        : typeof value.order === 'string'
+          ? value.order.trim()
+          : '';
+    if (!order) throw new Error('order is required');
+    if (order.length > 20) throw new Error('order must be at most 20 characters');
+    update.order = order;
+  }
+
+  if (value.duration !== undefined) {
+    update.duration = optionalText(value.duration, 'duration', MAX_LESSON_DURATION_LENGTH);
+  }
+
+  if (value.isPublished !== undefined) {
+    if (value.isPublished === true || value.isPublished === 'true') {
+      update.isPublished = 'true';
+    } else if (value.isPublished === false || value.isPublished === 'false') {
+      update.isPublished = 'false';
+    } else {
+      throw new Error("isPublished must be 'true' or 'false'");
+    }
   }
 
   if (Object.keys(update).length === 0) {

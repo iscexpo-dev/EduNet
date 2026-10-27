@@ -6,12 +6,12 @@
 - [ ] enrollment
 - [ ] modules
 - [ ] lessons
-- [ ] objectives
+- [x] objectives (course CRUD, lesson linking and teacher authoring UI)
 - [ ] prerequisites
 - [ ] progress
 - [ ] resume
-- [ ] bookmarks
-- [ ] notes
+- [x] bookmarks (student API and learn-page controls)
+- [x] notes (student API and learn-page controls)
 - [ ] favorites
 - [ ] completion
 - [ ] certificates

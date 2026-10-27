@@ -274,18 +274,18 @@ entry points because Next.js transpiles them.
 | RBAC & Tenant Isolation | VERIFIED | 40 tests; shared middleware in every service |
 | Database & Migrations | VERIFIED (CI ONLY locally) | Drizzle schema/migrations; constraints proven previously |
 | LMS Core | COMPLETE | Courses, lessons, progress, enrolment; E2E journey in CI |
-| Content & Media | PARTIAL | Lessons, resources, media, signed URLs, versions; no objectives/bookmarks/notes API, no S3 |
+| Content & Media | PARTIAL | Lessons, resources, media, signed URLs, versions, objectives/bookmarks/notes APIs and teacher lesson/objective editor; no S3 provider |
 | Assignments & Submissions | PARTIAL | Rubrics, autosave, revisions, grade history; no attachments/late policy |
 | Assessment | PARTIAL | Five objective types, partial credit, rechecks, banks, randomisation; UI basic |
-| Offline / PWA | PARTIAL | Queue, backoff, dedupe, conflicts, service worker; wired into assignment submit and lesson progress; remaining assessment/note/bookmark flows |
+| Offline / PWA | PARTIAL | Queue, backoff, dedupe, conflict resolution, service worker; wired into assignment submit, assessment submit, lesson progress, notes and bookmarks; `/offline/queue` supports retry/discard triage with 409/412 conflict labels; no background sync or automatic merge |
 | i18n | COMPLETE | Bengali/English catalogues and web toggle; native review pending |
 | Design System | PARTIAL | 16 primitives, tokens, dark mode; no icon system/RTL audit |
-| Student Platform | PARTIAL | Academic/attendance/achievements/certificates/streaks backend; no UI |
-| Parent Platform | PARTIAL | `/parent` dashboard (children, courses, grades, loading/empty/error); API hardened for same-org linking, path-param access, whitelisted updates and grade permission |
-| Teacher Platform | PARTIAL | Core authoring/grading UI; no attendance/analytics UI |
+| Student Platform | PARTIAL | Attendance view at `/attendance` and notes/bookmarks library at `/library`; academic/achievement/certificate/streak UI missing |
+| Parent Platform | PARTIAL | `/parent` dashboard (children, courses, grades) and child-scoped `/attendance` view; API hardened for same-org linking, path-param access, whitelisted updates and grade permission; self-service linking missing |
+| Teacher Platform | PARTIAL | Core authoring/grading UI, course analytics dashboard and scoped attendance marking; no workload UI |
 | Notifications | PARTIAL | In-app only; no delivery adapters |
 | Search | PARTIAL | `ILIKE` only |
-| Analytics | PARTIAL | Endpoints only; no dashboards/warehouse |
+| Analytics | PARTIAL | Tenant/owner-scoped endpoints and teacher course dashboard; no warehouse/KPI pipeline |
 | Communication | PARTIAL | Messaging/moderation/forums backend; no UI/realtime |
 | Calendar / Tutoring / Events | PARTIAL | Full backend; no UI |
 | Live Learning | PARTIAL | Records/attendance/analytics; no video integration |
@@ -333,6 +333,6 @@ entry points because Next.js transpiles them.
 3. Harden the edge: rate limiting, CORS, security headers, dependency scan;
    token storage now uses httpOnly access/refresh cookies.
 4. Drill backup and restore, including the media volume, and record the RTO.
-5. Wire the offline queue into progress/autosave/submission flows.
-6. Add the AI, parent, admin, communication and support UI surfaces.
+5. Add background sync and a dedicated bookmarks/notes list; manual queue triage is implemented.
+6. Add the AI, admin, communication and support UI surfaces.
 7. Run load, accessibility and Bengali review before any pilot cohort.

@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { createLocalStorageAdapter, STORAGE_KEY, type OfflineAction } from '@edunet/offline';
 import { useI18n } from '@/lib/i18n';
 import { useOfflineSync } from '@/hooks/useOfflineSync';
@@ -41,7 +42,10 @@ export function OfflineBanner() {
       aria-live="polite"
       className="bg-amber-100 px-4 py-2 text-center text-sm text-amber-900 dark:bg-amber-900/40 dark:text-amber-100"
     >
-      {online ? t('offline.pending', { count: pending }) : t('common.offline')}
+      <span>{online ? t('offline.pending', { count: pending }) : t('common.offline')}</span>{' '}
+      <Link href="/offline/queue" className="font-medium underline underline-offset-2">
+        Review queue
+      </Link>
     </div>
   );
 }

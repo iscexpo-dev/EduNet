@@ -26,7 +26,16 @@ export function useOfflineSync(): { flush: () => Promise<SyncResult> } {
       });
 
       if (!response.ok) {
-        throw new Error(`Offline sync failed for ${action.id}`);
+        let message = `Offline sync failed for ${action.id}`;
+        try {
+          const payload = await response.json();
+          if (payload && typeof payload.error === 'string') message = payload.error;
+        } catch {
+          /* non-JSON error body */
+        }
+        const error = new Error(message) as Error & { status?: number };
+        error.status = response.status;
+        throw error;
       }
     },
     [token]
@@ -39,6 +48,7 @@ export function useOfflineSync(): { flush: () => Promise<SyncResult> } {
     const queue = adapter.read() as OfflineAction[];
     const result = await flushQueue(queue, send);
     adapter.write(result.remaining);
+    window.dispatchEvent(new Event('edunet:queue-changed'));
     return result;
   }, [send, token]);
 

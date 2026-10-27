@@ -7,6 +7,7 @@ import {
   canOwnPersonalState,
   clampPagination,
   isUuid,
+  parseLessonUpdate,
   parseNoteContent,
   parseObjectiveInput,
   parseObjectiveUpdate,
@@ -103,6 +104,65 @@ describe('parseObjectiveUpdate', () => {
     expect(() => parseObjectiveUpdate({})).toThrow(/No updatable fields/);
     expect(() => parseObjectiveUpdate({ description: '  ' })).toThrow(/required/);
     expect(() => parseObjectiveUpdate({ order: -5 })).toThrow(/non-negative/);
+  });
+});
+
+describe('parseLessonUpdate', () => {
+  it('returns only whitelisted supplied fields, trimmed', () => {
+    expect(
+      parseLessonUpdate({
+        title: '  Fractions  ',
+        description: '  Halves and quarters ',
+        type: 'text',
+        order: 4,
+        duration: ' 30m ',
+        isPublished: true,
+        courseId: 'should-be-ignored',
+        deletedAt: 'should-be-ignored',
+      }),
+    ).toEqual({
+      title: 'Fractions',
+      description: 'Halves and quarters',
+      type: 'text',
+      order: '4',
+      duration: '30m',
+      isPublished: 'true',
+    });
+  });
+
+  it('accepts nullable description/duration and object content', () => {
+    expect(
+      parseLessonUpdate({
+        description: null,
+        duration: null,
+        content: { text: 'Body' },
+        isPublished: false,
+      }),
+    ).toEqual({
+      description: null,
+      duration: null,
+      content: { text: 'Body' },
+      isPublished: 'false',
+    });
+  });
+
+  it('rejects empty updates and non-object payloads', () => {
+    expect(() => parseLessonUpdate({})).toThrow(/No updatable fields/);
+    expect(() => parseLessonUpdate(null)).toThrow(/required/);
+    expect(() => parseLessonUpdate([])).toThrow(/required/);
+  });
+
+  it('rejects blank titles, unsupported types and array content', () => {
+    expect(() => parseLessonUpdate({ title: '   ' })).toThrow(/title is required/);
+    expect(() => parseLessonUpdate({ type: 'podcast' })).toThrow(/type must be one of/);
+    expect(() => parseLessonUpdate({ content: ['not', 'an', 'object'] })).toThrow(
+      /JSON object/,
+    );
+  });
+
+  it('rejects blank order and invalid publish flags', () => {
+    expect(() => parseLessonUpdate({ order: '   ' })).toThrow(/order is required/);
+    expect(() => parseLessonUpdate({ isPublished: 'yes' })).toThrow(/isPublished/);
   });
 });
 

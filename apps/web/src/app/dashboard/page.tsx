@@ -26,6 +26,18 @@ const LINKS_BY_ROLE: Record<string, DashboardLink[]> = {
       href: '/courses',
       action: 'Browse courses',
     },
+    {
+      title: 'My Attendance',
+      description: 'Review attendance records and your attendance rate',
+      href: '/attendance',
+      action: 'View attendance',
+    },
+    {
+      title: 'Notes and Bookmarks',
+      description: 'Review private lesson notes and bookmarked lessons',
+      href: '/library',
+      action: 'Open my library',
+    },
   ],
   teacher: [
     {
@@ -47,6 +59,12 @@ const LINKS_BY_ROLE: Record<string, DashboardLink[]> = {
       description: 'View linked children, courses and grades',
       href: '/parent',
       action: 'Open parent dashboard',
+    },
+    {
+      title: 'Attendance',
+      description: 'Review each child’s attendance records and rate',
+      href: '/attendance',
+      action: 'View attendance',
     },
   ],
   admin: [

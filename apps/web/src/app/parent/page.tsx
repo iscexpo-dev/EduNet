@@ -205,11 +205,18 @@ export default function ParentDashboardPage() {
       <nav className="bg-white dark:bg-gray-900 shadow-sm border-b dark:border-gray-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex h-16 items-center justify-between">
           <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">Parent Dashboard</h1>
-          <Link href="/dashboard">
-            <Button variant="secondary" size="sm">
-              Back to dashboard
-            </Button>
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link href="/attendance">
+              <Button variant="secondary" size="sm">
+                Attendance
+              </Button>
+            </Link>
+            <Link href="/dashboard">
+              <Button variant="secondary" size="sm">
+                Back to dashboard
+              </Button>
+            </Link>
+          </div>
         </div>
       </nav>
 

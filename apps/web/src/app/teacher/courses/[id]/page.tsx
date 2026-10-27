@@ -162,6 +162,9 @@ export default function TeacherCourseDetailPage() {
               </div>
             </div>
             <div className="flex gap-2">
+              <Link href={`/teacher/courses/${courseId}/analytics`}>
+                <Button variant="secondary">Analytics</Button>
+              </Link>
               <Link href={`/teacher/courses/${courseId}/lessons`}>
                 <Button variant="secondary">Manage Content</Button>
               </Link>

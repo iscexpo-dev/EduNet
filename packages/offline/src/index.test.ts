@@ -6,6 +6,7 @@ import {
   estimateBytes,
   flushQueue,
   markFailed,
+  markSyncing,
   planDownloads,
   resolveConflict,
   selectReady,
@@ -84,6 +85,19 @@ describe('markFailed', () => {
     const queue = markFailed(enqueue([], baseInput), 'a1', 10_000);
     expect(queue[0]).toMatchObject({ state: 'failed', nextAttemptAt: 11_000 });
   });
+
+  it('records failure metadata and clears it on retry', () => {
+    const failed = markFailed(enqueue([], baseInput), 'a1', 10_000, {}, {
+      message: 'Version conflict',
+      status: 409,
+    });
+    expect(failed[0]).toMatchObject({ lastError: 'Version conflict', lastStatus: 409 });
+    expect(markSyncing(failed, 'a1')[0]).toMatchObject({
+      state: 'syncing',
+      lastError: undefined,
+      lastStatus: undefined,
+    });
+  });
 });
 
 describe('flushQueue', () => {
@@ -102,6 +116,14 @@ describe('flushQueue', () => {
     const result = await flushQueue(queue, send, () => 2_000);
     expect(result.failed).toEqual(['a1']);
     expect(result.remaining[0]).toMatchObject({ state: 'failed', attempts: 1, nextAttemptAt: 3_000 });
+    expect(result.remaining[0]).toMatchObject({ lastError: 'offline' });
+  });
+
+  it('preserves HTTP status for conflict triage', async () => {
+    const queue = enqueue([], baseInput);
+    const send = vi.fn().mockRejectedValue(Object.assign(new Error('conflict'), { status: 409 }));
+    const result = await flushQueue(queue, send, () => 2_000);
+    expect(result.remaining[0]).toMatchObject({ lastError: 'conflict', lastStatus: 409 });
   });
 
   it('does not send actions not yet due', async () => {

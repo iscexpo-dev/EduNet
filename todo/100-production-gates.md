@@ -1,6 +1,6 @@
 # EduNet — 100 Production Gates
 
-Last updated: 2026-10-23
+Last updated: 2026-10-27
 Authoritative status: `docs/EDUNET-FINAL-STATUS.md`
 Gap analysis: `docs/EDUNET-ROADMAP-GAP-MATRIX.md`
 
@@ -15,19 +15,19 @@ are marked with their limitation.
 6. [x] LMS — courses, lessons, enrolment, progress, assignments, grading
 7. [x] Assignments — rubrics, autosave, revisions, grade history
 8. [x] Assessments — five objective types, partial credit, banks, randomisation, rechecks
-9. [x] Teacher — core authoring/grading UI; attendance/analytics UI still missing
-10. [x] Student — learning, submission and quiz flow verified by E2E (CI)
-11. [ ] Parent — child-scoped API exists; no parent UI
+9. [x] Teacher — core authoring/grading UI, course analytics and scoped attendance marking; workload UI still missing
+10. [x] Student — learning, submission and quiz flow verified by E2E (CI); attendance view and `/library` bookmarks/notes view added, browser/API flow pending
+11. [ ] Parent — parent dashboard and child-scoped attendance view exist; self-service linking missing
 12. [ ] Tutoring — backend booking/availability exists; no UI or payments
 13. [ ] Booking — calendar/event booking backend exists; no UI
 14. [ ] Communication — messaging/moderation/forums backend exists; no UI or realtime
 15. [ ] Notifications — in-app only; no email/SMS/push delivery
-16. [ ] Content — lessons/media/versioning exist; objectives/bookmarks/notes routes and S3 missing
+16. [ ] Content — lessons/media/versioning, objectives/bookmarks/notes routes and a teacher lesson/objective editor exist; S3 and malware scanning missing
 17. [ ] Search — `ILIKE` only; no ranking or facets
 18. [ ] Calendar — backend/ICS exists; no calendar UI
-19. [ ] Analytics — endpoints only; no dashboards or KPI pipeline
+19. [ ] Analytics — tenant/owner-scoped endpoints and teacher course dashboard; KPI pipeline/warehouse still missing
 20. [ ] AI — consent/safety/quota backend complete; no UI and no provider configured
-21. [ ] Offline — queue/service worker exist; queue not wired into mutations
+21. [x] Offline — queue wired into assignment/assessment submit, progress, notes and bookmarks; `/offline/queue` retry/discard conflict triage; background sync missing
 22. [ ] Low-bandwidth — download planner exists; no device/network validation
 23. [x] Bengali — catalogue and formatter implemented; native review pending
 24. [ ] Accessibility — no WCAG 2.1 AA audit

@@ -49,18 +49,18 @@ domains.
 | 5 | RBAC and tenancy | **PASS** | Canonical middleware, 40 tests, integration coverage (CI) |
 | 6 | Database and migrations | **PASS (CI-only evidence)** | Drizzle migrations, constraints proven previously |
 | 7 | LMS core | **PASS** | Courses, lessons, progress, enrolment, assignments, grading, quizzes |
-| 8 | Content and media | **PARTIAL** | Media and versioning real; objectives/bookmarks/notes routes and S3 missing |
+| 8 | Content and media | **PARTIAL** | Media, versioning, objectives/bookmarks/notes APIs and teacher lesson/objective editor real; S3 provider and review moderation missing |
 | 9 | Assignments and submissions | **PARTIAL** | Rubrics/autosave/revisions/history; attachments and late policy missing |
 | 10 | Assessment | **PARTIAL** | Five types, partial credit, rechecks, banks, randomisation; UI basic |
-| 11 | Student platform | **PARTIAL** | Academic/attendance/achievement backend; no UI |
-| 12 | Teacher platform | **PARTIAL** | Core authoring/grading UI; attendance and analytics UI missing |
-| 13 | Parent platform | **PARTIAL** | Parent dashboard at `/parent`; relationship API hardened; attendance UI and self-service linking missing |
-| 14 | Offline and PWA | **PARTIAL** | Queue/service worker/banner; queue wired into assignment submit and lesson progress; remaining assessment/note/bookmark flows |
+| 11 | Student platform | **PARTIAL** | Attendance view at `/attendance` and notes/bookmarks library at `/library`; academic/achievement/certificate UI missing |
+| 12 | Teacher platform | **PARTIAL** | Core authoring/grading UI, course analytics dashboard and scoped attendance marking; workload UI missing |
+| 13 | Parent platform | **PARTIAL** | Parent dashboard at `/parent` and child-scoped attendance view at `/attendance`; self-service linking missing |
+| 14 | Offline and PWA | **PARTIAL** | Queue/service worker/banner and `/offline/queue` retry/discard conflict triage; wired into assignment/assessment submit, progress, notes and bookmarks; no background sync or automatic merge |
 | 15 | Internationalisation | **PASS** | Bengali/English catalogues and toggle; native review pending |
 | 16 | Accessibility | **FAIL** | No WCAG 2.1 AA audit; baseline skip-link added in admin console |
 | 17 | Notifications | **PARTIAL** | In-app only; no email/SMS/push adapters |
 | 18 | Search | **PARTIAL** | `ILIKE` only; no ranking/facets |
-| 19 | Analytics | **PARTIAL** | APIs only; no dashboards or KPI pipeline |
+| 19 | Analytics | **PARTIAL** | Tenant-scoped APIs and teacher course dashboard; no KPI pipeline or warehouse |
 | 20 | Communication | **PARTIAL** | Messaging/moderation/forums backend; no UI/realtime |
 | 21 | Calendar | **PARTIAL** | Backend and ICS export; no UI |
 | 22 | Tutoring | **PARTIAL** | Booking/availability backend; no UI |
@@ -132,8 +132,8 @@ domains.
 3. Move tokens out of localStorage (implemented via httpOnly access/refresh
    cookies); final CSP and pilot validation remain.
 4. Run a timed restore including the media volume.
-5. Wire offline sync into progress, autosave and submission.
-6. Build AI, parent, admin, communication and support UI slices.
+5. Add background sync and automatic conflict merge; manual queue triage is implemented.
+6. Build AI, admin, communication and support UI slices.
 7. Run load, WCAG 2.1 AA and native Bengali review.
 8. Define the pilot cohort, support rota and go/no-go checklist.
 

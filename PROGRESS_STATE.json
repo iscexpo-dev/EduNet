@@ -3,7 +3,7 @@
   "schemaVersion": "1.0.0",
   "project": "EduNet",
   "purpose": "Canonical resumable execution state for autonomous agents. Update after every meaningful checkpoint.",
-  "lastUpdated": "2026-10-27T01:00:00Z",
+  "lastUpdated": "2026-10-27T04:34:00Z",
   "repository": {
     "path": "/vercel/share/v0-project",
     "remote": "https://github.com/iscexpo-dev/EduNet.git",
@@ -14,7 +14,9 @@
     "reportedHistoricalCommitIsAncestor": true,
     "note": "The prompt names /Users/khulnasoft/Projects/edunet-agent-launch and commit ef96741. The live checkout is /vercel/share/v0-project at 8273870, which descends from ef96741. All verification is against the live checkout.",
     "verifiedCommit": "ce3d24e",
-    "pushStatus": "NOT PUSHED \u2014 repository history is PR-based (merge commits); direct push to main not performed"
+    "observedHead": "dc3616c",
+    "currentWorkCommitted": false,
+    "pushStatus": "NOT PUSHED — repository history is PR-based (merge commits); direct push to main not performed"
   },
   "environment": {
     "os": "linux",
@@ -35,8 +37,8 @@
     "apps": 1,
     "services": 19,
     "packages": 12,
-    "testFiles": 33,
-    "webPages": 21,
+    "testFiles": 40,
+    "webPages": 33,
     "database": "PostgreSQL via Drizzle ORM",
     "migrations": [
       "0000_happy_switch.sql",
@@ -50,22 +52,22 @@
     "typecheck": {
       "status": "PASS",
       "command": "pnpm turbo run typecheck --concurrency=2",
-      "evidence": "36/36 tasks, 0 errors (2026-10-27 content objectives/bookmarks/notes)"
+      "evidence": "36/36 tasks, 0 errors (2026-10-27 student library bookmarks/notes view)"
     },
     "lint": {
       "status": "PASS",
       "command": "pnpm turbo run lint --concurrency=2",
-      "evidence": "32/32 tasks, 0 errors; warnings only; @edunet/content and @edunet/web lint 0 errors (2026-10-27)"
+      "evidence": "32/32 tasks, 0 errors; platform, analytics, offline and web lint 0 errors with pre-existing warnings only (2026-10-27)"
     },
     "unitTests": {
       "status": "PASS",
       "command": "pnpm turbo run test --concurrency=2",
-      "evidence": "50/50 tasks; content 41 tests (2 files) after adding 17 policy cases; all suites pass (2026-10-27)"
+      "evidence": "51/51 tasks; offline 21 tests cover backoff, retry, dedupe, conflict resolution and captured HTTP failure metadata; platform 39, analytics 19 and content 46 tests; all suites pass (2026-10-27)"
     },
     "build": {
       "status": "PASS",
       "command": "pnpm --filter @edunet/web build && pnpm --filter @edunet/content build",
-      "evidence": "Next.js 16.4.3 Turbopack production build and content tsc build pass (2026-10-27)"
+      "evidence": "Next.js 16.4.3 Turbopack production build includes the lesson editor, course analytics, /teacher/attendance, /attendance, /offline/queue and /library; platform/analytics/content/offline tsc builds pass (2026-10-27)"
     },
     "audit": {
       "status": "PASS",
@@ -131,15 +133,15 @@
     },
     "student": {
       "status": "PARTIAL",
-      "gap": "Core learning UI; advanced academic surfaces backend-only"
+      "gap": "Attendance view at /attendance and notes/bookmarks library at /library; academic profiles, achievements, certificates and streaks remain backend-only"
     },
     "parent": {
       "status": "PARTIAL",
-      "gap": "Parent dashboard at /parent (children, courses, grades, states); relationship API hardened; attendance UI and self-service linking missing"
+      "gap": "Parent dashboard at /parent and child-scoped attendance view at /attendance (children, courses, grades, records, summary); self-service child linking missing"
     },
     "teacher": {
       "status": "PARTIAL",
-      "gap": "Core authoring/grading UI; attendance/analytics UI missing"
+      "gap": "Core authoring/grading UI including lesson editing and objective authoring/linking, course analytics and attendance marking; workload UI missing"
     },
     "lms": {
       "status": "PASS",
@@ -167,7 +169,7 @@
     },
     "content": {
       "status": "PARTIAL",
-      "gap": "Lessons/media/signed URLs/versions; learning objectives, lesson bookmarks and private notes APIs added with org-scoped queries and validation (2026-10-27); no S3 provider and objectives/bookmarks have no teacher/student UI beyond lesson learn page"
+      "gap": "Lessons/media/signed URLs/versions; learning objectives, lesson bookmarks and private notes APIs with org-scoped queries and validation (2026-10-27); teacher lesson editor supports objective CRUD and lesson linking; student library at /library lists bookmarks and notes with search and delete; no S3 provider"
     },
     "communication": {
       "status": "PARTIAL",
@@ -187,7 +189,7 @@
     },
     "analytics": {
       "status": "PARTIAL",
-      "gap": "Endpoints only; no dashboards or KPI pipeline"
+      "gap": "Tenant/owner-scoped endpoints and teacher course dashboard (2026-10-27); no KPI pipeline, warehouse or export"
     },
     "ai": {
       "status": "PARTIAL",
@@ -199,7 +201,7 @@
     },
     "offline": {
       "status": "PARTIAL",
-      "gap": "Queue/service worker wired into assignment submit, lesson progress, lesson notes and bookmarks; queue persistence bug fixed with a single storage-aware enqueue helper; assessment offline submission still missing"
+      "gap": "Queue/service worker wired into assignment submit, assessment submit, lesson progress, lesson notes and bookmarks; /offline/queue provides retry-all/retry-one/discard triage, reviews payloads and surfaces HTTP 409/412 conflicts with captured failure metadata; sync is foreground/online-event only with no Background Sync API or automatic merge"
     },
     "internationalization": {
       "status": "PASS",
@@ -287,9 +289,10 @@
     }
   },
   "activeCheckpoint": {
-    "id": "checkpoint-17-content-personal-state",
-    "description": "Implemented learning objective, lesson bookmark and private lesson note APIs with organization scoping, teacher ownership checks and student-only personal state, plus offline queue persistence fixes and learn-page note/bookmark UI.",
-    "startedAt": "2026-10-27T00:20:00Z",
+    "id": "checkpoint-25-library-bookmarks-notes",
+    "description": "Added a student-only /library page listing bookmarked lessons and private lesson notes. It fetches /api/content/bookmarks and /api/content/notes, supports search across titles/notes, links to courses, deletes bookmarks/notes, and shows loading/error/empty/success states. Linked from the student dashboard and My Courses.",
+    "startedAt": "2026-10-27T04:30:00Z",
+    "completedAt": "2026-10-27T04:34:00Z",
     "status": "COMPLETE"
   },
   "checkpoints": [
@@ -563,6 +566,163 @@
         "apps/web/src/app/my-courses/[id]/assignments/[assignmentId]/page.tsx",
         "docs/api/endpoints.md"
       ]
+    },
+    {
+      "id": "checkpoint-18-public-shell-accessibility",
+      "at": "2026-10-27T03:47:24Z",
+      "summary": "Merged commit 4e2b6bd: added a keyboard-visible skip link, small-screen public navigation without horizontal overflow, visible focus rings and an accessible home label in PublicShell.",
+      "artifacts": [
+        "apps/web/src/components/PublicShell.tsx",
+        "docs/web/WEB-GAP-MATRIX.md",
+        "docs/web/WEB-IMPLEMENTATION-PLAN.md",
+        "todo/ACTIVE-PLAN.md"
+      ]
+    },
+    {
+      "id": "checkpoint-19-offline-assessment-submit",
+      "at": "2026-10-27T03:50:46Z",
+      "summary": "Merged commit 4c0c44b / dc3616c: quiz submission now enqueues through the shared offline queue when the API is unreachable, reports an offline-saved message and flushes on reconnect.",
+      "artifacts": [
+        "apps/web/src/app/my-courses/[id]/assessments/[quizId]/page.tsx"
+      ]
+    },
+    {
+      "id": "checkpoint-20-teacher-lesson-objectives",
+      "at": "2026-10-27T04:05:00Z",
+      "summary": "Implemented the teacher lesson editor at /teacher/courses/[id]/lessons/[lessonId], fixing the broken Edit link from the lessons list. The page loads lesson, course objectives and linked objectives in parallel; edits title/description/type/order/duration/JSON content/published state; and supports course-objective create/edit/delete plus lesson link/unlink with loading, unauthorized, empty, error, retry, validation and success states. Hardened PUT /lessons/:id with a pure parseLessonUpdate policy that whitelists allowed fields, ignores courseId/moduleId/deletedAt, bounds text, validates lesson types and requires object JSON content, with 5 new policy tests. Reconciled PROGRESS_STATE with merged checkpoints 18-19 and refreshed stale content/offline docs.",
+      "evidence": [
+        "/tmp/content-build-lesson-editor.log",
+        "/tmp/content-test-lesson-editor.log",
+        "/tmp/content-lint-lesson-editor.log",
+        "/tmp/web-tc-lesson-editor.log",
+        "/tmp/web-lint-lesson-editor.log",
+        "/tmp/web-build-lesson-editor.log",
+        "/tmp/tc-lesson-editor.log",
+        "/tmp/test-lesson-editor.log"
+      ],
+      "artifacts": [
+        "apps/web/src/app/teacher/courses/[id]/lessons/[lessonId]/page.tsx",
+        "services/content/src/policy.ts",
+        "services/content/src/policy.test.ts",
+        "services/content/src/handlers.ts",
+        "docs/api/endpoints.md",
+        "docs/EDUNET-FINAL-STATUS.md",
+        "docs/EDUNET-IMPLEMENTATION-STATE.md",
+        "docs/EDUNET-ROADMAP-GAP-MATRIX.md",
+        "todo/100-production-gates.md",
+        "todo/ACTIVE-PLAN.md",
+        "PROGRESS_STATE.json"
+      ]
+    },
+    {
+      "id": "checkpoint-21-analytics-tenancy-dashboard",
+      "at": "2026-10-27T04:07:00Z",
+      "summary": "Closed a cross-tenant IDOR in @edunet/analytics: all four course-analytics routes now require organization context, look up the course inside that organization, and allow only the owning teacher or a same-organization administrator (404 for missing/out-of-org, 403 for non-owners). Every query is org-scoped and excludes soft-deleted courses, enrollments, assignments and submissions, and the service uses the lazy getDb() client. Added a pure policy module (UUID, ownership, bounded days, score percent) with 11 tests plus 8 handler tests for tenant/ownership/validation paths. Added /teacher/courses/:id/analytics with summary, grading progress, engagement, assignment and student performance views and linked it from the course page. The summary now returns averagePercent. Workspace typecheck 36/36, tests 51/51, lint 32/32; analytics/web lint have no errors.",
+      "evidence": [
+        "/tmp/test-analytics-hardening.log",
+        "/tmp/tc-analytics-hardening.log",
+        "/tmp/lint-analytics-hardening.log"
+      ],
+      "artifacts": [
+        "services/analytics/src/policy.ts",
+        "services/analytics/src/policy.test.ts",
+        "services/analytics/src/handlers.test.ts",
+        "services/analytics/src/db.ts",
+        "services/analytics/src/handlers.ts",
+        "services/analytics/vitest.config.ts",
+        "services/analytics/package.json",
+        "apps/web/src/app/teacher/courses/[id]/analytics/page.tsx",
+        "apps/web/src/app/teacher/courses/[id]/page.tsx",
+        "docs/api/endpoints.md",
+        "docs/EDUNET-FINAL-STATUS.md",
+        "docs/EDUNET-IMPLEMENTATION-STATE.md",
+        "docs/EDUNET-ROADMAP-GAP-MATRIX.md",
+        "todo/100-production-gates.md",
+        "todo/ACTIVE-PLAN.md",
+        "PROGRESS_STATE.json"
+      ]
+    },
+    {
+      "id": "checkpoint-22-attendance-authorization-teacher-ui",
+      "at": "2026-10-27T04:13:00Z",
+      "summary": "Fixed attendance authorization and privacy. Marking now checks attendance:write (teachers previously failed an academics:write check), list/summary require attendance:read, and every query is role-scoped: admins see the organization, teachers only homeroom/taught classes, students themselves, parents linked children with canViewAttendance, and other roles are denied. Marking now requires an active class in the organization, actively enrolled students, rejects duplicate students and validates section ownership. Class rosters are staff-only and teacher-scoped; /academics/classes?mine=true filters teacher classes. Added 13 handler tests plus policy assertions (platform 39/39) and a /teacher/attendance page with class/date selection, roster status entry, counts and save states, linked from the teacher dashboard.",
+      "evidence": [
+        "/tmp/test-attendance-hardening.log",
+        "/tmp/tc-attendance-hardening.log",
+        "/tmp/lint-attendance-hardening.log",
+        "/tmp/web-build-attendance.log"
+      ],
+      "artifacts": [
+        "services/platform/src/logic.ts",
+        "services/platform/src/logic.test.ts",
+        "services/platform/src/db.ts",
+        "services/platform/src/handlers.ts",
+        "services/platform/src/attendance-handlers.test.ts",
+        "apps/web/src/app/teacher/attendance/page.tsx",
+        "apps/web/src/app/teacher/page.tsx",
+        "apps/web/src/lib/api-error.ts",
+        "docs/api/endpoints.md",
+        "todo/ACTIVE-PLAN.md",
+        "PROGRESS_STATE.json"
+      ]
+    },
+    {
+      "id": "checkpoint-23-student-parent-attendance-views",
+      "at": "2026-10-27T04:16:00Z",
+      "summary": "Added the student/parent attendance surface at /attendance. Students see their own records; parents select a linked child. The page offers 30/90/365-day ranges, attendance-rate and status counts, a records table with class names and notes, and loading/error/retry/empty/unauthorized states. Added a shared readApiError helper and linked attendance from the student dashboard, parent dashboard and parent portal.",
+      "evidence": [
+        "/tmp/web-build-student-attendance.log"
+      ],
+      "artifacts": [
+        "apps/web/src/app/attendance/page.tsx",
+        "apps/web/src/app/dashboard/page.tsx",
+        "apps/web/src/app/parent/page.tsx",
+        "apps/web/src/lib/api-error.ts",
+        "apps/web/src/app/teacher/courses/[id]/analytics/page.tsx",
+        "todo/ACTIVE-PLAN.md",
+        "PROGRESS_STATE.json"
+      ]
+    },
+    {
+      "id": "checkpoint-24-offline-queue-conflict-triage",
+      "at": "2026-10-27T04:19:29Z",
+      "summary": "Added /offline/queue for conflict triage and queue management: summary counts, per-action state/attempts/next-retry, payload review, retry all/retry one (clearing backoff) and discard with confirmation. The offline package records lastError/lastStatus, clears them on retry, and tests failure metadata plus 409 capture; useOfflineSync now surfaces server error messages/status and broadcasts queue changes for live banner/page updates. Linked the queue from the offline banner and offline page, and updated dashboard/parent links.",
+      "evidence": [
+        "/tmp/test-offline-conflict.log",
+        "/tmp/web-build-offline-queue.log",
+        "/tmp/test-offline-queue-full.log",
+        "/tmp/typecheck-offline-queue-full.log",
+        "/tmp/lint-offline-queue-full.log"
+      ],
+      "artifacts": [
+        "packages/offline/src/index.ts",
+        "packages/offline/src/index.test.ts",
+        "apps/web/src/hooks/useOfflineSync.ts",
+        "apps/web/src/lib/offline-queue.ts",
+        "apps/web/src/app/offline/queue/page.tsx",
+        "apps/web/src/components/OfflineBanner.tsx",
+        "apps/web/src/app/offline/page.tsx",
+        "todo/ACTIVE-PLAN.md",
+        "PROGRESS_STATE.json"
+      ]
+    },
+    {
+      "id": "checkpoint-25-library-bookmarks-notes",
+      "at": "2026-10-27T04:34:00Z",
+      "summary": "Added /library for students: lists bookmarks and private notes across enrolled courses, with search, course links, delete actions, confirmation for notes, and loading/error/empty/success states. Linked from the student dashboard and My Courses header.",
+      "evidence": [
+        "/tmp/test-library-full.log",
+        "/tmp/tc-library-full.log",
+        "/tmp/lint-library-full.log",
+        "/tmp/web-build-library.log"
+      ],
+      "artifacts": [
+        "apps/web/src/app/library/page.tsx",
+        "apps/web/src/app/dashboard/page.tsx",
+        "apps/web/src/app/my-courses/page.tsx",
+        "todo/ACTIVE-PLAN.md",
+        "PROGRESS_STATE.json"
+      ]
     }
   ],
   "blockers": [
@@ -595,8 +755,7 @@
     "Configure the AI provider and staff the human escalation path.",
     "Add search facets/fuzzy matching plus a trigram index once query plans justify it.",
     "Wire the KPI collection pipeline from persisted data.",
-    "Continue remaining offline flows (assessment submission) and deeper admin operations.",
-    "Expose learning objectives in teacher course authoring UI.",
+    "Add background sync and automatic conflict merge beyond manual retry/discard.",
     "Close remaining security hardening: DAST and MFA/SSO."
   ],
   "filesOfRecord": {

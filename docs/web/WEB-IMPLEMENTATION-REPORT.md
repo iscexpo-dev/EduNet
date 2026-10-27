@@ -6,6 +6,7 @@
 - Replaced the starter home page with a responsive public landing experience.
 - Added directory, institution, help, and contact routes.
 - Preserved existing auth, i18n, theme, offline, and service-worker providers.
+- Added student/parent attendance views, an offline queue/conflict-triage page, and the student `/library` bookmarks/notes view.
 
 ## Remaining dependencies
 

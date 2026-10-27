@@ -85,6 +85,9 @@ export default function MyCoursesPage() {
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-3xl font-bold">My Courses</h1>
           <div className="flex gap-4">
+            <Link href="/library">
+              <Button variant="secondary">My Library</Button>
+            </Link>
             <Link href="/courses">
               <Button variant="secondary">Browse Courses</Button>
             </Link>

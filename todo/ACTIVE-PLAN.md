@@ -185,7 +185,8 @@ Ordered by risk. Items marked `[!]` need external infrastructure.
 - [x] Evidence: content build/lint 0 errors, web typecheck/lint 0 errors and
       Next.js production build, workspace typecheck 36/36, tests 50/50.
 - [x] Documented the new endpoints in `docs/api/endpoints.md`.
-- [ ] Remaining: offline assessment submission and objectives authoring UI.
+- [x] Offline assessment submission completed in `4c0c44b` (checkpoint 19).
+- [x] Objectives authoring UI completed in checkpoint 20.
 
 ## Checkpoint 18 — Public shell accessibility and responsive navigation — COMPLETE 2026-10-27
 
@@ -193,6 +194,121 @@ Ordered by risk. Items marked `[!]` need external infrastructure.
 - [x] Made public navigation available on small screens without horizontal page overflow.
 - [x] Added visible focus rings and an accessible home label to public shell controls.
 - [x] Web typecheck and lint pass with two pre-existing warnings and zero errors.
+
+## Checkpoint 19 — Offline assessment submission — COMPLETE 2026-10-27
+
+- [x] Queued quiz submission through the shared offline queue when the request
+      cannot reach the API (`4c0c44b`, merged as `dc3616c`).
+- [x] Student quiz page shows a clear offline-saved message and flushes on
+      reconnect through `useOfflineSync`.
+
+## Checkpoint 20 — Teacher lesson and objective authoring — COMPLETE 2026-10-27
+
+- [x] Added `/teacher/courses/:id/lessons/:lessonId`, which fixes the broken
+      Edit link from the lessons list and loads the lesson, course objectives
+      and linked objectives in parallel.
+- [x] Lesson form edits title, description, type, order, duration, JSON content
+      and published state, with loading, unauthorized, error, retry, validation
+      and success states.
+- [x] Course objectives can be created, edited and deleted from the lesson
+      editor; each objective can be linked or unlinked from the current lesson.
+- [x] Hardened `PUT /lessons/:id` with a pure `parseLessonUpdate` policy that
+      whitelists and validates fields, ignores `courseId`/`moduleId`/`deletedAt`,
+      bounds text, validates lesson types and requires object JSON content.
+- [x] Added 5 policy tests for lesson updates; content suite 46/46.
+- [x] Evidence: content build/test/lint (0 errors), web typecheck/lint (0 errors,
+      2 pre-existing warnings), Next.js production build (new route present),
+      workspace typecheck 36/36, tests 50/50 tasks. PostgreSQL, Docker and
+      Playwright gates remain BLOCKED in this sandbox.
+
+## Checkpoint 21 — Analytics tenancy and teacher dashboard — COMPLETE 2026-10-27
+
+- [x] Closed a cross-tenant IDOR in `@edunet/analytics`: every route now
+      requires organization context, resolves the course within that
+      organization, and allows only its owning teacher or a same-organization
+      administrator. Missing/out-of-org courses return `404`; non-owners get
+      `403`.
+- [x] Scoped every analytics query by `organizationId`, excluded soft-deleted
+      courses/enrollments/assignments/submissions, and switched the service to
+      the lazy `getDb()` client (no import-time connection).
+- [x] Added `services/analytics/src/policy.ts` with UUID validation, ownership
+      checks, bounded `days` parsing (1–365, default 30) and score percentages;
+      11 policy tests.
+- [x] Added handler-level tenant tests covering cross-teacher denial, out-of-org
+      404, malformed ids, missing organization, owner/admin success and
+      engagement validation; analytics suite 19/19 (2 files).
+- [x] Added `/teacher/courses/:id/analytics` with summary cards, grading
+      progress, recent activity, assignment performance and student performance
+      tables, including loading, unauthorized, error/retry and empty states;
+      linked from the teacher course page.
+- [x] Summary endpoint now returns `averagePercent` alongside raw average points;
+      documentation records the access rules and `days` bound.
+- [x] Evidence: analytics build/test/lint (0 errors, 1 pre-existing route
+      warning), web typecheck/lint (0 errors, 2 pre-existing warnings), Next.js
+      production build includes the analytics route, workspace typecheck 36/36,
+      tests 51/51 tasks, workspace lint 32/32 (0 errors). PostgreSQL, Docker and
+      Playwright gates remain BLOCKED in this sandbox.
+
+## Checkpoint 22 — Attendance authorization and teacher UI — COMPLETE 2026-10-27
+
+- [x] Fixed attendance authorization: teachers were denied marking because the
+      handler checked `academics:write`; it now checks `attendance:write`.
+      List/summary now require `attendance:read`.
+- [x] Scoped attendance by role: administrators see the organization, teachers
+      only homeroom/taught classes, students only themselves, parents only
+      linked children with `canViewAttendance`, and tutor/mentor/other roles are
+      denied. Cross-scope requests return `403`.
+- [x] Hardened marking: class must be active in the organization, students must
+      be actively enrolled, duplicates are rejected, and section ids must belong
+      to the class.
+- [x] Restricted class rosters to staff; teachers can only read their own class
+      rosters. Added `?mine=true` on `/academics/classes` for teacher class lists.
+- [x] Added 13 handler tests plus 9 policy assertions (platform suite 39/39) for
+      list/summary scoping, marking, roster and class filtering.
+- [x] Added `/teacher/attendance`: class/date pickers, roster, per-student
+      status, counts, save with conflict/empty/error/retry/success states; linked
+      from the teacher dashboard.
+- [x] Evidence: platform typecheck/build/lint (0 errors, 1 pre-existing route
+      warning), web typecheck/lint (0 errors, 2 pre-existing warnings), Next.js
+      build includes `/teacher/attendance`, workspace typecheck 36/36, tests
+      51/51 tasks, lint 32/32 (0 errors). PostgreSQL, Docker and Playwright gates
+      remain BLOCKED in this sandbox.
+
+## Checkpoint 23 — Student/parent attendance views — COMPLETE 2026-10-27
+
+- [x] Added `/attendance`: students see their own records; parents select a
+      linked child from the relationship-scoped children API.
+- [x] Added 30/90/365-day ranges, attendance-rate and status counts, a records
+      table with class names/notes, and loading/error/retry/empty/unauthorized
+      states.
+- [x] Added shared `readApiError` and reused it in the analytics page; linked
+      attendance from the student dashboard, parent dashboard and parent portal.
+- [x] Evidence: web typecheck/lint (0 errors, 2 pre-existing warnings), Next.js
+      production build includes `/attendance`; full gates re-run in checkpoint 24.
+
+## Checkpoint 24 — Offline queue and conflict triage — COMPLETE 2026-10-27
+
+- [x] Added `/offline/queue` with queue/pending/needs-attention counts,
+      per-action state/attempts/next-retry, payload review, retry-all,
+      retry-one (clearing backoff) and discard with confirmation.
+- [x] `@edunet/offline` now records `lastError`/`lastStatus`, clears them when a
+      retry starts, and captures HTTP 409/412 so the UI can label conflicts.
+- [x] `useOfflineSync` surfaces server error messages/status and broadcasts
+      `edunet:queue-changed` so the banner and queue page refresh together.
+- [x] Linked the queue from the offline banner and offline page.
+- [x] Added offline package tests for failure metadata, retry clearing and 409
+      capture; suite 21/21.
+- [x] Evidence: offline tests 21/21, web typecheck/lint (0 errors, 2 pre-existing
+      warnings), Next.js build includes `/offline/queue`, workspace typecheck
+      36/36, tests 51/51 tasks, lint 32/32 (0 errors). PostgreSQL, Docker and
+      Playwright gates remain BLOCKED in this sandbox.
+
+## Checkpoint 25 — Student bookmarks/notes library — COMPLETE 2026-10-27
+
+- [x] Added `/library` for students only, listing bookmarked lessons and private lesson notes.
+- [x] Fetches `/api/content/bookmarks` and `/api/content/notes`, with search across titles/notes, course links, delete actions, confirmation for notes, and loading/error/empty/success states.
+- [x] Linked from the student dashboard and My Courses header.
+- [x] Evidence: web typecheck/lint (0 errors, 2 pre-existing warnings), Next.js production build includes `/library`, workspace typecheck 36/36, tests 51/51 tasks, lint 32/32 (0 errors). PostgreSQL, Docker and Playwright gates remain BLOCKED in this sandbox.
 
 ## Definition of done for this run
 

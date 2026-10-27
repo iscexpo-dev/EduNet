@@ -34,6 +34,10 @@ export interface OfflineAction {
   version: number;
   /** Stable idempotency key sent to the server. */
   idempotencyKey: string;
+  /** Last sync failure, shown in the conflict-triage UI. */
+  lastError?: string;
+  /** HTTP status of the last failure (409/412 indicates a conflict). */
+  lastStatus?: number;
 }
 
 export interface OfflineActionInput {
@@ -128,7 +132,15 @@ export function selectReady(
 
 export function markSyncing(queue: readonly OfflineAction[], id: string): OfflineAction[] {
   return queue.map((action) =>
-    action.id === id ? { ...action, state: 'syncing', attempts: action.attempts + 1 } : action,
+    action.id === id
+      ? {
+          ...action,
+          state: 'syncing',
+          attempts: action.attempts + 1,
+          lastError: undefined,
+          lastStatus: undefined,
+        }
+      : action,
   );
 }
 
@@ -137,11 +149,17 @@ export function markSynced(queue: readonly OfflineAction[], id: string): Offline
   return queue.filter((action) => action.id !== id);
 }
 
+export interface OfflineFailure {
+  message?: string;
+  status?: number;
+}
+
 export function markFailed(
   queue: readonly OfflineAction[],
   id: string,
   now: number = Date.now(),
   options: BackoffOptions = {},
+  failure: OfflineFailure = {},
 ): OfflineAction[] {
   return queue.map((action) => {
     if (action.id !== id) return action;
@@ -150,6 +168,8 @@ export function markFailed(
       ...action,
       state: 'failed',
       nextAttemptAt: now + backoffDelay(attempts, options),
+      lastError: failure.message ?? action.lastError,
+      lastStatus: failure.status ?? action.lastStatus,
     };
   });
 }
@@ -161,6 +181,17 @@ export interface SyncResult {
 }
 
 export type ActionSender = (action: OfflineAction) => Promise<void>;
+
+function failureFrom(error: unknown): OfflineFailure {
+  if (error && typeof error === 'object') {
+    const candidate = error as { message?: unknown; status?: unknown };
+    return {
+      message: typeof candidate.message === 'string' ? candidate.message : 'Sync failed',
+      status: typeof candidate.status === 'number' ? candidate.status : undefined,
+    };
+  }
+  return { message: 'Sync failed' };
+}
 
 /**
  * Flushes ready actions sequentially. Sequential replay preserves causal
@@ -184,8 +215,8 @@ export async function flushQueue(
       await send(current);
       working = markSynced(working, candidate.id);
       synced.push(candidate.id);
-    } catch {
-      working = markFailed(working, candidate.id, now());
+    } catch (error) {
+      working = markFailed(working, candidate.id, now(), {}, failureFrom(error));
       failed.push(candidate.id);
     }
   }

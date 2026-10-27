@@ -3,6 +3,7 @@ import {
   activeTerm,
   appendAuditEvent,
   calculateWeightedGrade,
+  canAccessAttendanceClass,
   canTransitionDataRequest,
   computeAuditHash,
   dataRequestDueAt,
@@ -14,6 +15,8 @@ import {
   letterGrade,
   mergeSettings,
   missingConsents,
+  resolveAttendanceStudentScope,
+  resolveAttendanceViewer,
   summariseAttendance,
   termWithinYear,
   verifyAuditChain,
@@ -52,6 +55,69 @@ describe('attendance', () => {
 
   it('handles no records', () => {
     expect(summariseAttendance([])).toEqual([]);
+  });
+});
+
+describe('attendance access scope', () => {
+  const STUDENT = 'student-1';
+  const OTHER_STUDENT = 'student-2';
+  const PARENT = 'parent-1';
+
+  it('maps roles to attendance viewers', () => {
+    expect(resolveAttendanceViewer('admin')).toBe('admin');
+    expect(resolveAttendanceViewer('school_admin')).toBe('admin');
+    expect(resolveAttendanceViewer('teacher')).toBe('teacher');
+    expect(resolveAttendanceViewer('student')).toBe('student');
+    expect(resolveAttendanceViewer('parent')).toBe('parent');
+    expect(resolveAttendanceViewer('tutor')).toBe('denied');
+    expect(resolveAttendanceViewer('mentor')).toBe('denied');
+    expect(resolveAttendanceViewer(undefined)).toBe('denied');
+  });
+
+  it('limits students to their own records', () => {
+    expect(
+      resolveAttendanceStudentScope('student', STUDENT, [], STUDENT),
+    ).toEqual({ allowed: true, studentIds: [STUDENT] });
+    expect(
+      resolveAttendanceStudentScope('student', STUDENT, [], OTHER_STUDENT),
+    ).toEqual({ allowed: false });
+    expect(
+      resolveAttendanceStudentScope('student', undefined, [], undefined),
+    ).toEqual({ allowed: false });
+  });
+
+  it('limits parents to linked children with attendance permission', () => {
+    expect(
+      resolveAttendanceStudentScope('parent', PARENT, [STUDENT], STUDENT),
+    ).toEqual({ allowed: true, studentIds: [STUDENT] });
+    expect(
+      resolveAttendanceStudentScope('parent', PARENT, [STUDENT], OTHER_STUDENT),
+    ).toEqual({ allowed: false });
+    expect(
+      resolveAttendanceStudentScope('parent', PARENT, [STUDENT], undefined),
+    ).toEqual({ allowed: true, studentIds: [STUDENT] });
+    expect(
+      resolveAttendanceStudentScope('parent', PARENT, [], undefined),
+    ).toEqual({ allowed: true, studentIds: [] });
+  });
+
+  it('leaves teachers and admins unrestricted by student', () => {
+    expect(resolveAttendanceStudentScope('teacher', 't1', [], OTHER_STUDENT)).toEqual({
+      allowed: true,
+      studentIds: null,
+    });
+    expect(resolveAttendanceStudentScope('admin', 'a1', [], undefined)).toEqual({
+      allowed: true,
+      studentIds: null,
+    });
+  });
+
+  it('restricts teachers to their homeroom or taught classes', () => {
+    expect(canAccessAttendanceClass('teacher', 'class-1', ['class-1'])).toBe(true);
+    expect(canAccessAttendanceClass('teacher', 'class-2', ['class-1'])).toBe(false);
+    expect(canAccessAttendanceClass('admin', 'class-2', [])).toBe(true);
+    expect(canAccessAttendanceClass('student', 'class-1', ['class-1'])).toBe(false);
+    expect(canAccessAttendanceClass('denied', 'class-1', ['class-1'])).toBe(false);
   });
 });
 

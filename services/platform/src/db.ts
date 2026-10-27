@@ -13,6 +13,7 @@ import {
   featureFlags,
   integrationConfigs,
   notificationTemplates,
+  parentChildRelationships,
   schoolClasses,
   sections,
   subjects,
@@ -140,6 +141,26 @@ export async function listClasses(organizationId: string, academicYearId?: strin
   const conditions = [eq(schoolClasses.organizationId, organizationId)];
   if (academicYearId) conditions.push(eq(schoolClasses.academicYearId, academicYearId));
   return db
+    .select()
+    .from(schoolClasses)
+    .where(and(...conditions))
+    .orderBy(asc(schoolClasses.name));
+}
+
+export async function listClassesForTeacher(
+  organizationId: string,
+  teacherId: string,
+  academicYearId?: string,
+) {
+  const classIds = await getTeacherAttendanceClassIds(organizationId, teacherId);
+  if (!classIds.length) return [];
+  const conditions = [
+    eq(schoolClasses.organizationId, organizationId),
+    eq(schoolClasses.isActive, true),
+    inArray(schoolClasses.id, classIds),
+  ];
+  if (academicYearId) conditions.push(eq(schoolClasses.academicYearId, academicYearId));
+  return getDb()
     .select()
     .from(schoolClasses)
     .where(and(...conditions))
@@ -326,6 +347,72 @@ export async function updateEnrollment(
 // Attendance
 // ---------------------------------------------------------------------------
 
+export async function getTeacherAttendanceClassIds(
+  organizationId: string,
+  teacherId: string,
+): Promise<string[]> {
+  const db = getDb();
+  const homeroom = await db
+    .select({ id: schoolClasses.id })
+    .from(schoolClasses)
+    .where(
+      and(
+        eq(schoolClasses.organizationId, organizationId),
+        eq(schoolClasses.homeroomTeacherId, teacherId),
+        eq(schoolClasses.isActive, true),
+      ),
+    );
+  const taught = await db
+    .select({ classId: classSubjects.classId })
+    .from(classSubjects)
+    .innerJoin(schoolClasses, eq(classSubjects.classId, schoolClasses.id))
+    .where(
+      and(
+        eq(classSubjects.teacherId, teacherId),
+        eq(schoolClasses.organizationId, organizationId),
+        eq(schoolClasses.isActive, true),
+      ),
+    );
+  return [...new Set([...homeroom.map((row) => row.id), ...taught.map((row) => row.classId)])];
+}
+
+export async function getLinkedAttendanceChildIds(
+  organizationId: string,
+  parentId: string,
+): Promise<string[]> {
+  const rows = await getDb()
+    .select({ childId: parentChildRelationships.childId })
+    .from(parentChildRelationships)
+    .innerJoin(users, eq(parentChildRelationships.childId, users.id))
+    .where(
+      and(
+        eq(parentChildRelationships.parentId, parentId),
+        eq(users.organizationId, organizationId),
+        eq(parentChildRelationships.canViewAttendance, true),
+        isNull(parentChildRelationships.deletedAt),
+      ),
+    );
+  return [...new Set(rows.map((row) => row.childId))];
+}
+
+export async function classExistsInOrganization(
+  organizationId: string,
+  classId: string,
+): Promise<boolean> {
+  const [row] = await getDb()
+    .select({ id: schoolClasses.id })
+    .from(schoolClasses)
+    .where(
+      and(
+        eq(schoolClasses.id, classId),
+        eq(schoolClasses.organizationId, organizationId),
+        eq(schoolClasses.isActive, true),
+      ),
+    )
+    .limit(1);
+  return Boolean(row);
+}
+
 export async function upsertAttendance(input: {
   organizationId: string;
   classId: string;
@@ -340,6 +427,36 @@ export async function upsertAttendance(input: {
     throw new ConflictError('Invalid attendance status');
   }
   const studentIds = input.records.map((record) => record.studentId);
+  if (new Set(studentIds).size !== studentIds.length) {
+    throw new ConflictError('Duplicate student in attendance records');
+  }
+  if (!(await classExistsInOrganization(input.organizationId, input.classId))) {
+    throw new NotFoundError('Class not found');
+  }
+
+  const sectionIds = [
+    ...new Set(
+      input.records
+        .map((record) => record.sectionId)
+        .filter((sectionId): sectionId is string => Boolean(sectionId)),
+    ),
+  ];
+  if (sectionIds.length) {
+    const validSections = await db
+      .select({ id: sections.id })
+      .from(sections)
+      .where(
+        and(
+          eq(sections.organizationId, input.organizationId),
+          eq(sections.classId, input.classId),
+          inArray(sections.id, sectionIds),
+        ),
+      );
+    if (validSections.length !== sectionIds.length) {
+      throw new ConflictError('Some sections do not belong to this class');
+    }
+  }
+
   const enrolled = await db
     .select({ studentId: classEnrollments.studentId })
     .from(classEnrollments)
@@ -386,14 +503,28 @@ export async function upsertAttendance(input: {
   );
 }
 
+export interface AttendanceQuery {
+  classId?: string;
+  studentId?: string;
+  classIds?: string[];
+  studentIds?: string[];
+  from?: Date;
+  to?: Date;
+}
+
 export async function listAttendance(
   organizationId: string,
-  options: { classId?: string; studentId?: string; from?: Date; to?: Date },
+  options: AttendanceQuery,
 ) {
   const db = getDb();
+  if (options.classIds && options.classIds.length === 0) return [];
+  if (options.studentIds && options.studentIds.length === 0) return [];
+
   const conditions = [eq(attendanceRecords.organizationId, organizationId)];
   if (options.classId) conditions.push(eq(attendanceRecords.classId, options.classId));
+  if (options.classIds) conditions.push(inArray(attendanceRecords.classId, options.classIds));
   if (options.studentId) conditions.push(eq(attendanceRecords.studentId, options.studentId));
+  if (options.studentIds) conditions.push(inArray(attendanceRecords.studentId, options.studentIds));
   if (options.from) conditions.push(gte(attendanceRecords.date, options.from));
   if (options.to) conditions.push(lte(attendanceRecords.date, options.to));
   return db
@@ -406,7 +537,7 @@ export async function listAttendance(
 
 export async function attendanceSummary(
   organizationId: string,
-  options: { classId?: string; studentId?: string; from?: Date; to?: Date },
+  options: AttendanceQuery,
 ) {
   const rows = await listAttendance(organizationId, options);
   return summariseAttendance(

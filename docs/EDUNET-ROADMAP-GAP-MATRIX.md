@@ -48,25 +48,25 @@ coverage and an operational story.
 | 4 | Identity and authentication | PARTIAL | Register/login/refresh, password reset, email/phone verification, sessions, lockout, audit; MFA, OAuth/OIDC, SSO and suspicious-login detection missing |
 | 5 | RBAC and multi-tenancy | VERIFIED | Canonical `@edunet/rbac`; 40 tests; every service uses shared middleware; tenant isolation covered in integration suite (CI) |
 | 6 | Database and migrations | VERIFIED (CI ONLY locally) | Drizzle schema/migrations for LMS, platform, AI, support; constraints proven previously on PostgreSQL 16; no local DB in this sandbox |
-| 7 | Student platform | PARTIAL | Academic profiles, attendance, achievements, certificates, streaks and timeline exist in `platform`; no student UI beyond courses/assignments |
-| 8 | Parent platform | PARTIAL | Parent dashboard at `/parent` (children, courses, grades, empty/error states); relationship API hardened (same-org linking, path-param child access, whitelisted updates, grade permission); no attendance UI or child-linking self-service |
-| 9 | Teacher platform | PARTIAL | Course/lesson/assignment/quiz creation, roster and grading UI; no attendance, class analytics or workload UI |
+| 7 | Student platform | PARTIAL | Academic profiles, attendance, achievements, certificates, streaks and timeline exist in `platform`; student `/attendance` view and `/library` bookmarks/notes view added; profiles/achievements/certificates UI missing |
+| 8 | Parent platform | PARTIAL | Parent dashboard at `/parent` (children, courses, grades) and child-scoped `/attendance` view; relationship API hardened (same-org linking, path-param child access, whitelisted updates, grade permission); no child-linking self-service |
+| 9 | Teacher platform | PARTIAL | Course/lesson/assignment/quiz creation, roster, grading, course analytics and scoped attendance UI; no workload UI |
 | 10 | LMS core | COMPLETE | Courses, modules, lessons, resources, enrolment, progress; student/teacher journeys covered by E2E (CI) |
 
 ## 11-20. Learning Experience
 
 | # | Workstream | Status | Evidence / Gap |
 |---|-----------|--------|----------------|
-| 11 | Content, media and versioning | PARTIAL | Modules, lessons, resources, progress, version history, filesystem media with signed URLs, MIME allowlist and 25 MB cap; objectives/bookmarks/notes/reviews tables have no routes, no S3 provider |
+| 11 | Content, media and versioning | PARTIAL | Modules, lessons, resources, progress, version history, filesystem media with signed URLs, MIME allowlist and 25 MB cap, objectives/bookmarks/notes APIs, and a teacher lesson/objective editor; review moderation and an S3 provider are still missing |
 | 12 | Assignments and submissions | PARTIAL | Deadlines, rubrics, autosave, revisions, grade revisions, feedback, ownership checks; assignment attachments and late-submission policy missing |
 | 13 | Assessment engine | PARTIAL | Five objective types (MCQ, multiple select, true/false, short answer, fill-in-blank, matching), partial credit, manual grading, grade history, rechecks, seeded randomisation; basic student/teacher UI only |
 | 14 | Question banks and exam analytics | PARTIAL | Banks, attach/list/update, paginated bank-question listing (`GET /question-banks/:id/questions`, 2026-10-24), randomisation; exam item analytics and blueprint coverage missing |
-| 15 | Offline and PWA | PARTIAL | Offline queue, backoff, dedupe, conflict resolution, download planner, service worker, banner, offline page; queue is not wired into mutation flows and no background sync |
+| 15 | Offline and PWA | PARTIAL | Offline queue, backoff, dedupe, conflict resolution, download planner, service worker, banner, offline page; wired into assignment/assessment submit, progress, notes and bookmarks; `/offline/queue` retry/discard triage; no background sync or automatic merge |
 | 16 | Internationalisation | COMPLETE | Bengali/English catalogues, `Intl` formatting, locale detection, interpolation, web language toggle; native Bengali review pending |
 | 17 | Accessibility | PARTIAL | Semantic primitives and focus styles; no WCAG 2.1 AA audit, keyboard test suite or screen-reader verification; skip link added in admin console |
 | 18 | Notifications | PARTIAL | In-app notification CRUD, read state, preferences, templates; no email/SMS push adapters or delivery worker |
 | 19 | Search | PARTIAL | Tenant-scoped service; `ILIKE` matching, no ranking, facets, typo tolerance or index strategy |
-| 20 | Analytics | PARTIAL | Course, student, assignment and engagement endpoints; no dashboards, warehouse/export or KPI instrumentation |
+| 20 | Analytics | PARTIAL | Tenant/owner-scoped course, student, assignment and engagement endpoints with a teacher dashboard; no warehouse/export or KPI instrumentation |
 
 ## 21-30. Engagement, AI, Support, Administration
 
@@ -123,12 +123,12 @@ Ordered by launch risk, not feature appeal:
    (#33; token storage and scanner tooling completed in repository) before exposing
    any endpoint publicly.
 4. **Backup/restore drill** — prove RTO with media included (#38).
-5. **Wire offline sync** into submission/progress/autosave or clearly ship
-   offline as read-only (#15).
+5. **Add background sync and automatic merge**; manual queue triage and
+   mutation wiring are complete (#15).
 6. **AI UI + provider configuration + human escalation path** — otherwise the
    completed AI backend is unreachable (#26).
-7. **Admin, parent, communication and support UI** — current backends have no
-   user surface (#7, #8, #21, #27, #29).
+7. **Admin, communication and support UI** — current backends have no complete
+   user surface (#21, #27, #29); student attendance and notes/bookmarks views exist.
 8. **Load, accessibility and Bengali review** — the remaining launch quality
    gates (#17, #39, #16).
 9. **Pilot plan, KPI pipeline and go/no-go** (#42, #43, #46).

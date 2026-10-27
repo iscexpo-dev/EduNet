@@ -40,6 +40,7 @@ import {
   canOwnPersonalState,
   clampPagination,
   isUuid,
+  parseLessonUpdate,
   parseNoteContent,
   parseObjectiveInput,
   parseObjectiveUpdate,
@@ -175,10 +176,12 @@ export async function updateLessonHandler(req: AuthRequest, res: Response) {
       return res.status(403).json({ error: 'You can only edit content for your own courses' });
     }
 
+    const patch = parseLessonUpdate(data);
     const lesson = await updateLesson(id, organizationId, {
-      title: data.title, description: data.description, type: data.type, content: data.content,
-      order: data.order, duration: data.duration, isPublished: data.isPublished,
-      publishedAt: data.isPublished === 'true' && !existing.publishedAt ? new Date() : undefined,
+      ...patch,
+      ...(patch.isPublished === 'true' && !existing.publishedAt
+        ? { publishedAt: new Date() }
+        : {}),
     });
 
     res.json(lesson);

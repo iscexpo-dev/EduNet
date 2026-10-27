@@ -84,6 +84,9 @@ export default function TeacherDashboard() {
             </p>
           </div>
           <div className="flex gap-4">
+            <Link href="/teacher/attendance">
+              <Button variant="secondary">Attendance</Button>
+            </Link>
             <Link href="/teacher/courses/new">
               <Button variant="primary">Create Course</Button>
             </Link>

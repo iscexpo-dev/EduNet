@@ -4,12 +4,80 @@
  * imports so policies can be unit tested and reused by jobs.
  */
 import { createHash } from 'node:crypto';
+import { isPrivilegedRole } from '@edunet/rbac';
 
 // ---------------------------------------------------------------------------
 // Attendance
 // ---------------------------------------------------------------------------
 
 export type AttendanceStatus = 'present' | 'absent' | 'late' | 'excused';
+export type AttendanceViewer = 'admin' | 'teacher' | 'student' | 'parent' | 'denied';
+
+/**
+ * Attendance is tenant-scoped, and within a tenant it is further scoped:
+ * administrators see the organization, teachers see classes they own or teach,
+ * students see themselves, and parents see linked children with permission.
+ * Tutors, mentors and support roles are intentionally denied.
+ */
+export function resolveAttendanceViewer(role: string | undefined): AttendanceViewer {
+  if (isPrivilegedRole(role)) return 'admin';
+  if (role === 'teacher') return 'teacher';
+  if (role === 'student') return 'student';
+  if (role === 'parent') return 'parent';
+  return 'denied';
+}
+
+export type StudentScope =
+  | { allowed: true; studentIds: string[] | null }
+  | { allowed: false };
+
+/**
+ * Resolves the student filter for a viewer. `null` means no student restriction
+ * (administrators and teachers); an empty array means no accessible students.
+ * `requestedStudentId` narrows the scope and must belong to the viewer.
+ */
+export function resolveAttendanceStudentScope(
+  viewer: AttendanceViewer,
+  userId: string | undefined,
+  linkedChildIds: readonly string[],
+  requestedStudentId?: string,
+): StudentScope {
+  if (viewer === 'student') {
+    if (!userId) return { allowed: false };
+    if (requestedStudentId && requestedStudentId !== userId) return { allowed: false };
+    return { allowed: true, studentIds: [userId] };
+  }
+
+  if (viewer === 'parent') {
+    if (!userId) return { allowed: false };
+    if (requestedStudentId) {
+      return linkedChildIds.includes(requestedStudentId)
+        ? { allowed: true, studentIds: [requestedStudentId] }
+        : { allowed: false };
+    }
+    return { allowed: true, studentIds: [...linkedChildIds] };
+  }
+
+  if (viewer === 'teacher' || viewer === 'admin') {
+    return { allowed: true, studentIds: null };
+  }
+
+  return { allowed: false };
+}
+
+/**
+ * Teachers may only read/mark classes they are the homeroom teacher for or
+ * teach a subject in. Administrators may use any class in the organization.
+ */
+export function canAccessAttendanceClass(
+  viewer: AttendanceViewer,
+  classId: string,
+  teacherClassIds: readonly string[],
+): boolean {
+  if (viewer === 'admin') return true;
+  if (viewer !== 'teacher') return false;
+  return teacherClassIds.includes(classId);
+}
 
 export const ATTENDANCE_WEIGHT: Record<AttendanceStatus, number> = {
   present: 1,

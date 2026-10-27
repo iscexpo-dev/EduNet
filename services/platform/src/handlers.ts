@@ -21,10 +21,13 @@ import {
   ingestAnalyticsEvents,
   isFeatureEnabled,
   listAcademicYears,
+  getLinkedAttendanceChildIds,
+  getTeacherAttendanceClassIds,
   listAttendance,
   listAuditLogs,
   listClassEnrollments,
   listClasses,
+  listClassesForTeacher,
   listClassSubjects,
   listConsents,
   listDataSubjectRequests,
@@ -48,7 +51,14 @@ import {
   upsertSetting,
   verifyAuditLogs,
 } from './db';
-import { calculateWeightedGrade, letterGrade } from './logic';
+import {
+  calculateWeightedGrade,
+  canAccessAttendanceClass,
+  letterGrade,
+  resolveAttendanceStudentScope,
+  resolveAttendanceViewer,
+  type AttendanceViewer,
+} from './logic';
 
 export interface AuthRequest extends Request {
   user?: {
@@ -169,9 +179,17 @@ export async function listClassesHandler(req: AuthRequest, res: Response) {
   const ctx = context(req, res);
   if (!ctx) return;
   try {
-    const { academicYearId } = z
-      .object({ academicYearId: z.string().uuid().optional() })
+    const { academicYearId, mine } = z
+      .object({
+        academicYearId: z.string().uuid().optional(),
+        mine: z.enum(['true', 'false']).optional(),
+      })
       .parse(req.query);
+    if (mine === 'true' && resolveAttendanceViewer(ctx.user.role) === 'teacher') {
+      return res.json(
+        await listClassesForTeacher(ctx.organizationId, ctx.user.id, academicYearId),
+      );
+    }
     return res.json(await listClasses(ctx.organizationId, academicYearId));
   } catch (error) {
     return fail(res, error);
@@ -317,7 +335,19 @@ export async function listEnrollmentsHandler(req: AuthRequest, res: Response) {
   const ctx = context(req, res);
   if (!ctx) return;
   try {
-    return res.json(await listClassEnrollments(ctx.organizationId, req.params.classId!));
+    if (!requirePermission(res, ctx.user.role, 'enrollment:read')) return;
+    const viewer = resolveAttendanceViewer(ctx.user.role);
+    if (viewer !== 'admin' && viewer !== 'teacher') {
+      return res.status(403).json({ error: 'Forbidden' });
+    }
+    const classId = z.string().uuid().parse(req.params.classId);
+    if (viewer === 'teacher') {
+      const allowed = await getTeacherAttendanceClassIds(ctx.organizationId, ctx.user.id);
+      if (!canAccessAttendanceClass(viewer, classId, allowed)) {
+        return res.status(403).json({ error: 'You can only view rosters for your own classes' });
+      }
+    }
+    return res.json(await listClassEnrollments(ctx.organizationId, classId));
   } catch (error) {
     return fail(res, error);
   }
@@ -363,10 +393,68 @@ export async function updateEnrollmentHandler(req: AuthRequest, res: Response) {
   }
 }
 
+interface AttendanceAccess {
+  viewer: AttendanceViewer;
+  classIds?: string[];
+  studentIds?: string[];
+}
+
+async function resolveAttendanceAccess(
+  ctx: { organizationId: string; user: { id: string; role: string } },
+  res: Response,
+  requested: { classId?: string; studentId?: string },
+): Promise<AttendanceAccess | null> {
+  const viewer = resolveAttendanceViewer(ctx.user.role);
+  if (viewer === 'denied') {
+    res.status(403).json({ error: 'Forbidden' });
+    return null;
+  }
+
+  let linkedChildren: string[] = [];
+  if (viewer === 'parent') {
+    linkedChildren = await getLinkedAttendanceChildIds(ctx.organizationId, ctx.user.id);
+  }
+
+  const studentScope = resolveAttendanceStudentScope(
+    viewer,
+    ctx.user.id,
+    linkedChildren,
+    requested.studentId,
+  );
+  if (!studentScope.allowed) {
+    res.status(403).json({ error: 'You cannot view attendance for that student' });
+    return null;
+  }
+
+  let classIds: string[] | undefined;
+  if (viewer === 'teacher') {
+    const allowedClassIds = await getTeacherAttendanceClassIds(
+      ctx.organizationId,
+      ctx.user.id,
+    );
+    if (requested.classId) {
+      if (!canAccessAttendanceClass(viewer, requested.classId, allowedClassIds)) {
+        res.status(403).json({ error: 'You can only view attendance for your own classes' });
+        return null;
+      }
+      classIds = [requested.classId];
+    } else {
+      classIds = allowedClassIds;
+    }
+  }
+
+  return {
+    viewer,
+    classIds,
+    studentIds: studentScope.studentIds ?? undefined,
+  };
+}
+
 export async function listAttendanceHandler(req: AuthRequest, res: Response) {
   const ctx = context(req, res);
   if (!ctx) return;
   try {
+    if (!requirePermission(res, ctx.user.role, 'attendance:read')) return;
     const query = z
       .object({
         classId: z.string().uuid().optional(),
@@ -375,7 +463,15 @@ export async function listAttendanceHandler(req: AuthRequest, res: Response) {
         to: z.coerce.date().optional(),
       })
       .parse(req.query);
-    return res.json(await listAttendance(ctx.organizationId, query));
+    const access = await resolveAttendanceAccess(ctx, res, query);
+    if (!access) return;
+    return res.json(
+      await listAttendance(ctx.organizationId, {
+        ...query,
+        classIds: access.classIds,
+        studentIds: access.studentIds,
+      }),
+    );
   } catch (error) {
     return fail(res, error);
   }
@@ -385,7 +481,7 @@ export async function markAttendanceHandler(req: AuthRequest, res: Response) {
   const ctx = context(req, res);
   if (!ctx) return;
   try {
-    if (!requirePermission(res, ctx.user.role, 'academics:write')) return;
+    if (!requirePermission(res, ctx.user.role, 'attendance:write')) return;
     const input = z
       .object({
         classId: z.string().uuid(),
@@ -403,6 +499,11 @@ export async function markAttendanceHandler(req: AuthRequest, res: Response) {
           .max(500),
       })
       .parse(req.body);
+    const access = await resolveAttendanceAccess(ctx, res, { classId: input.classId });
+    if (!access) return;
+    if (access.viewer !== 'admin' && access.viewer !== 'teacher') {
+      return res.status(403).json({ error: 'Forbidden' });
+    }
     return res.json(
       await upsertAttendance({
         ...input,
@@ -419,14 +520,24 @@ export async function attendanceSummaryHandler(req: AuthRequest, res: Response) 
   const ctx = context(req, res);
   if (!ctx) return;
   try {
+    if (!requirePermission(res, ctx.user.role, 'attendance:read')) return;
     const query = z
       .object({
         classId: z.string().uuid().optional(),
+        studentId: z.string().uuid().optional(),
         from: z.coerce.date().optional(),
         to: z.coerce.date().optional(),
       })
       .parse(req.query);
-    return res.json(await attendanceSummary(ctx.organizationId, query));
+    const access = await resolveAttendanceAccess(ctx, res, query);
+    if (!access) return;
+    return res.json(
+      await attendanceSummary(ctx.organizationId, {
+        ...query,
+        classIds: access.classIds,
+        studentIds: access.studentIds,
+      }),
+    );
   } catch (error) {
     return fail(res, error);
   }

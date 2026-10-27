@@ -77,7 +77,7 @@
 | POST | `/lessons` | Teacher/Admin | Create lesson |
 | GET | `/lessons` | Any | List lessons |
 | GET | `/lessons/:id` | Any | Get lesson |
-| PUT | `/lessons/:id` | Teacher/Admin | Update lesson |
+| PUT | `/lessons/:id` | Teacher/Admin (owner) | Update lesson; only title/description/type/content/order/duration/isPublished are accepted |
 | DELETE | `/lessons/:id` | Teacher/Admin | Delete lesson |
 | POST | `/lesson-progress` | Any | Create progress |
 | GET | `/lesson-progress` | Any | List progress |
@@ -151,7 +151,15 @@ weights, and all results exclude inactive or soft-deleted rows.
 | GET | `/courses/:courseId/analytics` | Teacher/Admin | Course analytics |
 | GET | `/courses/:courseId/analytics/students` | Teacher/Admin | Student performance |
 | GET | `/courses/:courseId/analytics/assignments` | Teacher/Admin | Assignment performance |
-| GET | `/courses/:courseId/analytics/engagement` | Teacher/Admin | Course engagement |
+| GET | `/courses/:courseId/analytics/engagement` | Teacher/Admin | Course engagement (`?days=`, default 30, max 365) |
+
+All analytics routes require organization context. The course must belong to the
+caller's organization and the caller must be its owning teacher or an
+administrator in that organization; otherwise the API returns `403` (or `404`
+when the course does not exist in the organization, preventing enumeration).
+Queries exclude soft-deleted courses, enrollments, assignments and submissions.
+The summary includes `averagePercent` (graded score as a percentage of max
+points); per-row averages remain raw points plus `maxPoints`.
 
 ## Identity extensions (`/api/auth`)
 
@@ -205,6 +213,13 @@ cookie. Refresh tokens live in the httpOnly `edunet_refresh` cookie scoped to
 | GET | `/media/:id/access` | Bearer | Mint a short-lived signed URL |
 | DELETE | `/media/:id` | Teacher/Admin | Soft-delete media |
 | GET | `/files/*` | None (signed) | Stream a signed media object |
+
+The teacher lesson editor (`/teacher/courses/:id/lessons/:lessonId`) uses the
+lesson `GET`/`PUT` routes plus the learning-objective routes to create, edit,
+delete, attach and detach course objectives for the lesson. Lesson updates are
+validated server-side: titles are trimmed and bounded, `type` must be one of
+`text|video|document|interactive|quiz`, `content` must be a JSON object, and
+unknown fields (including `courseId`, `moduleId` and `deletedAt`) are ignored.
 
 ## Submissions extensions (`/api/submissions`)
 
@@ -342,12 +357,12 @@ consent is required; unsafe or crisis input bypasses model generation.
 |--------|----------|------|-------------|
 | GET/POST/PATCH | `/academics/years`, `/academics/years/:id` | Bearer/Admin | Academic years |
 | GET/POST | `/academics/terms` | Bearer/Admin | Terms |
-| GET/POST/PATCH | `/academics/classes`, `/academics/classes/:id` | Bearer/Admin | Classes |
+| GET/POST/PATCH | `/academics/classes`, `/academics/classes/:id` | Bearer/Admin | Classes; `?mine=true` filters teachers to homeroom/taught classes |
 | GET/POST | `/academics/classes/:classId/sections`, `/academics/sections` | Bearer/Admin | Sections |
 | GET/POST | `/academics/subjects` | Bearer/Admin | Subjects |
 | GET/POST | `/academics/classes/:classId/subjects`, `/academics/class-subjects` | Bearer/Admin | Class subjects |
-| GET/POST/PATCH | `/academics/classes/:classId/enrollments`, `/academics/enrollments`, `/academics/enrollments/:id` | Bearer/Admin | Class enrolments |
-| GET/POST | `/attendance`, `/attendance/summary` | Bearer | Mark/list/summarise attendance |
+| GET/POST/PATCH | `/academics/classes/:classId/enrollments`, `/academics/enrollments`, `/academics/enrollments/:id` | Bearer/Admin | Class enrolments; roster reads are staff-only and teachers see only their classes |
+| GET/POST | `/attendance`, `/attendance/summary` | Bearer | Mark/list/summarise attendance (`attendance:read` / `attendance:write`); reads are role-scoped (admin org, teacher classes, student self, parent linked children) and accept `from`/`to`/`classId`/`studentId` |
 | POST | `/grades/calculate` | Bearer | Calculate grade |
 | POST/GET | `/analytics/events`, `/analytics/summary` | Bearer | Event ingestion and summary |
 | GET/PUT | `/flags`, `/flags/:key/check` | Bearer | Feature flags |
@@ -358,6 +373,14 @@ consent is required; unsafe or crisis input bypasses model generation.
 | GET/PUT | `/integrations` | Admin | Integration configuration |
 | GET/POST | `/webhooks` | Admin | Webhook endpoint registration |
 | GET/PUT | `/notification-templates` | Admin | Notification templates |
+
+Attendance is tenant-scoped and role-scoped: administrators see the whole
+organization, teachers see only classes where they are homeroom teacher or teach
+a subject, students see only their own records, and parents see linked children
+where `canViewAttendance` is granted. Tutors, mentors and other roles are denied.
+List/summary accept `classId`, `studentId`, `from`, `to`; marking validates that
+the class is active in the organization, every student is actively enrolled, and
+any `sectionId` belongs to that class.
 
 ## Response and error conventions
 
